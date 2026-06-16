@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Utensils, Calendar } from 'lucide-react';
+import { createClient } from '@/lib/client';
 
 interface AnnadanamSponsor {
   id: string;
@@ -17,38 +18,54 @@ export default function AnnadanamPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('temple_annadanam');
-      if (stored) {
-        setSponsors(JSON.parse(stored));
-      } else {
-        const initial = [
-          { id: 'ANN-42', sponsorName: 'Family of K. Gupta', contact: '9876543210', date: new Date().toLocaleDateString('en-IN'), mealType: 'Maha Prasada', amount: 15000 },
-          { id: 'ANN-43', sponsorName: 'Sneha & Raj', contact: '9876500000', date: new Date().toLocaleDateString('en-IN'), mealType: 'Lunch Annadanam', amount: 5000 },
-        ];
-        setSponsors(initial);
-        localStorage.setItem('temple_annadanam', JSON.stringify(initial));
+    const fetchSponsors = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase.from('annadanam').select('*').order('created_at', { ascending: false });
+      if (data && !error) {
+        setSponsors(data.map((s: any) => ({
+          id: s.id,
+          sponsorName: s.sponsor_name,
+          contact: s.contact,
+          date: s.date,
+          mealType: s.meal_type,
+          amount: s.amount
+        })));
       }
-    }
+    };
+    fetchSponsors();
   }, []);
 
-  const handleScheduleSponsor = () => {
+  const handleScheduleSponsor = async () => {
     const name = window.prompt("Enter sponsor name:");
     if (!name) return;
     const amountStr = window.prompt("Enter donation amount (e.g. 5000):", "5000");
     const amount = Number(amountStr) || 5000;
     
-    const newSponsor: AnnadanamSponsor = {
+    const newSponsor = {
       id: `ANN-${Math.floor(Math.random() * 1000)}`,
-      sponsorName: name,
+      sponsor_name: name,
       contact: 'N/A',
       date: new Date().toLocaleDateString('en-IN'),
-      mealType: 'Special Annadanam',
+      meal_type: 'Special Annadanam',
       amount
     };
-    const updated = [newSponsor, ...sponsors];
-    setSponsors(updated);
-    localStorage.setItem('temple_annadanam', JSON.stringify(updated));
+    
+    const supabase = createClient();
+    const { error } = await supabase.from('annadanam').insert([newSponsor]);
+    
+    if (!error) {
+      setSponsors([{
+        id: newSponsor.id,
+        sponsorName: newSponsor.sponsor_name,
+        contact: newSponsor.contact,
+        date: newSponsor.date,
+        mealType: newSponsor.meal_type,
+        amount: newSponsor.amount
+      }, ...sponsors]);
+    } else {
+      alert("Failed to schedule sponsor. Please try again.");
+      console.error(error);
+    }
   };
 
   const filtered = sponsors.filter(s => 

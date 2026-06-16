@@ -16,29 +16,21 @@ interface Booking {
 export default function DevoteesPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-
-  const loadBookings = async () => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('temple_bookings');
-      if (stored && stored !== '[]') {
-        setBookings(JSON.parse(stored));
-      }
-    }
-
-    try {
-      const res = await fetch('/api/bookings');
-      const data = await res.json();
-      if (data.success && data.bookings) {
-        setBookings(data.bookings);
-        localStorage.setItem('temple_bookings', JSON.stringify(data.bookings));
-      }
-    } catch (err: any) {
-      console.error('Failed to sync bookings with Google Sheets:', err.message);
-    }
-  };
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadBookings();
+    const fetchBookings = async () => {
+      try {
+        const res = await fetch('/api/bookings');
+        const data = await res.json();
+        setBookings(data.bookings || []);
+      } catch (err) {
+        console.error("Failed to fetch bookings", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchBookings();
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -54,7 +46,6 @@ export default function DevoteesPage() {
     if(confirm('Are you sure you want to delete this booking?')) {
       const updated = bookings.filter(b => b.id !== id);
       setBookings(updated);
-      localStorage.setItem('temple_bookings', JSON.stringify(updated));
 
       try {
         await fetch('/api/bookings/update', {
@@ -74,7 +65,6 @@ export default function DevoteesPage() {
     if(confirm('Mark this seva booking as completed?')) {
       const updated = bookings.map(b => b.id === id ? { ...b, status: 'completed' } : b);
       setBookings(updated);
-      localStorage.setItem('temple_bookings', JSON.stringify(updated));
 
       try {
         await fetch('/api/bookings/update', {
@@ -85,7 +75,7 @@ export default function DevoteesPage() {
           body: JSON.stringify({ id, status: 'completed' }),
         });
       } catch (err: any) {
-        console.error('Failed to sync status with Google Sheets:', err.message);
+        console.error('Failed to sync status:', err.message);
       }
     }
   }

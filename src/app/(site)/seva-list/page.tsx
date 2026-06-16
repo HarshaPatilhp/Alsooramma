@@ -590,13 +590,9 @@ Total Cost: ${bookingData.totalCost}
 
       console.log('🔍 [DEBUG] Created bookingData:', bookingData);
 
-      // Save to localStorage
-      const existingBookings = JSON.parse(localStorage.getItem('temple_bookings') || '[]');
-      existingBookings.push(bookingData);
-      localStorage.setItem('temple_bookings', JSON.stringify(existingBookings));
-      console.log('🔍 [DEBUG] Booking saved to localStorage. Total bookings:', existingBookings.length);
+      // 1. We no longer save to localStorage, it's deprecated.
 
-      // Save to Google Sheets
+      // 2. Save to Google Sheets / Supabase DB via API
       try {
         console.log('🔍 [DEBUG] Syncing booking to Google Sheets...');
         const sheetsResponse = await fetch('/api/bookings', {

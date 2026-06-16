@@ -5,6 +5,7 @@ import { RefreshCw, Users, BookOpen, Gift, ShieldCheck, QrCode, Clock, ArrowRigh
 import StatCard from '@/components/dashboard/StatCard';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/client';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -18,27 +19,15 @@ export default function DashboardPage() {
   const loadData = async () => {
     setIsRefreshing(true);
     try {
-      let bookings: any[] = [];
-      if (typeof window !== 'undefined') {
-        const bookingsJson = localStorage.getItem('temple_bookings');
-        bookings = bookingsJson ? JSON.parse(bookingsJson) : [];
-      }
-
-      try {
-        const res = await fetch('/api/bookings');
-        const data = await res.json();
-        if (data.success && data.bookings) {
-          bookings = data.bookings;
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('temple_bookings', JSON.stringify(bookings));
-          }
-        }
-      } catch (apiErr: any) {
-        console.error('Failed to sync dashboard bookings with Sheets API:', apiErr.message);
-      }
-
-      const historyJson = typeof window !== 'undefined' ? localStorage.getItem('scanHistory') : null;
-      const history = historyJson ? JSON.parse(historyJson) : [];
+      const supabase = createClient();
+      
+      // Fetch bookings
+      const { data: bookingsData } = await supabase.from('bookings').select('*');
+      const bookings = bookingsData || [];
+      
+      // Fetch scan history
+      const { data: historyData } = await supabase.from('scan_history').select('*').order('created_at', { ascending: false }).limit(5);
+      const history = historyData || [];
 
       // Calculate live stats
       const today = new Date();
@@ -55,7 +44,7 @@ export default function DashboardPage() {
       
       // 3. Total Revenue (All Time)
       const revenueTotal = bookings.reduce((sum: number, b: any) => {
-        const costStr = String(b.totalCost || '0').replace('₹', '').replace(',', '').trim();
+        const costStr = String(b.total_cost || '0').replace('₹', '').replace(',', '').trim();
         return sum + (Number(costStr) || 0);
       }, 0);
 
@@ -73,11 +62,11 @@ export default function DashboardPage() {
       setStats(baseStats);
 
       // Load recent check-ins from history
-      const recent = history.slice(0, 5).map((h: any) => ({
+      const recent = history.map((h: any) => ({
         id: h.id,
-        name: h.devoteeName || 'Unknown Devotee',
-        time: new Date(h.scanTime || Date.now()).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        seva: h.sevaName || 'Seva',
+        name: `Booking #${h.booking_id}`,
+        time: new Date(h.scanned_at || Date.now()).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }),
+        seva: 'Seva',
         status: h.status || 'Checked In'
       }));
       setRecentCheckins(recent);

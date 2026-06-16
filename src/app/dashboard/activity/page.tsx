@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Calendar, Filter, Clock, CheckCircle, Search } from 'lucide-react';
+import { createClient } from '@/lib/client';
 
 interface Activity {
   id: string;
@@ -16,23 +17,23 @@ export default function ActivityLogPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const historyJson = localStorage.getItem('scanHistory');
-      if (historyJson) {
-        const history = JSON.parse(historyJson);
-        const mapped = history.map((h: any) => ({
+    const fetchActivities = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase.from('scan_history').select('*').order('created_at', { ascending: false });
+      
+      if (data && !error) {
+        const mapped = data.map((h: any) => ({
           id: h.id.toString(),
           type: 'check_in',
           title: 'QR Check-in Verified',
-          description: `${h.devoteeName || 'A devotee'} checked in for ${h.sevaName || 'Seva'}.`,
-          timestamp: h.scanTime || new Date().toLocaleString('en-US'),
-          user: 'System / Scanner'
+          description: `Booking #${h.booking_id} was successfully verified and checked in.`,
+          timestamp: h.scanned_at || new Date().toLocaleString('en-IN'),
+          user: h.scanned_by || 'System / Scanner'
         }));
         setActivities(mapped);
-      } else {
-        setActivities([]);
       }
-    }
+    };
+    fetchActivities();
   }, []);
 
   const getTypeIcon = (type: string) => {

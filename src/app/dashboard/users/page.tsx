@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Shield, UserPlus, Trash2, Edit } from 'lucide-react';
+import { createClient } from '@/lib/client';
 
 interface Volunteer {
   id: string;
@@ -15,28 +16,32 @@ export default function UsersPage() {
   const [users, setUsers] = useState<Volunteer[]>([]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('temple_volunteers');
-      const currentUserPhone = localStorage.getItem('temple_auth_phone');
-      
-      if (stored) {
-        setUsers(JSON.parse(stored));
-      } else {
-        const initial: Volunteer[] = [
-           { id: '1', name: 'Master Admin', phone: currentUserPhone || '9876543210', email: 'admin@vidyaranyapura-mutt.com', role: 'admin' },
-           { id: '2', name: 'Scanner Vol 01', phone: '9000000001', email: 'scanner1@vidyaranyapura-mutt.com', role: 'volunteer' },
-        ];
-        setUsers(initial);
-        localStorage.setItem('temple_volunteers', JSON.stringify(initial));
+    const fetchUsers = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+      if (data && !error) {
+         setUsers(data.map((u: any) => ({
+            id: String(u.id),
+            name: u.name,
+            email: u.email,
+            phone: u.phone,
+            role: u.role
+         })));
       }
-    }
+    };
+    fetchUsers();
   }, []);
 
-  const deleteUser = (id: string) => {
+  const deleteUser = async (id: string) => {
     if(confirm('Are you sure you want to remove this user access?')) {
-       const u = users.filter(x => x.id !== id);
-       setUsers(u);
-       localStorage.setItem('temple_volunteers', JSON.stringify(u));
+       const supabase = createClient();
+       const { error } = await supabase.from('users').delete().eq('id', id);
+       if (!error) {
+         setUsers(users.filter(x => x.id !== id));
+       } else {
+         alert("Failed to remove user access.");
+         console.error(error);
+       }
     }
   };
 

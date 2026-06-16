@@ -1,9 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createClient } from '@/lib/client';
 
 interface User {
-  id: number;
+  id: string | number;
   name: string;
   role: 'volunteer' | 'admin';
   email: string;
@@ -17,24 +18,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Demo users - in real app, this would come from backend
-const DEMO_USERS = [
-  {
-    id: 1,
-    name: 'Gururaj Patil',
-    email: 'gururaj@volunteer.com',
-    password: 'volunteer123',
-    role: 'volunteer' as const
-  },
-  {
-    id: 2,
-    name: 'Admin User',
-    email: 'admin@temple.com',
-    password: 'admin123',
-    role: 'admin' as const
-  }
-];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -53,30 +36,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .eq('password', password)
+        .single();
 
-    const foundUser = DEMO_USERS.find(u => u.email === email && u.password === password);
+      if (data && !error) {
+        const userData: User = {
+          id: data.id,
+          name: data.name,
+          role: data.role as 'admin' | 'volunteer',
+          email: data.email
+        };
 
-    if (foundUser) {
-      const userData: User = {
-        id: foundUser.id,
-        name: foundUser.name,
-        role: foundUser.role,
-        email: foundUser.email
-      };
-
-      setUser(userData);
-      sessionStorage.setItem('temple_auth_user', JSON.stringify(userData));
-      return true;
+        setUser(userData);
+        sessionStorage.setItem('temple_auth_user', JSON.stringify(userData));
+        sessionStorage.setItem('temple_auth_phone', data.phone || '');
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("Login error:", err);
+      return false;
     }
-
-    return false;
   };
 
   const logout = () => {
     setUser(null);
     sessionStorage.removeItem('temple_auth_user');
+    sessionStorage.removeItem('temple_auth_phone');
     // Redirect to login page
     if (typeof window !== 'undefined') {
       window.location.href = '/login';

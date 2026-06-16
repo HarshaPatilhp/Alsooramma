@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Filter, Plus, FileDown } from 'lucide-react';
+import { createClient } from '@/lib/client';
 
 interface Donation {
   id: string;
@@ -17,43 +18,57 @@ export default function DonationsPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('temple_donations');
-      if (stored) {
-        setDonations(JSON.parse(stored));
-      } else {
-        // Initialize with realistic mock records if empty, writing to localStorage to act "live"
-        const initial = [
-          { id: 'DON-10293', donorName: 'Radha Krishna', amount: 5001, date: new Date().toLocaleDateString('en-IN'), purpose: 'General Fund', receiptSent: true },
-          { id: 'DON-10294', donorName: 'Ramesh V', amount: 1000, date: new Date().toLocaleDateString('en-IN'), purpose: 'Archana Sponsoring', receiptSent: false },
-        ];
-        setDonations(initial);
-        localStorage.setItem('temple_donations', JSON.stringify(initial));
+    const fetchDonations = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase.from('donations').select('*').order('created_at', { ascending: false });
+      if (data && !error) {
+        setDonations(data.map((d: any) => ({
+          id: d.id,
+          donorName: d.donor_name,
+          amount: d.amount,
+          date: d.date,
+          purpose: d.purpose,
+          receiptSent: d.receipt_sent
+        })));
       }
-    }
+    };
+    fetchDonations();
   }, []);
 
   const totalAmount = donations.reduce((sum, d) => sum + Number(d.amount), 0);
 
-  const handleAddRecord = () => {
+  const handleAddRecord = async () => {
     const name = window.prompt("Enter donor name:");
     if (!name) return;
     const amountStr = window.prompt("Enter donation amount (e.g. 1000):", "1000");
     const amount = Number(amountStr) || 1000;
     const purpose = window.prompt("Enter purpose (e.g. General Fund):", "General Fund") || "General Fund";
 
-    const newRecord: Donation = {
+    const newRecord = {
       id: `DON-${Math.floor(Math.random() * 100000)}`,
-      donorName: name,
+      donor_name: name,
       amount,
       date: new Date().toLocaleDateString('en-IN'),
       purpose,
-      receiptSent: false
+      receipt_sent: false
     };
     
-    const updated = [newRecord, ...donations];
-    setDonations(updated);
-    localStorage.setItem('temple_donations', JSON.stringify(updated));
+    const supabase = createClient();
+    const { error } = await supabase.from('donations').insert([newRecord]);
+    
+    if (!error) {
+       setDonations([{
+          id: newRecord.id,
+          donorName: newRecord.donor_name,
+          amount: newRecord.amount,
+          date: newRecord.date,
+          purpose: newRecord.purpose,
+          receiptSent: newRecord.receipt_sent
+       }, ...donations]);
+    } else {
+       alert("Failed to add donation. Please try again.");
+       console.error(error);
+    }
   };
 
   const handleExport = () => {
@@ -74,11 +89,16 @@ export default function DonationsPage() {
     alert("Advanced filter panel will open here. Currently filtering by search term only.");
   };
 
-  const handleSendReceipt = (id: string) => {
-    const updated = donations.map(d => d.id === id ? { ...d, receiptSent: true } : d);
-    setDonations(updated);
-    localStorage.setItem('temple_donations', JSON.stringify(updated));
-    alert(`Receipt sent for ID: ${id}`);
+  const handleSendReceipt = async (id: string) => {
+    const supabase = createClient();
+    const { error } = await supabase.from('donations').update({ receipt_sent: true }).eq('id', id);
+    if (!error) {
+       setDonations(donations.map(d => d.id === id ? { ...d, receiptSent: true } : d));
+       alert(`Receipt sent for ID: ${id}`);
+    } else {
+       alert("Failed to send receipt.");
+       console.error(error);
+    }
   };
 
   const filtered = donations.filter(d => 

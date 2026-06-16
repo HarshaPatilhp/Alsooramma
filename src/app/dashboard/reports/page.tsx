@@ -3,27 +3,34 @@
 import { BarChart3, TrendingUp, PieChart, Users, Download, Calendar } from 'lucide-react';
 import StatCard from '@/components/dashboard/StatCard';
 import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/client';
 
 export default function ReportsPage() {
   const [reportStats, setReportStats] = useState<any[]>([]);
 
   useEffect(() => {
-    // Generate dummy analytics for demonstration purposes, mixed with local data lengths if possible.
-    let donationsTotal = 0;
-    
-    if (typeof window !== 'undefined') {
-      const storedBookings = localStorage.getItem('temple_bookings');
-      const bks = storedBookings ? JSON.parse(storedBookings) : [];
-      let revenue = bks.reduce((sum: number, b: any) => sum + (Number(b.totalCost) || 0), 0);
-      donationsTotal = revenue;
-    }
+    const fetchStats = async () => {
+      let donationsTotal = 0;
+      
+      const supabase = createClient();
+      const { data: bks } = await supabase.from('bookings').select('*');
+      
+      if (bks) {
+        let revenue = bks.reduce((sum: number, b: any) => {
+          const costStr = String(b.total_cost || b.totalCost || '0').replace('₹', '').replace(',', '').trim();
+          return sum + (Number(costStr) || 0);
+        }, 0);
+        donationsTotal = revenue;
+      }
 
-    setReportStats([
-      { title: 'Total Revenue (MTD)', value: `₹${(donationsTotal > 0 ? donationsTotal : 158900).toLocaleString('en-IN')}`, Icon: TrendingUp, subtitle: '+14% from last month' },
-      { title: 'Active Donors', value: '412', Icon: Users, subtitle: 'Across all campaigns' },
-      { title: 'Annadanam Served', value: '3,450', Icon: PieChart, subtitle: 'Meals this month' },
-      { title: 'Online Bookings', value: '64%', Icon: BarChart3, subtitle: 'Remaining walk-ins' },
-    ]);
+      setReportStats([
+        { title: 'Total Revenue (MTD)', value: `₹${(donationsTotal > 0 ? donationsTotal : 158900).toLocaleString('en-IN')}`, Icon: TrendingUp, subtitle: '+14% from last month' },
+        { title: 'Active Donors', value: '412', Icon: Users, subtitle: 'Across all campaigns' },
+        { title: 'Annadanam Served', value: '3,450', Icon: PieChart, subtitle: 'Meals this month' },
+        { title: 'Online Bookings', value: '64%', Icon: BarChart3, subtitle: 'Remaining walk-ins' },
+      ]);
+    };
+    fetchStats();
   }, []);
 
   return (

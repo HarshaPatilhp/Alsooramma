@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { QrCode, X, CheckCircle, AlertCircle } from 'lucide-react';
 import QrScanner from 'qr-scanner';
+import { createClient } from '@/lib/client';
 
 export default function ScannerPage() {
   const [isScanning, setIsScanning] = useState(false);
@@ -53,22 +54,25 @@ export default function ScannerPage() {
     setIsScanning(true);
   };
 
-  const handleScanSuccess = (data: string) => {
+  const handleScanSuccess = async (data: string) => {
     // Stop scanning immediately to prevent duplicate scans
     setIsScanning(false);
     
-    const stored = localStorage.getItem('temple_bookings');
-    let found = false;
-    let details = null;
-    let bookings: any[] = [];
+    const supabase = createClient();
+    const { data: dbDetails, error } = await supabase.from('bookings').select('*').eq('id', data).single();
 
-    if (stored) {
-      bookings = JSON.parse(stored);
-      details = bookings.find((b: any) => String(b.id) === String(data));
-      found = !!details;
-    }
+    if (dbDetails && !error) {
+      const details = {
+         id: dbDetails.id,
+         devoteeName: dbDetails.devotee_name,
+         sevaName: dbDetails.seva_name,
+         status: dbDetails.status,
+         gotra: dbDetails.gotra,
+         date: dbDetails.date,
+         devoteeCategory: '',
+         redirectHall: ''
+      };
 
-    if (found && details) {
       if (details.status === 'completed') {
         setScanResult({ 
           status: 'error', 
@@ -77,38 +81,27 @@ export default function ScannerPage() {
         return;
       }
 
-      // 1. Update Booking Status
-      const updatedBookings = bookings.map(b => 
-        String(b.id) === String(data) ? { ...b, status: 'completed' } : b
-      );
-      localStorage.setItem('temple_bookings', JSON.stringify(updatedBookings));
-
-      // Sync status change to Google Sheets database
+      // 1. Update Booking Status via API
       fetch('/api/bookings/update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ id: data, status: 'completed' }),
-      }).catch((sheetsErr: any) => {
-        console.error('Failed to sync check-in status to Google Sheets:', sheetsErr.message);
+      }).catch((apiErr: any) => {
+        console.error('Failed to sync check-in status:', apiErr.message);
       });
 
-
-      // 2. Add to scan history
-      const scanHistoryJson = localStorage.getItem('scanHistory');
-      const scanHistory = scanHistoryJson ? JSON.parse(scanHistoryJson) : [];
-      
+      // 2. Add to scan history in Supabase
       const newScan = {
-        id: Date.now(),
-        bookingId: details.id,
-        devoteeName: details.devoteeName || details.fullName,
-        sevaName: details.sevaName,
-        scanTime: new Date().toLocaleString(),
-        status: 'Verified'
+        id: Date.now().toString(),
+        booking_id: details.id,
+        scanned_at: new Date().toLocaleString('en-IN'),
+        status: 'Verified',
+        scanned_by: 'System / Scanner'
       };
       
-      localStorage.setItem('scanHistory', JSON.stringify([newScan, ...scanHistory]));
+      await supabase.from('scan_history').insert([newScan]);
 
       const gotra = String(details.gotra || '').toLowerCase().trim();
       const brahminGotras = [
