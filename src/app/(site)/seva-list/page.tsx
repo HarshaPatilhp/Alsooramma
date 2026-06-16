@@ -35,10 +35,14 @@ export default function SevaList() {
   const [tirthaPrasadaCount, setTirthaPrasadaCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'seva' | 'hall'>('seva');
-
   // Check if current user is admin
   const isAdmin = isAuthenticated && user?.role === 'admin';
+
+    const [activeTab, setActiveTab] = useState<'seva' | 'hall'>('seva');
+    const [sevaSearch, setSevaSearch] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState<string>('All');
+    const categories = ['All', 'Daily Sevas', 'Weekly Sevas', 'Special Sevas', 'Extended Sevas'];
+
 
   const sendBookingEmail = async (bookingData: any) => {
     try {
@@ -503,6 +507,14 @@ Total Cost: ${bookingData.totalCost}
     }
   ];
 
+  const filteredSevas = sevas.filter(seva => {
+    const matchesSearch = seva.name.toLowerCase().includes(sevaSearch.toLowerCase()) || 
+                          seva.description.toLowerCase().includes(sevaSearch.toLowerCase());
+    const matchesCategory = selectedCategory === 'All' || seva.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+
   const handleBookSeva = (seva: Seva) => {
     if (!isAdmin) {
       alert('Only administrators can book sevas. Please contact the temple office for booking.');
@@ -583,6 +595,27 @@ Total Cost: ${bookingData.totalCost}
       existingBookings.push(bookingData);
       localStorage.setItem('temple_bookings', JSON.stringify(existingBookings));
       console.log('🔍 [DEBUG] Booking saved to localStorage. Total bookings:', existingBookings.length);
+
+      // Save to Google Sheets
+      try {
+        console.log('🔍 [DEBUG] Syncing booking to Google Sheets...');
+        const sheetsResponse = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ booking: bookingData }),
+        });
+        const sheetsData = await sheetsResponse.json();
+        if (sheetsData.success) {
+          console.log('✅ Booking synced to Google Sheets successfully');
+        } else {
+          console.error('❌ Google Sheets sync failed:', sheetsData.message);
+        }
+      } catch (err: any) {
+        console.error('❌ Error calling Google Sheets API:', err.message);
+      }
+
 
       // Send email with QR code
       try {
@@ -725,32 +758,84 @@ Total Cost: ${bookingData.totalCost}
           {/* Conditional Content */}
           {activeTab === 'seva' ? (
             /* Sevas Grid */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-              {sevas.map((seva) => (
-                <div key={seva.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 p-6 md:p-8 flex flex-col h-full card relative overflow-hidden group">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-amber-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
-                  <h3 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white mb-3">{seva.name}</h3>
-                  <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-6 flex-grow">{seva.description}</p>
-                  <div className="space-y-3 text-sm text-gray-500 dark:text-gray-400 mb-6 bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl">
-                    <p className="flex justify-between items-center"><strong className="text-gray-700 dark:text-gray-300">Time:</strong> <span>{seva.time}</span></p>
-                    <p className="flex justify-between items-center"><strong className="text-gray-700 dark:text-gray-300">Duration:</strong> <span>{seva.duration}</span></p>
-                    <p className="flex justify-between items-center"><strong className="text-gray-700 dark:text-gray-300">Cost:</strong> <span className="text-orange-600 dark:text-orange-400 font-bold text-lg">{seva.cost}</span></p>
-                  </div>
-                  <button
-                    onClick={() => isAdmin ? handleBookSeva(seva) : null}
-                    className={`mt-auto w-full py-3 px-4 rounded-xl font-bold transition-all duration-200 touch-target text-sm md:text-base shadow-md ${
-                      isAdmin 
-                        ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 hover:shadow-lg hover:-translate-y-0.5' 
-                        : 'bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                    }`}
-                    disabled={!isAdmin}
+            <>
+              {/* Seva Filters & Search */}
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 mb-8 border border-gray-100 dark:border-slate-700/50 shadow-md flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="relative w-full md:max-w-md">
+                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    value={sevaSearch}
+                    onChange={(e) => setSevaSearch(e.target.value)}
+                    placeholder="Search sevas by name or description..."
+                    className="w-full pl-11 pr-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-gray-50 dark:bg-slate-900 shadow-inner text-sm transition-all text-gray-850 dark:text-gray-100"
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2 w-full md:w-auto justify-start md:justify-end">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 uppercase tracking-wider text-black ${
+                        selectedCategory === cat
+                          ? 'bg-orange-600 shadow-md'
+                          : 'bg-gray-100 dark:bg-slate-200 hover:bg-orange-100 dark:hover:bg-orange-200'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+              </div>
+
+              {filteredSevas.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+                  {filteredSevas.map((seva) => (
+                    <div key={seva.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 p-6 md:p-8 flex flex-col h-full card relative overflow-hidden group">
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-amber-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+                      <h3 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white mb-3">{seva.name}</h3>
+                      <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-6 flex-grow">{seva.description}</p>
+                      <div className="space-y-3 text-sm text-gray-500 dark:text-gray-400 mb-6 bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl">
+                        <p className="flex justify-between items-center"><strong className="text-gray-700 dark:text-gray-300">Time:</strong> <span>{seva.time}</span></p>
+                        <p className="flex justify-between items-center"><strong className="text-gray-700 dark:text-gray-300">Duration:</strong> <span>{seva.duration}</span></p>
+                        <p className="flex justify-between items-center"><strong className="text-gray-700 dark:text-gray-300">Cost:</strong> <span className="text-orange-600 dark:text-orange-400 font-bold text-lg">{seva.cost}</span></p>
+                      </div>
+                      <button
+                        onClick={() => isAdmin ? handleBookSeva(seva) : null}
+                        className={`mt-auto w-full py-3 px-4 rounded-xl font-bold transition-all duration-200 touch-target text-sm md:text-base shadow-md ${
+                          isAdmin 
+                            ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 hover:shadow-lg hover:-translate-y-0.5' 
+                            : 'bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                        }`}
+                        disabled={!isAdmin}
+                      >
+                        {isAdmin ? 'Book Seva' : 'Contact Office to Book'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-3xl border border-gray-150 dark:border-slate-700/60 shadow-md">
+                  <div className="text-5xl mb-4">🔎</div>
+                  <h4 className="text-xl font-bold text-gray-800 dark:text-white">No sevas match your query</h4>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 max-w-md mx-auto">Try modifying your search keywords or resetting the category filter.</p>
+                  <button 
+                    onClick={() => { setSevaSearch(''); setSelectedCategory('All'); }}
+                    className="mt-6 px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold transition-all shadow-md text-sm uppercase tracking-wider"
                   >
-                    {isAdmin ? 'Book Seva' : 'Contact Office to Book'}
+                    Reset Filters
                   </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           ) : (
+
             /* Halls Grid */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
               {halls.map((hall) => (

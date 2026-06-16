@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="bg-orange-600 text-white shadow-lg">
@@ -103,7 +105,22 @@ export default function Header() {
           </nav>
 
           {/* User Info / Login Button - Right side */}
-          <div className="flex md:hidden items-center">
+          <div className="flex md:hidden items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full hover:bg-orange-700 transition-colors text-white mr-1"
+              aria-label="Toggle theme"
+            >
+              {theme === 'light' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+                </svg>
+              )}
+            </button>
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
                 <div className="flex items-center bg-white text-orange-600 px-2 py-1 rounded-full">
@@ -129,43 +146,58 @@ export default function Header() {
             )}
           </div>
 
-          <div className="hidden md:flex">
-  {isAuthenticated ? (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center bg-white text-orange-600 px-3 py-2 rounded-full shrink-0">
-        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-          <path d="M12 3a4 4 0 100 8 4 4 0 000-8z" />
-        </svg>
+          <div className="hidden md:flex items-center gap-4">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full hover:bg-orange-700 transition-colors text-white mr-2"
+              aria-label="Toggle theme"
+            >
+              {theme === 'light' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+                </svg>
+              )}
+            </button>
+            {isAuthenticated ? (
+              <div className="flex items-center gap-4">
+                <div className="flex items-center bg-white text-orange-600 px-3 py-2 rounded-full shrink-0">
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                    <path d="M12 3a4 4 0 100 8 4 4 0 000-8z" />
+                  </svg>
 
-        <span className="font-semibold whitespace-nowrap">
-          {user?.name}
-        </span>
+                  <span className="font-semibold whitespace-nowrap">
+                    {user?.name}
+                  </span>
 
-        {user?.role === 'admin' && (
-          <span className="ml-2 text-xs bg-orange-600 text-white px-2 py-1 rounded-full whitespace-nowrap">
-            Admin
-          </span>
-        )}
-      </div>
+                  {user?.role === 'admin' && (
+                    <span className="ml-2 text-xs bg-orange-600 text-white px-2 py-1 rounded-full whitespace-nowrap">
+                      Admin
+                    </span>
+                  )}
+                </div>
 
-      <button
-        onClick={logout}
-        className="flex items-center bg-red-600 text-white px-4 py-2 rounded-full hover:bg-red-700 transition-colors shrink-0"
-      >
-        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-          />
-        </svg>
-        Logout
-      </button>
-    </div>
+                <button
+                  onClick={logout}
+                  className="flex items-center bg-red-600 text-white px-4 py-2 rounded-full hover:bg-red-700 transition-colors shrink-0"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                    />
+                  </svg>
+                  Logout
+                </button>
+              </div>
             ) : (
-              <Link href="/login" className="hover:text-orange-200 transition-colors flex items-center bg-white text-orange-600 px-4 py-2 rounded-full ml-8">
+              <Link href="/login" className="hover:text-orange-200 transition-colors flex items-center bg-white text-orange-600 px-4 py-2 rounded-full ml-4">
                 <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 7h-4l-4-4h4" />
@@ -176,6 +208,7 @@ export default function Header() {
               </Link>
             )}
           </div>
+
         </div>
 
         {/* Mobile Navigation */}
@@ -209,7 +242,27 @@ export default function Header() {
                   <Link href="/slokas" className="block pl-4 py-1 hover:text-orange-200">Slokas</Link>
                 </div>
 
-                <Link href="/contact" className="hover:text-orange-200 transition-colors py-2 block">Contact</Link>
+                 <Link href="/contact" className="hover:text-orange-200 transition-colors py-2 block">Contact</Link>
+
+                 <div className="border-t border-orange-500 pt-2 flex items-center justify-between py-2">
+                   <span className="font-semibold text-white">Dark Mode</span>
+                   <button
+                     onClick={toggleTheme}
+                     className="p-2 rounded-full bg-white text-orange-600 hover:bg-orange-50 transition-colors"
+                     aria-label="Toggle theme"
+                   >
+                     {theme === 'light' ? (
+                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                       </svg>
+                     ) : (
+                       <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+                       </svg>
+                     )}
+                   </button>
+                 </div>
+
 
               {/* Mobile User Info / Login */}
               {isAuthenticated ? (

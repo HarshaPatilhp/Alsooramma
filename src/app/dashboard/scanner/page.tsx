@@ -83,6 +83,18 @@ export default function ScannerPage() {
       );
       localStorage.setItem('temple_bookings', JSON.stringify(updatedBookings));
 
+      // Sync status change to Google Sheets database
+      fetch('/api/bookings/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: data, status: 'completed' }),
+      }).catch((sheetsErr: any) => {
+        console.error('Failed to sync check-in status to Google Sheets:', sheetsErr.message);
+      });
+
+
       // 2. Add to scan history
       const scanHistoryJson = localStorage.getItem('scanHistory');
       const scanHistory = scanHistoryJson ? JSON.parse(scanHistoryJson) : [];
@@ -176,54 +188,63 @@ export default function ScannerPage() {
             <>
               {/* Animated scanning bar */}
               <div className="absolute inset-0 z-10 pointer-events-none w-full h-full flex justify-center items-center">
-                <div className="w-[85%] h-[85%] sm:w-3/4 sm:h-3/4 border-2 border-orange-500/50 rounded-lg relative">
-                  <div className="absolute top-0 left-0 w-full h-0.5 bg-orange-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-[scan_2s_ease-in-out_infinite]" />
-                  {/* Corner brackets */}
-                  <div className="absolute top-0 left-0 w-8 h-8 sm:w-10 sm:h-10 border-t-4 border-l-4 border-orange-500 rounded-tl-lg" />
-                  <div className="absolute top-0 right-0 w-8 h-8 sm:w-10 sm:h-10 border-t-4 border-r-4 border-orange-500 rounded-tr-lg" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 sm:w-10 sm:h-10 border-b-4 border-l-4 border-orange-500 rounded-bl-lg" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 sm:w-10 sm:h-10 border-b-4 border-r-4 border-orange-500 rounded-br-lg" />
+                <div className="w-[80%] h-[80%] sm:w-[70%] sm:h-[70%] border border-orange-500/20 rounded-2xl relative bg-orange-500/[0.02]">
+                  {/* Laser line using our global animation */}
+                  <div className="absolute w-full h-0.5 bg-gradient-to-r from-transparent via-orange-500 to-transparent shadow-[0_0_12px_rgba(249,115,22,0.8)] animate-scan" />
+                  
+                  {/* Thick Neon Corner Brackets */}
+                  <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-orange-500 rounded-tl-2xl -mt-1 -ml-1 shadow-[-2px_-2px_10px_-2px_rgba(249,115,22,0.4)]" />
+                  <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-orange-500 rounded-tr-2xl -mt-1 -mr-1 shadow-[2px_-2px_10px_-2px_rgba(249,115,22,0.4)]" />
+                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-orange-500 rounded-bl-2xl -mb-1 -ml-1 shadow-[-2px_2px_10px_-2px_rgba(249,115,22,0.4)]" />
+                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-orange-500 rounded-br-2xl -mb-1 -mr-1 shadow-[2px_2px_10px_-2px_rgba(249,115,22,0.4)]" />
                 </div>
               </div>
-              <style jsx>{`
-                @keyframes scan {
-                  0% { top: 0; opacity: 0; }
-                  10% { opacity: 1; }
-                  90% { opacity: 1; }
-                  100% { top: 100%; opacity: 0; }
-                }
-              `}</style>
             </>
           )}
 
           {scanResult.status === 'success' && (
-             <div className="absolute inset-0 bg-emerald-900/90 z-20 backdrop-blur-sm animate-fade-in overflow-y-auto">
-               <div className="flex flex-col items-center justify-center min-h-full p-4 sm:p-6 text-center">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-[0_0_40px_rgba(16,185,129,0.5)] shrink-0">
-                    <CheckCircle size={40} className="text-white" />
+             <div className="absolute inset-0 bg-slate-900/95 dark:bg-slate-950/95 z-20 backdrop-blur-md animate-fade-in overflow-y-auto">
+               <div className="flex flex-col items-center justify-center min-h-full p-5 text-center">
+                  <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mb-3 shadow-[0_0_30px_rgba(16,185,129,0.4)] shrink-0 animate-bounce">
+                    <CheckCircle size={36} className="text-white" />
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 shrink-0">{scanResult.message}</h2>
-                  <div className="bg-white/10 p-4 sm:p-6 rounded-2xl mt-2 max-w-sm w-full backdrop-blur-md border border-white/20 shrink-0">
-                    <p className="text-emerald-200 text-xs sm:text-sm uppercase tracking-wider mb-1 font-semibold">Devotee</p>
-                    <p className="text-white text-xl sm:text-2xl font-bold mb-3">{scanResult.data?.devoteeName || 'Unknown'}</p>
-                    <p className="text-emerald-200 text-xs sm:text-sm uppercase tracking-wider mb-1 font-semibold">Seva Type</p>
-                    <p className="text-white text-lg sm:text-xl leading-tight">{scanResult.data?.sevaName || 'Standard Entry'}</p>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white mb-2 shrink-0">Devotee Verified Successfully</h2>
+                  
+                  <div className="bg-slate-800/80 border border-slate-700/60 p-5 rounded-2xl mt-1 max-w-sm w-full shadow-2xl shrink-0 text-left">
+                    <div className="border-b border-slate-700/60 pb-3 mb-3">
+                      <p className="text-slate-400 text-[10px] uppercase tracking-wider mb-0.5 font-bold">Devotee Name</p>
+                      <p className="text-white text-lg sm:text-xl font-extrabold">{scanResult.data?.devoteeName || 'Unknown'}</p>
+                    </div>
+
+                    <div className="border-b border-slate-700/60 pb-3 mb-3">
+                      <p className="text-slate-400 text-[10px] uppercase tracking-wider mb-0.5 font-bold">Booked Seva</p>
+                      <p className="text-orange-400 text-sm sm:text-base font-bold leading-snug">{scanResult.data?.sevaName || 'Standard Entry'}</p>
+                    </div>
                     
-                    <div className="grid grid-cols-2 gap-3 mt-4 text-left">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-emerald-200 text-[10px] sm:text-xs uppercase tracking-wider mb-1 font-semibold">Category</p>
-                        <p className="text-white font-medium text-sm sm:text-base">{scanResult.data?.devoteeCategory}</p>
-                        <p className="text-emerald-100/70 text-[10px] sm:text-xs mt-0.5">({scanResult.data?.gotra || 'No Gotra'})</p>
+                        <p className="text-slate-400 text-[10px] uppercase tracking-wider mb-0.5 font-bold">Category</p>
+                        <p className="text-white font-semibold text-sm">{scanResult.data?.devoteeCategory}</p>
+                        <p className="text-slate-400 text-[10px] mt-0.5 font-mono">({scanResult.data?.gotra || 'No Gotra'})</p>
                       </div>
                       <div>
-                        <p className="text-emerald-200 text-[10px] sm:text-xs uppercase tracking-wider mb-1 font-semibold">Redirect To</p>
-                        <p className="text-yellow-300 font-bold leading-tight text-sm sm:text-base">📍 {scanResult.data?.redirectHall}</p>
+                        <p className="text-slate-400 text-[10px] uppercase tracking-wider mb-0.5 font-bold">Seat/Date Info</p>
+                        <p className="text-white font-semibold text-sm">{scanResult.data?.date || 'N/A'}</p>
                       </div>
                     </div>
+
+                    {/* REDIRECTION ALERT BOX */}
+                    <div className="mt-4 bg-gradient-to-r from-amber-600 to-amber-500 text-orange-950 p-4 rounded-xl border border-amber-400/20 shadow-md">
+                      <p className="text-[10px] uppercase tracking-wider font-extrabold text-amber-950/80 mb-0.5">Dining Redirect Location</p>
+                      <p className="font-extrabold text-base flex items-center gap-1.5 animate-pulse">
+                        <span>📍</span> {scanResult.data?.redirectHall}
+                      </p>
+                    </div>
                   </div>
+                  
                   <button 
                     onClick={startScan}
-                    className="mt-6 bg-white text-emerald-900 hover:bg-emerald-50 px-6 py-2.5 sm:px-8 sm:py-3 rounded-full font-bold transition-all shadow-lg shrink-0"
+                    className="mt-6 bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg hover:shadow-orange-600/20 shrink-0 uppercase text-xs tracking-wider"
                   >
                     Scan Next Devotee
                   </button>
@@ -232,15 +253,15 @@ export default function ScannerPage() {
           )}
 
           {scanResult.status === 'error' && (
-            <div className="absolute inset-0 bg-red-900/95 flex flex-col items-center justify-center p-6 text-center z-20 backdrop-blur-sm animate-fade-in">
-              <div className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center mb-4 shadow-[0_0_40px_rgba(239,68,68,0.5)]">
-                  <AlertCircle size={40} className="text-white" />
+            <div className="absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center p-6 text-center z-20 backdrop-blur-md animate-fade-in">
+              <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(239,68,68,0.4)]">
+                  <AlertCircle size={36} className="text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Scan Failed</h2>
-              <p className="text-red-200 mb-8 max-w-xs">{scanResult.message}</p>
+              <h2 className="text-xl font-bold text-white mb-2">Scan Failed</h2>
+              <p className="text-red-200 text-sm mb-6 max-w-xs">{scanResult.message}</p>
               <button 
                   onClick={startScan}
-                  className="bg-white hover:bg-red-50 text-red-900 px-8 py-3 rounded-full font-bold transition-all shadow-lg"
+                  className="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg uppercase text-xs tracking-wider"
                 >
                   Try Again
               </button>

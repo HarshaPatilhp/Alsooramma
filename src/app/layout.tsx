@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,9 +52,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased smooth-scroll bg-gray-50 dark:bg-slate-900 transition-colors duration-200`}
       >
         <AuthProvider>
-          {children}
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>
   );
 }
+

@@ -33,12 +33,20 @@ body {
   .animate-slide-up {
     animation: slideUp 0.8s ease-out forwards;
   }
+  .animate-scan {
+    animation: scan 2s ease-in-out infinite;
+  }
   .glassmorphism {
     @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-xl;
   }
   .dark .glassmorphism {
     @apply bg-slate-900/70 border-white/10;
   }
+}
+
+@keyframes scan {
+  0%, 100% { top: 0%; opacity: 0.2; }
+  50% { top: 100%; opacity: 1; }
 }
 
 @keyframes fadeIn {

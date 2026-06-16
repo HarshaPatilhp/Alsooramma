@@ -2,6 +2,8 @@
 
 import { Menu, Search, Bell, User } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
+
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -10,6 +12,8 @@ interface HeaderProps {
 
 export default function Header({ toggleSidebar, user }: HeaderProps) {
   const [currentDate, setCurrentDate] = useState('');
+  const { theme, toggleTheme } = useTheme();
+
 
   useEffect(() => {
     const updateTime = () => {
@@ -72,8 +76,26 @@ export default function Header({ toggleSidebar, user }: HeaderProps) {
             <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
           </button>
 
+          {/* Theme Switcher */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 text-gray-400 hover:text-orange-500 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-slate-800"
+            aria-label="Toggle theme"
+          >
+            {theme === 'light' ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+              </svg>
+            )}
+          </button>
+
           {/* Profile */}
           <div className="flex items-center gap-3 pl-2">
+
             <div className="hidden md:block text-right">
               <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 leading-none mb-1">
                 {user?.name || 'Vidyaranyapura Mutt'}

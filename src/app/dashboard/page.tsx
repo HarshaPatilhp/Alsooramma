@@ -15,56 +15,72 @@ export default function DashboardPage() {
     new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
   );
 
-  const loadData = () => {
+  const loadData = async () => {
     setIsRefreshing(true);
     try {
+      let bookings: any[] = [];
       if (typeof window !== 'undefined') {
         const bookingsJson = localStorage.getItem('temple_bookings');
-        const bookings = bookingsJson ? JSON.parse(bookingsJson) : [];
-        
-        const historyJson = localStorage.getItem('scanHistory');
-        const history = historyJson ? JSON.parse(historyJson) : [];
-
-        // Calculate live stats
-        // Fix timezone date string matching (local time YYYY-MM-DD instead of UTC)
-        const today = new Date();
-        const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-        
-        const todaysBookings = bookings.filter((b: any) => b.date && b.date.startsWith(todayStr));
-        
-        // 1. Total Devotees (All Time)
-        const totalDevotees = bookings.reduce((sum: number, b: any) => sum + (Number(b.numberOfPeople) || 1), 0);
-        const devoteesToday = todaysBookings.reduce((sum: number, b: any) => sum + (Number(b.numberOfPeople) || 1), 0);
-        
-        // 2. Sevas Completed (All Time)
-        const completedTotal = bookings.filter((b: any) => b.status === 'completed').length;
-        
-        // 3. Total Revenue (All Time)
-        const revenueTotal = bookings.reduce((sum: number, b: any) => sum + (Number(b.totalCost) || 0), 0);
-
-        const baseStats = [
-          { title: 'Total Devotees', value: totalDevotees.toString(), Icon: Users, subtitle: `${devoteesToday} arriving today` },
-          { title: 'Sevas Completed', value: completedTotal.toString(), Icon: BookOpen, subtitle: `Of ${bookings.length} total booked` },
-        ];
-
-        if (user?.role === 'admin') {
-          baseStats.push({ title: 'Total Revenue', value: `₹${revenueTotal.toLocaleString('en-IN')}`, Icon: Gift, subtitle: 'Total collected' });
-        }
-
-        baseStats.push({ title: 'Mutt Status', value: 'Open', Icon: ShieldCheck, subtitle: 'Closes at 9:00 PM' });
-        
-        setStats(baseStats);
-
-        // Load recent check-ins from history
-        const recent = history.slice(0, 5).map((h: any) => ({
-          id: h.id,
-          name: h.devoteeName || 'Unknown Devotee',
-          time: new Date(h.scanTime || Date.now()).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-          seva: h.sevaName || 'Seva',
-          status: h.status || 'Checked In'
-        }));
-        setRecentCheckins(recent);
+        bookings = bookingsJson ? JSON.parse(bookingsJson) : [];
       }
+
+      try {
+        const res = await fetch('/api/bookings');
+        const data = await res.json();
+        if (data.success && data.bookings) {
+          bookings = data.bookings;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('temple_bookings', JSON.stringify(bookings));
+          }
+        }
+      } catch (apiErr: any) {
+        console.error('Failed to sync dashboard bookings with Sheets API:', apiErr.message);
+      }
+
+      const historyJson = typeof window !== 'undefined' ? localStorage.getItem('scanHistory') : null;
+      const history = historyJson ? JSON.parse(historyJson) : [];
+
+      // Calculate live stats
+      const today = new Date();
+      const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+      
+      const todaysBookings = bookings.filter((b: any) => b.date && b.date.startsWith(todayStr));
+      
+      // 1. Total Devotees (All Time)
+      const totalDevotees = bookings.reduce((sum: number, b: any) => sum + (Number(b.numberOfPeople) || 1), 0);
+      const devoteesToday = todaysBookings.reduce((sum: number, b: any) => sum + (Number(b.numberOfPeople) || 1), 0);
+      
+      // 2. Sevas Completed (All Time)
+      const completedTotal = bookings.filter((b: any) => b.status === 'completed').length;
+      
+      // 3. Total Revenue (All Time)
+      const revenueTotal = bookings.reduce((sum: number, b: any) => {
+        const costStr = String(b.totalCost || '0').replace('₹', '').replace(',', '').trim();
+        return sum + (Number(costStr) || 0);
+      }, 0);
+
+      const baseStats = [
+        { title: 'Total Devotees', value: totalDevotees.toString(), Icon: Users, subtitle: `${devoteesToday} arriving today` },
+        { title: 'Sevas Completed', value: completedTotal.toString(), Icon: BookOpen, subtitle: `Of ${bookings.length} total booked` },
+      ];
+
+      if (user?.role === 'admin') {
+        baseStats.push({ title: 'Total Revenue', value: `₹${revenueTotal.toLocaleString('en-IN')}`, Icon: Gift, subtitle: 'Total collected' });
+      }
+
+      baseStats.push({ title: 'Mutt Status', value: 'Open', Icon: ShieldCheck, subtitle: 'Closes at 9:00 PM' });
+      
+      setStats(baseStats);
+
+      // Load recent check-ins from history
+      const recent = history.slice(0, 5).map((h: any) => ({
+        id: h.id,
+        name: h.devoteeName || 'Unknown Devotee',
+        time: new Date(h.scanTime || Date.now()).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        seva: h.sevaName || 'Seva',
+        status: h.status || 'Checked In'
+      }));
+      setRecentCheckins(recent);
     } catch (e) {
       console.error("Error loading dashboard data:", e);
     } finally {
@@ -72,6 +88,7 @@ export default function DashboardPage() {
       setLastRefreshed(new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }));
     }
   };
+
 
   useEffect(() => {
     loadData();

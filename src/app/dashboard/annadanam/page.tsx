@@ -32,6 +32,25 @@ export default function AnnadanamPage() {
     }
   }, []);
 
+  const handleScheduleSponsor = () => {
+    const name = window.prompt("Enter sponsor name:");
+    if (!name) return;
+    const amountStr = window.prompt("Enter donation amount (e.g. 5000):", "5000");
+    const amount = Number(amountStr) || 5000;
+    
+    const newSponsor: AnnadanamSponsor = {
+      id: `ANN-${Math.floor(Math.random() * 1000)}`,
+      sponsorName: name,
+      contact: 'N/A',
+      date: new Date().toLocaleDateString('en-IN'),
+      mealType: 'Special Annadanam',
+      amount
+    };
+    const updated = [newSponsor, ...sponsors];
+    setSponsors(updated);
+    localStorage.setItem('temple_annadanam', JSON.stringify(updated));
+  };
+
   const filtered = sponsors.filter(s => 
     s.sponsorName.toLowerCase().includes(searchTerm.toLowerCase()) || 
     s.mealType.toLowerCase().includes(searchTerm.toLowerCase())
@@ -47,7 +66,10 @@ export default function AnnadanamPage() {
           </h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Manage and view the daily food sponsorship records.</p>
         </div>
-        <button className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors text-sm">
+        <button 
+          onClick={handleScheduleSponsor}
+          className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors text-sm"
+        >
           + Schedule Sponsor
         </button>
       </div>
