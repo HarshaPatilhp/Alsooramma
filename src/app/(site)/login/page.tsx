@@ -13,19 +13,6 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
   const { login } = useAuth();
   const router = useRouter();
 
-  const handleDemoLogin = async (email: string, password: string) => {
-    try {
-      const success = await login(email, password);
-      if (success) {
-        router.push('/dashboard');
-      } else {
-        alert('Demo login failed. Please try again.');
-      }
-    } catch (error) {
-      alert('Demo login error. Please try again.');
-    }
-  };
-
   return (
     <div className="min-h-screen flex text-gray-900 bg-gray-50/50">
       {/* Left side: Beautiful branding / imagery */}
@@ -65,44 +52,6 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
 
           <div className="bg-white">
             <LoginForm />
-          </div>
-
-          <div className="mt-12 pt-8 border-t border-gray-100">
-            <div className="text-center mb-6">
-              <span className="px-4 py-1 bg-orange-50 text-orange-700 text-xs font-bold uppercase tracking-widest rounded-full">
-                Quick Demo Access
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
-                onClick={() => handleDemoLogin('admin@temple.com', 'admin123')}
-                className="group relative flex items-center justify-between p-4 border border-blue-100 bg-gradient-to-br from-blue-50 to-white rounded-2xl hover:border-blue-300 hover:shadow-lg transition-all duration-300 overflow-hidden"
-              >
-                <div className="relative z-10 text-left">
-                  <div className="flex items-center gap-2 mb-1">
-                    <ShieldCheck size={16} className="text-blue-600" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-blue-800">Administrator</span>
-                  </div>
-                  <div className="text-[11px] text-blue-600/70 font-medium font-mono">admin@temple.com</div>
-                </div>
-                <ArrowRight size={20} className="text-blue-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
-              </button>
-
-              <button
-                onClick={() => handleDemoLogin('gururaj@volunteer.com', 'volunteer123')}
-                className="group relative flex items-center justify-between p-4 border border-orange-100 bg-gradient-to-br from-orange-50 to-white rounded-2xl hover:border-orange-300 hover:shadow-lg transition-all duration-300 overflow-hidden"
-              >
-                <div className="relative z-10 text-left">
-                  <div className="flex items-center gap-2 mb-1">
-                    <UserCheck size={16} className="text-orange-600" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-orange-800">Volunteer</span>
-                  </div>
-                  <div className="text-[11px] text-orange-600/70 font-medium font-mono">gururaj@...</div>
-                </div>
-                <ArrowRight size={20} className="text-orange-400 group-hover:text-orange-600 group-hover:translate-x-1 transition-all" />
-              </button>
-            </div>
           </div>
           
           <div className="mt-12 text-center">
