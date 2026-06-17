@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, MoreVertical, CheckCircle, Trash2, Users, Clock } from 'lucide-react';
+import { Search, Filter, Calendar, MoreVertical, CheckCircle, Trash2, Users, Clock } from 'lucide-react';
 
 
 interface Booking {
@@ -131,6 +131,8 @@ export default function DevoteesPage() {
 
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed'>('all');
   const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   const filteredBookings = bookings.filter(b => {
     const name = b.devoteeName || (b as any).fullName || '';
@@ -145,6 +147,10 @@ export default function DevoteesPage() {
     const matchesStatus = statusFilter === 'all' || (b.status || '').toLowerCase() === statusFilter;
 
     return matchesSearch && matchesStatus;
+  }).sort((a, b) => {
+    const dateA = new Date(a.date || 0).getTime();
+    const dateB = new Date(b.date || 0).getTime();
+    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
   });
 
   return (
@@ -237,6 +243,33 @@ export default function DevoteesPage() {
                 ))}
               </div>
             )}
+            </div>
+
+            <div className="relative">
+              <button 
+                onClick={() => setShowSortMenu(!showSortMenu)}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-800 font-medium text-gray-700 dark:text-gray-300"
+              >
+                <Calendar size={18} />
+                {sortOrder === 'newest' ? 'Newest' : 'Oldest'}
+              </button>
+              {showSortMenu && (
+                <div className="absolute right-0 mt-2 w-32 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 z-10 py-1">
+                  <button
+                    onClick={() => { setSortOrder('newest'); setShowSortMenu(false); }}
+                    className={`block w-full text-left px-4 py-2 text-sm ${sortOrder === 'newest' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                  >
+                    Newest First
+                  </button>
+                  <button
+                    onClick={() => { setSortOrder('oldest'); setShowSortMenu(false); }}
+                    className={`block w-full text-left px-4 py-2 text-sm ${sortOrder === 'oldest' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                  >
+                    Oldest First
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

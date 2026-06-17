@@ -15,6 +15,8 @@ interface Activity {
 
 export default function ActivityLogPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [filterType, setFilterType] = useState<'all' | 'check_in' | 'seva_completed' | 'system_alert'>('all');
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
 
   useEffect(() => {
     const fetchActivities = async () => {
@@ -87,9 +89,29 @@ export default function ActivityLogPage() {
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Audit trail of all actions and check-ins within the system.</p>
         </div>
         <div className="flex gap-2">
-           <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium">
-             <Filter size={16} /> Filter
-           </button>
+           <div className="relative">
+             <button 
+               onClick={() => setShowFilterMenu(!showFilterMenu)}
+               className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium"
+             >
+               <Filter size={16} /> 
+               {filterType === 'all' ? 'All Activity' : filterType === 'check_in' ? 'Check-ins' : filterType === 'seva_completed' ? 'Seva Completed' : 'System Alerts'}
+             </button>
+             
+             {showFilterMenu && (
+               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 z-10 py-1">
+                 {['all', 'check_in', 'seva_completed', 'system_alert'].map((type) => (
+                   <button
+                     key={type}
+                     onClick={() => { setFilterType(type as any); setShowFilterMenu(false); }}
+                     className={`block w-full text-left px-4 py-2 text-sm ${filterType === type ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                   >
+                     {type === 'all' ? 'All Activity' : type === 'check_in' ? 'Check-ins' : type === 'seva_completed' ? 'Seva Completed' : 'System Alerts'}
+                   </button>
+                 ))}
+               </div>
+             )}
+           </div>
            <button 
              onClick={exportToCSV}
              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors"
@@ -104,7 +126,9 @@ export default function ActivityLogPage() {
         <div className="p-6">
           <div className="relative border-l-2 border-gray-100 dark:border-slate-700/50 ml-4 md:ml-6 space-y-8 pl-8 md:pl-10 before:hidden">
             
-            {activities.map((activity, index) => (
+            {activities
+              .filter(activity => filterType === 'all' || activity.type === filterType)
+              .map((activity, index) => (
               <div key={activity.id} className="relative group">
                 {/* Connector dot */}
                 <div className={`absolute -left-[45px] md:-left-[52px] top-1 h-10 w-10 rounded-full border-4 border-white dark:border-slate-800 flex items-center justify-center shadow-sm z-10 transition-transform group-hover:scale-110 ${getTypeStyle(activity.type)}`}>
