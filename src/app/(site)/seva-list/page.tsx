@@ -61,8 +61,7 @@ export default function SevaList() {
         gotra: bookingData.gotra || 'N/A',
         nakshatra: bookingData.nakshatra || 'N/A',
         seva_cost: bookingData.sevaCost || '₹0',
-        tirtha_prasada_count: bookingData.tirthaPrasadaCount || 0,
-        tirtha_prasada_cost: bookingData.lunchCost ? `₹${bookingData.lunchCost}` : '₹0',
+        tirtha_prasada: bookingData.tirthaPrasadaCount ? `${bookingData.tirthaPrasadaCount} people (₹${bookingData.lunchCost})` : 'Not Required',
         qr_code: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${bookingData.id}`,
         qr_code_url: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${bookingData.id}`
       };
