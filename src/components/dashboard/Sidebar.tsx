@@ -38,6 +38,7 @@ export default function Sidebar({ isOpen, setIsOpen, userRole }: SidebarProps) {
   ];
 
   const adminAdditions: NavLink[] = [
+    { name: 'Seva Dashboard', href: '/seva-list', icon: Calendar },
     { name: 'Donations', href: '/dashboard/donations', icon: Gift },
     { name: 'Annadanam', href: '/dashboard/annadanam', icon: Coffee },
     { name: 'Reports', href: '/dashboard/reports', icon: PieChart },
