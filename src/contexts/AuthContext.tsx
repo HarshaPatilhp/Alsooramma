@@ -38,12 +38,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const supabase = createClient();
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('email', email)
         .eq('password', password)
         .single();
+
+      // If user not found (PGRST116 = no rows returned), let's auto-seed the demo users
+      if (error && error.code === 'PGRST116') {
+         if (email === 'admin@temple.com' || email === 'gururaj@volunteer.com') {
+             const role = email === 'admin@temple.com' ? 'admin' : 'volunteer';
+             const name = role === 'admin' ? 'Master Admin' : 'Volunteer 01';
+             const phone = role === 'admin' ? '9876543210' : '9000000001';
+             
+             const { data: insertData, error: insertError } = await supabase.from('users').insert([{
+                 id: Date.now().toString(),
+                 name,
+                 email,
+                 password,
+                 phone,
+                 role
+             }]).select().single();
+             
+             if (insertData && !insertError) {
+                 data = insertData;
+                 error = null;
+             }
+         }
+      }
 
       if (data && !error) {
         const userData: User = {
@@ -58,6 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionStorage.setItem('temple_auth_phone', data.phone || '');
         return true;
       }
+
+      // If table doesn't exist
+      if (error && error.code === '42P01') {
+        alert("The 'users' table does not exist in Supabase. Please run the SQL commands from backend/supabase_schema.sql in your Supabase SQL Editor!");
+      }
+      
       return false;
     } catch (err) {
       console.error("Login error:", err);
