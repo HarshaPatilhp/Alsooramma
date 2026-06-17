@@ -69,6 +69,7 @@ export default function ScannerPage() {
          status: dbDetails.status,
          gotra: dbDetails.gotra,
          date: dbDetails.date,
+         tirthaPrasadaCount: dbDetails.tirtha_prasada_count || 0,
          devoteeCategory: '',
          redirectHall: ''
       };
@@ -223,6 +224,8 @@ export default function ScannerPage() {
                       <div>
                         <p className="text-slate-400 text-[10px] uppercase tracking-wider mb-0.5 font-bold">Seat/Date Info</p>
                         <p className="text-white font-semibold text-sm">{scanResult.data?.date || 'N/A'}</p>
+                        <p className="text-slate-400 text-[10px] uppercase tracking-wider mt-2 mb-0.5 font-bold">Tirtha Prasada</p>
+                        <p className="text-white font-semibold text-sm">{scanResult.data?.tirthaPrasadaCount || 0} People</p>
                       </div>
                     </div>
 
