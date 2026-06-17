@@ -35,6 +35,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Warn user to logout before closing the tab/window
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (user) {
+        // Modern browsers don't support custom messages, but require these
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    if (user) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [user]);
+
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const supabase = createClient();
