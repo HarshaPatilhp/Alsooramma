@@ -235,16 +235,17 @@ export default function Contact() {
                 {/* Map Placeholder */}
                 <div className="bg-white rounded-lg shadow-lg p-8">
                   <h3 className="text-2xl font-bold text-gray-800 mb-6">Location</h3>
-                  <div className="aspect-video bg-gray-200 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                      </svg>
-                      <p className="text-gray-500">Interactive map would be embedded here</p>
-                      <p className="text-sm text-gray-400 mt-2">
-                        Vidyaranyapura, Bangalore, Karnataka 560097
-                      </p>
-                    </div>
+                  <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden relative">
+                    <iframe 
+                      src="https://maps.google.com/maps?q=Mathaji%20Ulsooramma%20Raghavendra%20Swamy%20Mutt,%20Vidyaranyapura,%20Bangalore&t=&z=15&ie=UTF8&iwloc=&output=embed" 
+                      width="100%" 
+                      height="100%" 
+                      style={{ border: 0, position: 'absolute', top: 0, left: 0 }} 
+                      allowFullScreen={true} 
+                      loading="lazy" 
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Temple Location Map"
+                    ></iframe>
                   </div>
                 </div>
               </div>
