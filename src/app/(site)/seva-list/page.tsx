@@ -56,7 +56,12 @@ export default function SevaList() {
         booking_date: bookingData.date,
         booking_time: bookingData.time,
         hall_name: bookingData.hall || 'N/A',
-        total_cost: bookingData.totalCost
+        total_cost: bookingData.totalCost,
+        number_of_people: bookingData.numberOfPeople || 'N/A',
+        gotra: bookingData.gotra || 'N/A',
+        nakshatra: bookingData.nakshatra || 'N/A',
+        qr_code: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${bookingData.id}`,
+        qr_code_url: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${bookingData.id}`
       };
 
       const response = await emailjs.send(
