@@ -82,6 +82,15 @@ export default function ScannerPage() {
         return;
       }
 
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
+      if (details.date && details.date !== today) {
+        setScanResult({
+          status: 'error',
+          message: `Booking rejected. The event is scheduled for ${details.date}, not today.`
+        });
+        return;
+      }
+
       // 1. Update Booking Status via API
       fetch('/api/bookings/update', {
         method: 'POST',
