@@ -32,7 +32,6 @@ export default function Sidebar({ isOpen, setIsOpen, userRole }: SidebarProps) {
 
   const volunteerLinks: NavLink[] = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Seva Dashboard', href: '/seva-list', icon: Calendar },
     { name: 'QR Check-in', href: '/dashboard/scanner', icon: QrCode, highlight: true },
     { name: 'Devotees', href: '/dashboard/devotees', icon: Users },
     { name: 'Activity Log', href: '/dashboard/activity', icon: Clock },

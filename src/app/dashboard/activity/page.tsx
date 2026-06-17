@@ -44,6 +44,33 @@ export default function ActivityLogPage() {
     }
   };
 
+  const exportToCSV = () => {
+    if (activities.length === 0) {
+      alert('No activities to export.');
+      return;
+    }
+    const headers = ['Activity ID', 'Type', 'Title', 'Description', 'Timestamp', 'User'];
+    const rows = activities.map(a => [
+      a.id,
+      a.type,
+      a.title,
+      a.description,
+      a.timestamp,
+      a.user
+    ]);
+    
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+      + [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
+       
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `activity_export_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const getTypeStyle = (type: string) => {
     switch (type) {
       case 'check_in': return 'bg-orange-100 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800/50';
@@ -63,7 +90,10 @@ export default function ActivityLogPage() {
            <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium">
              <Filter size={16} /> Filter
            </button>
-           <button className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors">
+           <button 
+             onClick={exportToCSV}
+             className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors"
+           >
              Export CSV
            </button>
         </div>
