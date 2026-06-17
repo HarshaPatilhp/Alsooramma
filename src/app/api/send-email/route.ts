@@ -8,17 +8,19 @@ export async function POST(request: NextRequest) {
 
     console.log('Email request received:', { booking, qrCode });
 
-    // Generate QR Code
-    const qrCodeDataURL = await QRCode.toDataURL(qrCode, {
-      width: 300,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
-    });
-
-    console.log('QR Code generated successfully');
+    // Generate QR Code only if lunch/thirtha prasada is required
+    let qrCodeDataURL = '';
+    if (booking.lunchRequired) {
+      qrCodeDataURL = await QRCode.toDataURL(qrCode, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      console.log('QR Code generated successfully');
+    }
 
     // Create email transporter with explicit settings
     const transporter = nodemailer.createTransport({
@@ -87,12 +89,14 @@ export async function POST(request: NextRequest) {
                 </ul>
             </div>
 
+            ${booking.lunchRequired ? `
             <div class="qr-code">
                 <h3>📱 Your QR Code</h3>
                 <p>Please show this QR code at the temple entrance for verification.</p>
                 <img src="${qrCodeDataURL}" alt="Booking QR Code" style="max-width: 200px; border: 2px solid #333; border-radius: 5px;" />
                 <p><strong>QR Code:</strong> ${qrCode}</p>
             </div>
+            ` : ''}
 
             <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 15px 0;">
                 <h4>⏰ Important Instructions:</h4>
@@ -121,9 +125,11 @@ export async function POST(request: NextRequest) {
                 </div>
                 <ul>
                   <li>Arrive at the temple 15 minutes before your scheduled time</li>
-                  <li>Bring this email or show the QR code for verification at the time of lunch</li>
                   <li>Please maintain silence and sanctity in the temple premises</li>
+                  ${booking.lunchRequired ? `
+                  <li>Bring this email or show the QR code for verification at the time of lunch</li>
                   <li>Please find the QR code attached at the end of this email</li>
+                  ` : ''}
                 </ul>
             </div>
 
@@ -144,19 +150,22 @@ export async function POST(request: NextRequest) {
 
     // Send email
     console.log('Attempting to send email to:', booking.email);
-    const mailOptions = {
+    const mailOptions: any = {
       from: process.env.EMAIL_FROM,
       to: booking.email,
       subject: `Seva Booking Confirmation - ${booking.sevaName}`,
       html: emailContent,
-      attachments: [
+    };
+
+    if (booking.lunchRequired && qrCodeDataURL) {
+      mailOptions.attachments = [
         {
           filename: `qr-code-${booking.id}.png`,
           content: qrCodeDataURL.split('base64,')[1],
           encoding: 'base64'
         }
-      ]
-    };
+      ];
+    }
 
     const result = await transporter.sendMail(mailOptions);
     console.log('Email sent successfully:', result.messageId);

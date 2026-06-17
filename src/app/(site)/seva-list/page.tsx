@@ -46,65 +46,35 @@ export default function SevaList() {
 
   const sendBookingEmail = async (bookingData: any) => {
     try {
-      console.log('🔍 [DEBUG] sendBookingEmail called using EmailJS:', bookingData);
+      console.log('🔍 [DEBUG] sendBookingEmail called using local API:', bookingData);
       
-      // EmailJS configuration
-      const SERVICE_ID = 'service_7cfhrr5'; 
-      const TEMPLATE_ID = 'template_umwnbkd'; // Using known template ID
-      const PUBLIC_KEY = 'bfEoBkT_7gXKCRsGg';
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          booking: bookingData,
+          qrCode: bookingData.id.toString()
+        }),
+      });
+
+      const data = await response.json();
       
-      emailjs.init(PUBLIC_KEY);
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to send email via API');
+      }
 
-      // Generate dynamic QR URL for EmailJS standard templates
-      const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${bookingData.id.toString()}`;
-
-      const bookingDetailsText = `
-Seva: ${bookingData.sevaName}
-Date: ${bookingData.date}
-Time: ${bookingData.time || 'As scheduled'}
-Number of People: ${bookingData.numberOfPeople || 1}
-Gotra: ${bookingData.gotra || 'N/A'}
-Nakshatra: ${bookingData.nakshatra || 'N/A'}
-Tirtha Prasada: ${bookingData.lunchRequired ? `Yes (${bookingData.lunchCount} people)` : 'No'}
-Total Cost: ${bookingData.totalCost}
-      `.trim();
-
-      const templateParams = {
-        to_email: bookingData.email,
-        devotee_name: bookingData.devoteeName || bookingData.fullName || 'Devotee',
-        'seva.name': bookingData.sevaName || 'Booking', // For {{seva.name}}
-        'seva_name': bookingData.sevaName || 'Booking', // No dots allowed in key names to be safe natively
-        seva_date: bookingData.date || 'N/A',
-        people_count: bookingData.numberOfPeople || '1',
-        gotra: bookingData.gotra || 'N/A',
-        nakshatra: bookingData.nakshatra || 'N/A',
-        hall: bookingData.hall || 'N/A',
-        total_cost: String(bookingData.totalCost || '0').replace('₹', '').replace(',', '').trim(), 
-        booking_id: bookingData.id.toString(),
-        qr_code: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${bookingData.id}`, 
-        qr_id: bookingData.id.toString(),
-        seva_cost: String(bookingData.sevaCost || '0').replace('₹', '').replace(',', '').trim(),
-        tirtha_prasada: bookingData.lunchRequired ? `Yes (${bookingData.lunchCount} people)` : 'No'
-      };
-
-      console.log('🔍 [DEBUG] Sending email via EmailJS with params:', templateParams);
-      
-      const response = await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams);
-
-      console.log('🔍 [DEBUG] Email sent successfully via EmailJS:', response.status, response.text);
+      console.log('🔍 [DEBUG] Email sent successfully via local API:', data);
       return true;
     } catch (error: any) {
       console.error('🔍 [DEBUG] Email sending error:', error);
-      console.error('🔍 [DEBUG] Error type:', typeof error);
-      console.error('🔍 [DEBUG] Error message:', error.message);
-      
       let errorMessage = 'Email sending failed. Please try again or contact the temple office.';
       
       if (error.message) {
         errorMessage = `Email sending failed: ${error.message}`;
       }
       
-      // Check for network issues
       if (!navigator.onLine) {
         errorMessage = 'No internet connection. Please check your network and try again.';
       }
