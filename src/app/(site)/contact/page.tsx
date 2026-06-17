@@ -96,7 +96,7 @@ export default function Contact() {
             {activeTab === 'contact' && (
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                 {/* Contact Form */}
-                <div className="lg:col-span-3 bg-white rounded-3xl shadow-xl border border-gray-100 p-8 md:p-12">
+                <div className="lg:col-span-3 bg-white rounded-3xl shadow-xl border border-gray-100 p-8 md:p-12 h-fit">
                   <div className="mb-8">
                     <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Send us a Message</h2>
                     <p className="text-gray-500 font-medium">Fill out the form below and our team will get back to you promptly.</p>
@@ -265,7 +265,7 @@ export default function Contact() {
               <div className="max-w-6xl mx-auto">
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                   {/* Donation Form */}
-                  <div className="lg:col-span-3 bg-white rounded-3xl shadow-xl border border-gray-100 p-8 md:p-12 relative overflow-hidden">
+                  <div className="lg:col-span-3 bg-white rounded-3xl shadow-xl border border-gray-100 p-8 md:p-12 relative overflow-hidden h-fit">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-50"></div>
                     
                     <div className="mb-8 relative z-10">
