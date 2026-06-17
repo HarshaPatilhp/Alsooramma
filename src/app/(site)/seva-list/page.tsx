@@ -598,8 +598,8 @@ export default function SevaList() {
         }
       } catch (error: any) {
         console.error('Error sending email:', error);
-        const errMessage = error?.text || error?.message || 'Unknown EmailJS error';
-        alert(`Booking submitted for ${selectedSeva?.name}! Your booking ID is ${bookingData.id}. Email sending failed (Reason: ${errMessage}). Please verify your EmailJS keys.`);
+        const errMessage = error?.text || error?.message || 'Unknown error';
+        alert(`Booking submitted for ${selectedSeva?.name}! Your booking ID is ${bookingData.id}. Email sending failed (Reason: ${errMessage}).`);
       }
     } catch (error) {
       console.error('Error in booking submission:', error);
