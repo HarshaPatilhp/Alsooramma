@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
             <div class="qr-code">
                 <h3>📱 Your QR Code</h3>
                 <p>Please show this QR code at the temple entrance for verification.</p>
-                <img src="${qrCodeDataURL}" alt="Booking QR Code" style="max-width: 200px; border: 2px solid #333; border-radius: 5px;" />
+                <img src="cid:qrcode-image" alt="Booking QR Code" style="max-width: 200px; border: 2px solid #333; border-radius: 5px;" />
                 <p><strong>QR Code:</strong> ${qrCode}</p>
             </div>
             ` : ''}
@@ -162,7 +162,8 @@ export async function POST(request: NextRequest) {
         {
           filename: `qr-code-${booking.id}.png`,
           content: qrCodeDataURL.split('base64,')[1],
-          encoding: 'base64'
+          encoding: 'base64',
+          cid: 'qrcode-image'
         }
       ];
     }
