@@ -29,24 +29,24 @@ export default function Home() {
           <div className="inline-block mb-6 px-6 py-2 rounded-full glassmorphism text-orange-100 text-sm font-semibold tracking-widest uppercase">
             A Sacred Journey
           </div>
-          <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-6 drop-shadow-lg leading-tight">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white mb-6 drop-shadow-lg leading-tight">
            Hari Sarvothama! 
            <br />
            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-400">Vayu Jeevothama !!</span>
           </h1>
-          <h2 className="text-xl md:text-3xl text-orange-50 font-medium mb-12 drop-shadow-md max-w-4xl mx-auto">
+          <h2 className="text-lg md:text-2xl lg:text-3xl text-orange-50 font-medium mb-12 drop-shadow-md max-w-4xl mx-auto">
             Mathaji Ulsooramma Raghavendra Swamy Mutt, Vidyaranyapura, Bangalore
           </h2>
           <div className="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 md:space-x-6">
             <Link
               href="/seva-list"
-              className="bg-white text-orange-600 px-10 py-4 rounded-xl font-bold text-lg hover:shadow-2xl hover:-translate-y-1 transform transition-all duration-300"
+              className="bg-white text-orange-600 px-6 py-3 md:px-10 md:py-4 rounded-xl font-bold text-base md:text-lg hover:shadow-2xl hover:-translate-y-1 transform transition-all duration-300 w-full md:w-auto"
             >
               Book a Seva Online
             </Link>
             <Link
               href="/contact"
-              className="glassmorphism text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-white/20 transition-all duration-300 border border-white/40"
+              className="glassmorphism text-white px-6 py-3 md:px-10 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-white/20 transition-all duration-300 border border-white/40 w-full md:w-auto"
             >
               Contact Us
             </Link>

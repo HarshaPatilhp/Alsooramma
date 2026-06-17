@@ -25,26 +25,26 @@ export default function Volunteers() {
             <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">
               Volunteers
             </h2>
-            
+
             <div className="space-y-6 text-gray-700 leading-relaxed">
               <p>
-                The volunteers at Vidyaranyapura Sri Raghavendra Swamy Mutt are the backbone of our temple's 
-                daily operations and community services. These dedicated devotees contribute their time, skills, 
-                and energy to ensure that the temple functions smoothly and serves the community effectively. 
-                From maintaining the temple premises to organizing events and helping with various activities, 
+                The volunteers at Vidyaranyapura Sri Raghavendra Swamy Mutt are the backbone of our temple's
+                daily operations and community services. These dedicated devotees contribute their time, skills,
+                and energy to ensure that the temple functions smoothly and serves the community effectively.
+                From maintaining the temple premises to organizing events and helping with various activities,
                 our volunteers play a crucial role in preserving our spiritual heritage and traditions.
               </p>
 
               <p>
-                Our volunteers come from diverse backgrounds and professions, united by their devotion to 
-                Sri Raghavendra Swami and their commitment to serving the community. Their selfless service 
-                reflects the true spirit of Karma Yoga and devotion, inspiring others to follow the path 
+                Our volunteers come from diverse backgrounds and professions, united by their devotion to
+                Sri Raghavendra Swami and their commitment to serving the community. Their selfless service
+                reflects the true spirit of Karma Yoga and devotion, inspiring others to follow the path
                 of righteousness and service.
               </p>
 
               <p>
-                We are always grateful for the time and effort our volunteers put into making our temple 
-                a vibrant center of spiritual and cultural activities. Their dedication ensures that the 
+                We are always grateful for the time and effort our volunteers put into making our temple
+                a vibrant center of spiritual and cultural activities. Their dedication ensures that the
                 teachings and traditions of our Gurus are preserved and passed on to future generations.
               </p>
             </div>
@@ -132,7 +132,7 @@ export default function Volunteers() {
             <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
               Benefits of Volunteering
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
                 <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -177,7 +177,7 @@ export default function Volunteers() {
             <h3 className="text-2xl font-bold text-gray-800 mb-8 text-center">
               Meet Our Volunteers
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Volunteer Card 1 */}
               <VolunteerCard
@@ -212,7 +212,7 @@ export default function Volunteers() {
                 alt="Harsha Patil"
                 phone="+91 9738624467"
                 instagram="https://www.instagram.com/harsha._._.patil/"
-                linkedin="https://www.linkedin.com/in/harsha-patil-28059327b/l"
+                linkedin="https://www.linkedin.com/in/harsha-patil-28059327b"
               />
 
               {/* Volunteer Card 4 */}
@@ -257,18 +257,18 @@ export default function Volunteers() {
           <div className="bg-orange-600 text-white rounded-lg p-8 text-center">
             <h3 className="text-2xl font-bold mb-4">Join Our Volunteer Team</h3>
             <p className="mb-6">
-              If you are inspired to contribute your time and skills to serve the temple and community, 
-              we welcome you to join our team of dedicated volunteers. Your service will be a valuable 
+              If you are inspired to contribute your time and skills to serve the temple and community,
+              we welcome you to join our team of dedicated volunteers. Your service will be a valuable
               contribution to preserving our spiritual heritage.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <button 
+              <button
                 onClick={() => router.push('/contact')}
                 className="bg-white text-orange-600 px-6 py-3 rounded-lg font-semibold hover:bg-orange-50 transition-colors"
               >
                 Contact Us
               </button>
-              <button 
+              <button
                 onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSegCTIjhyqVdIMGMKUd7obrCTBeomk5KbjkzbQl-ZgdeHICMg/viewform?usp=publish-editor', '_blank')}
                 className="border-2 border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-orange-600 transition-colors"
               >
