@@ -243,7 +243,6 @@ export default function DevoteesPage() {
                 ))}
               </div>
             )}
-            </div>
 
             <div className="relative">
               <button 
