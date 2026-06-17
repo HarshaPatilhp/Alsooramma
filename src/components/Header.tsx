@@ -46,7 +46,7 @@ export default function Header() {
             </svg>
           </button>
 
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+          <div className="relative flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0">
             <nav className="hidden md:flex space-x-6 lg:space-x-8 text-sm lg:text-base">
               <Link href="/" className="hover:text-orange-200 transition-colors">Home</Link>
 
@@ -146,7 +146,7 @@ export default function Header() {
             )}
           </div>
 
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-4 md:absolute md:right-0">
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full hover:bg-orange-700 transition-colors text-white mr-2"
