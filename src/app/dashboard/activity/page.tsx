@@ -24,7 +24,7 @@ export default function ActivityLogPage() {
       if (data && !error) {
         const mapped = data.map((h: any) => ({
           id: h.id.toString(),
-          type: 'check_in',
+          type: 'check_in' as 'check_in' | 'seva_completed' | 'system_alert',
           title: 'QR Check-in Verified',
           description: `Booking #${h.booking_id} was successfully verified and checked in.`,
           timestamp: h.scanned_at || new Date().toLocaleString('en-IN'),
