@@ -46,32 +46,35 @@ export default function SevaList() {
 
   const sendBookingEmail = async (bookingData: any) => {
     try {
-      console.log('🔍 [DEBUG] sendBookingEmail called using local API:', bookingData);
+      console.log('🔍 [DEBUG] sendBookingEmail called using EmailJS:', bookingData);
       
-      const response = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          booking: bookingData,
-          qrCode: bookingData.id.toString()
-        }),
-      });
+      const templateParams = {
+        to_name: bookingData.devoteeName,
+        to_email: bookingData.email,
+        seva_name: bookingData.sevaName,
+        booking_id: bookingData.id,
+        booking_date: bookingData.date,
+        booking_time: bookingData.time,
+        hall_name: bookingData.hall || 'N/A',
+        total_cost: bookingData.totalCost
+      };
 
-      const data = await response.json();
-      
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to send email via API');
-      }
+      const response = await emailjs.send(
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID!,
+        templateParams,
+        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!
+      );
 
-      console.log('🔍 [DEBUG] Email sent successfully via local API:', data);
+      console.log('🔍 [DEBUG] Email sent successfully via EmailJS:', response);
       return true;
     } catch (error: any) {
       console.error('🔍 [DEBUG] Email sending error:', error);
       let errorMessage = 'Email sending failed. Please try again or contact the temple office.';
       
-      if (error.message) {
+      if (error.text) {
+        errorMessage = `Email sending failed: ${error.text}`;
+      } else if (error.message) {
         errorMessage = `Email sending failed: ${error.message}`;
       }
       
