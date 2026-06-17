@@ -1,8 +1,9 @@
 "use client";
 
-import { Menu, Search, Bell, User } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Menu, Search, Bell, User, CheckCircle, Clock } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { createClient } from '@/lib/client';
 
 
 interface HeaderProps {
@@ -12,7 +13,29 @@ interface HeaderProps {
 
 export default function Header({ toggleSidebar, user }: HeaderProps) {
   const [currentDate, setCurrentDate] = useState('');
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const { theme, toggleTheme } = useTheme();
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase.from('scan_history').select('*').order('created_at', { ascending: false }).limit(5);
+      if (data && !error) {
+        setNotifications(data);
+      }
+    };
+    fetchNotifications();
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
 
   useEffect(() => {
@@ -70,11 +93,54 @@ export default function Header({ toggleSidebar, user }: HeaderProps) {
           </div>
 
           {/* Notifications */}
-          <button className="relative p-2 text-gray-400 hover:text-orange-500 transition-colors">
-            <span className="sr-only">View notifications</span>
-            <Bell className="h-5 w-5" aria-hidden="true" />
-            <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
-          </button>
+          <div className="relative" ref={notifRef}>
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-2 text-gray-400 hover:text-orange-500 transition-colors"
+            >
+              <span className="sr-only">View notifications</span>
+              <Bell className="h-5 w-5" aria-hidden="true" />
+              {notifications.length > 0 && (
+                <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
+              )}
+            </button>
+
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 z-50 overflow-hidden">
+                <div className="p-4 border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex justify-between items-center">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</h3>
+                  <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full font-medium">{notifications.length} New</span>
+                </div>
+                <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-slate-700">
+                  {notifications.length > 0 ? (
+                    notifications.map((notif) => (
+                      <div key={notif.id} className="p-4 border-b border-gray-50 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors flex gap-3 items-start">
+                        <div className="mt-0.5 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
+                          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">QR Checked-in Verified</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">Booking ID #{notif.booking_id} was scanned and verified successfully.</p>
+                          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5 font-semibold uppercase tracking-wider flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> {notif.scanned_at || new Date(notif.created_at).toLocaleString('en-IN')}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
+                      No new notifications
+                    </div>
+                  )}
+                </div>
+                <div className="p-3 bg-gray-50 dark:bg-slate-800/50 text-center border-t border-gray-100 dark:border-slate-700">
+                  <a href="/dashboard/activity" className="text-xs font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700 uppercase tracking-wider">
+                    View All Activity
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Theme Switcher */}
           <button
