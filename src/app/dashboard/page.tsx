@@ -56,9 +56,8 @@ export default function DashboardPage() {
       if (user?.role === 'admin') {
         baseStats.push({ title: 'Total Revenue', value: `₹${revenueTotal.toLocaleString('en-IN')}`, Icon: Gift, subtitle: 'Total collected' });
       }
-
-      baseStats.push({ title: 'Mutt Status', value: 'Open', Icon: ShieldCheck, subtitle: 'Closes at 9:00 PM' });
       
+
       setStats(baseStats);
 
       // Load recent check-ins from history
