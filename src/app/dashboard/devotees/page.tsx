@@ -250,21 +250,21 @@ export default function DevoteesPage() {
                 className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-800 font-medium text-gray-700 dark:text-gray-300"
               >
                 <Calendar size={18} />
-                {sortOrder === 'newest' ? 'Newest' : 'Oldest'}
+                {sortOrder === 'newest' ? 'Latest Seva' : 'Earliest Seva'}
               </button>
               {showSortMenu && (
-                <div className="absolute right-0 mt-2 w-32 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 z-10 py-1">
+                <div className="absolute right-0 mt-2 w-36 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 z-10 py-1">
                   <button
                     onClick={() => { setSortOrder('newest'); setShowSortMenu(false); }}
                     className={`block w-full text-left px-4 py-2 text-sm ${sortOrder === 'newest' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
                   >
-                    Newest First
+                    Latest Seva
                   </button>
                   <button
                     onClick={() => { setSortOrder('oldest'); setShowSortMenu(false); }}
                     className={`block w-full text-left px-4 py-2 text-sm ${sortOrder === 'oldest' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
                   >
-                    Oldest First
+                    Earliest Seva
                   </button>
                 </div>
               )}
