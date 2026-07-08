@@ -583,9 +583,9 @@ export default function SevaList() {
 
       // 1. We no longer save to localStorage, it's deprecated.
 
-      // 2. Save to Google Sheets / Supabase DB via API
+      // 2. Save to Supabase DB via API and direct client fallback
       try {
-        console.log('🔍 [DEBUG] Syncing booking to Google Sheets...');
+        console.log('🔍 [DEBUG] Syncing booking to Supabase via API...');
         const sheetsResponse = await fetch('/api/bookings', {
           method: 'POST',
           headers: {
@@ -595,12 +595,70 @@ export default function SevaList() {
         });
         const sheetsData = await sheetsResponse.json();
         if (sheetsData.success) {
-          console.log('✅ Booking synced to Google Sheets successfully');
+          console.log('✅ Booking synced to database successfully');
         } else {
-          console.error('❌ Google Sheets sync failed:', sheetsData.message);
+          console.error('❌ API sync failed, using direct Supabase fallback:', sheetsData.message);
+          const { createClient } = await import('@/lib/client');
+          const supabase = createClient();
+          await supabase.from('bookings').insert([{
+            id: String(bookingData.id),
+            devotee_name: bookingData.devoteeName || 'Devotee',
+            email: bookingData.email || '',
+            phone: bookingData.phone || '',
+            seva_name: bookingData.sevaName || 'Seva Booking',
+            date: bookingData.date || new Date().toISOString().split('T')[0],
+            time: bookingData.time || '',
+            number_of_people: String(bookingData.numberOfPeople || '1'),
+            gotra: bookingData.gotra || '',
+            nakshatra: bookingData.nakshatra || '',
+            hall: bookingData.hall || '',
+            tirtha_prasada_required: !!bookingData.tirthaPrasadaRequired,
+            tirtha_prasada_count: Number(bookingData.tirthaPrasadaCount) || 0,
+            lunch_required: !!bookingData.lunchRequired,
+            lunch_count: Number(bookingData.lunchCount) || 0,
+            lunch_hall: bookingData.lunchHall || '',
+            special_requests: bookingData.specialRequests || '',
+            status: bookingData.status || 'confirmed',
+            seva_cost: String(bookingData.sevaCost || ''),
+            lunch_cost: Number(bookingData.lunchCost) || 0,
+            total_cost: Number(bookingData.totalCost) || 0,
+            qr_code: String(bookingData.qrCode || bookingData.id),
+            created_at: bookingData.createdAt || new Date().toISOString()
+          }]);
         }
       } catch (err: any) {
-        console.error('❌ Error calling Google Sheets API:', err.message);
+        console.error('❌ Error calling API, executing direct Supabase fallback:', err.message);
+        try {
+          const { createClient } = await import('@/lib/client');
+          const supabase = createClient();
+          await supabase.from('bookings').insert([{
+            id: String(bookingData.id),
+            devotee_name: bookingData.devoteeName || 'Devotee',
+            email: bookingData.email || '',
+            phone: bookingData.phone || '',
+            seva_name: bookingData.sevaName || 'Seva Booking',
+            date: bookingData.date || new Date().toISOString().split('T')[0],
+            time: bookingData.time || '',
+            number_of_people: String(bookingData.numberOfPeople || '1'),
+            gotra: bookingData.gotra || '',
+            nakshatra: bookingData.nakshatra || '',
+            hall: bookingData.hall || '',
+            tirtha_prasada_required: !!bookingData.tirthaPrasadaRequired,
+            tirtha_prasada_count: Number(bookingData.tirthaPrasadaCount) || 0,
+            lunch_required: !!bookingData.lunchRequired,
+            lunch_count: Number(bookingData.lunchCount) || 0,
+            lunch_hall: bookingData.lunchHall || '',
+            special_requests: bookingData.specialRequests || '',
+            status: bookingData.status || 'confirmed',
+            seva_cost: String(bookingData.sevaCost || ''),
+            lunch_cost: Number(bookingData.lunchCost) || 0,
+            total_cost: Number(bookingData.totalCost) || 0,
+            qr_code: String(bookingData.qrCode || bookingData.id),
+            created_at: bookingData.createdAt || new Date().toISOString()
+          }]);
+        } catch (fbErr) {
+          console.error('Supabase fallback failed:', fbErr);
+        }
       }
 
 

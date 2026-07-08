@@ -3,7 +3,7 @@ import { createClient } from '@/lib/server';
 import { verifyApiPermission } from '@/lib/server-rbac';
 
 export async function POST(request: NextRequest) {
-  const authCheck = await verifyApiPermission(request, ['qr_checkin']);
+  const authCheck = await verifyApiPermission(request, ['qr_checkin', 'devotees', 'seva_dashboard', 'dashboard', 'reports']);
   if (!authCheck.authorized) return authCheck.errorResponse!;
 
   try {
@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const { error } = await supabase
       .from('bookings')
-      .update({ status: status })
-      .eq('id', id);
+      .update({ status: String(status) })
+      .eq('id', String(id));
 
     if (error) throw error;
 

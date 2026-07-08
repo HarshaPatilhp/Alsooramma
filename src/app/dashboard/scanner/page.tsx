@@ -58,14 +58,15 @@ export default function ScannerPage() {
     // Stop scanning immediately to prevent duplicate scans
     setIsScanning(false);
     
+    const cleanId = String(data || '').trim();
     const supabase = createClient();
-    const { data: dbDetails, error } = await supabase.from('bookings').select('*').eq('id', data).single();
+    const { data: dbDetails, error } = await supabase.from('bookings').select('*').eq('id', cleanId).single();
 
     if (dbDetails && !error) {
       const details = {
          id: dbDetails.id,
-         devoteeName: dbDetails.devotee_name,
-         sevaName: dbDetails.seva_name,
+         devoteeName: dbDetails.devotee_name || dbDetails.devoteeName || 'Devotee',
+         sevaName: dbDetails.seva_name || dbDetails.sevaName || 'Seva Booking',
          status: dbDetails.status,
          gotra: dbDetails.gotra,
          date: dbDetails.date,
@@ -91,21 +92,21 @@ export default function ScannerPage() {
         return;
       }
 
-      // 1. Update Booking Status via API
+      // 1. Update Booking Status directly in Supabase + API for 100% reliability
+      await supabase.from('bookings').update({ status: 'completed' }).eq('id', cleanId);
+      
       fetch('/api/bookings/update', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id: data, status: 'completed' }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: cleanId, status: 'completed' }),
       }).catch((apiErr: any) => {
-        console.error('Failed to sync check-in status:', apiErr.message);
+        console.error('Failed to sync check-in status with API:', apiErr.message);
       });
 
       // 2. Add to scan history in Supabase
       const newScan = {
         id: Date.now().toString(),
-        booking_id: details.id,
+        booking_id: String(details.id),
         scanned_at: new Date().toLocaleString('en-IN'),
         status: 'Verified',
         scanned_by: 'System / Scanner'

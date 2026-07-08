@@ -17,7 +17,7 @@ export default function ReportsPage() {
       
       if (bks) {
         let revenue = bks.reduce((sum: number, b: any) => {
-          const costStr = String(b.total_cost || b.totalCost || '0').replace('₹', '').replace(',', '').trim();
+          const costStr = String(b.total_cost || b.totalCost || '0').replace('₹', '').replace(/,/g, '').trim();
           return sum + (Number(costStr) || 0);
         }, 0);
         donationsTotal = revenue;

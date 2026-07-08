@@ -21,15 +21,17 @@ export default function AnnadanamPage() {
     const fetchSponsors = async () => {
       const supabase = createClient();
       const { data, error } = await supabase.from('annadanam').select('*').order('created_at', { ascending: false });
-      if (data && !error) {
+      if (!error && Array.isArray(data)) {
         setSponsors(data.map((s: any) => ({
-          id: s.id,
-          sponsorName: s.sponsor_name,
-          contact: s.contact,
-          date: s.date,
-          mealType: s.meal_type,
-          amount: s.amount
+          id: String(s.id),
+          sponsorName: s.sponsor_name || s.sponsorName || '',
+          contact: s.contact || '',
+          date: s.date || '',
+          mealType: s.meal_type || s.mealType || '',
+          amount: Number(s.amount) || 0
         })));
+      } else if (error) {
+        console.error("Error fetching annadanam sponsors:", error.message);
       }
     };
     fetchSponsors();

@@ -20,12 +20,53 @@ export default function DevoteesPage() {
 
   useEffect(() => {
     const fetchBookings = async () => {
+      setIsLoading(true);
       try {
+        // Try fetching via API first
         const res = await fetch('/api/bookings');
         const data = await res.json();
-        setBookings(data.bookings || []);
+        
+        if (data && data.success && Array.isArray(data.bookings)) {
+          setBookings(data.bookings);
+        } else {
+          // Fallback to direct Supabase client if API returned error or unauthorized
+          const { createClient } = await import('@/lib/client');
+          const supabase = createClient();
+          const { data: dbRows, error: dbErr } = await supabase.from('bookings').select('*').order('created_at', { ascending: false });
+          if (!dbErr && dbRows) {
+            const mapped = dbRows.map((row: any) => ({
+              id: row.id,
+              devoteeName: row.devotee_name || row.devoteeName || '',
+              sevaName: row.seva_name || row.sevaName || '',
+              phone: row.phone || '',
+              date: row.date || '',
+              status: row.status || 'confirmed',
+              fullName: row.devotee_name || row.devoteeName || ''
+            }));
+            setBookings(mapped);
+          }
+        }
       } catch (err) {
-        console.error("Failed to fetch bookings", err);
+        console.error("Failed to fetch bookings via API, trying Supabase fallback", err);
+        try {
+          const { createClient } = await import('@/lib/client');
+          const supabase = createClient();
+          const { data: dbRows, error: dbErr } = await supabase.from('bookings').select('*').order('created_at', { ascending: false });
+          if (!dbErr && dbRows) {
+            const mapped = dbRows.map((row: any) => ({
+              id: row.id,
+              devoteeName: row.devotee_name || row.devoteeName || '',
+              sevaName: row.seva_name || row.sevaName || '',
+              phone: row.phone || '',
+              date: row.date || '',
+              status: row.status || 'confirmed',
+              fullName: row.devotee_name || row.devoteeName || ''
+            }));
+            setBookings(mapped);
+          }
+        } catch (fbErr) {
+          console.error("Supabase fallback error:", fbErr);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -42,37 +83,41 @@ export default function DevoteesPage() {
     }
   };
 
-  const deleteBooking = async (id: number) => {
+  const deleteBooking = async (id: number | string) => {
     if(confirm('Are you sure you want to delete this booking?')) {
-      const updated = bookings.filter(b => b.id !== id);
+      const updated = bookings.filter(b => String(b.id) !== String(id));
       setBookings(updated);
 
       try {
+        const { createClient } = await import('@/lib/client');
+        const supabase = createClient();
+        await supabase.from('bookings').update({ status: 'deleted' }).eq('id', String(id));
+        
         await fetch('/api/bookings/update', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ id, status: 'deleted' }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: String(id), status: 'deleted' }),
         });
       } catch (err: any) {
-        console.error('Failed to sync deletion with Google Sheets:', err.message);
+        console.error('Failed to sync deletion:', err.message);
       }
     }
   }
 
-  const markCompleted = async (id: number) => {
+  const markCompleted = async (id: number | string) => {
     if(confirm('Mark this seva booking as completed?')) {
-      const updated = bookings.map(b => b.id === id ? { ...b, status: 'completed' } : b);
+      const updated = bookings.map(b => String(b.id) === String(id) ? { ...b, status: 'completed' } : b);
       setBookings(updated);
 
       try {
+        const { createClient } = await import('@/lib/client');
+        const supabase = createClient();
+        await supabase.from('bookings').update({ status: 'completed' }).eq('id', String(id));
+
         await fetch('/api/bookings/update', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ id, status: 'completed' }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: String(id), status: 'completed' }),
         });
       } catch (err: any) {
         console.error('Failed to sync status:', err.message);

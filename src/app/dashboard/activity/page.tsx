@@ -23,9 +23,9 @@ export default function ActivityLogPage() {
       const supabase = createClient();
       const { data, error } = await supabase.from('scan_history').select('*').order('created_at', { ascending: false });
       
-      if (data && !error) {
+      if (!error && Array.isArray(data)) {
         const mapped = data.map((h: any) => ({
-          id: h.id.toString(),
+          id: String(h.id || Date.now()),
           type: 'check_in' as 'check_in' | 'seva_completed' | 'system_alert',
           title: 'QR Check-in Verified',
           description: `Booking #${h.booking_id} was successfully verified and checked in.`,
@@ -33,6 +33,8 @@ export default function ActivityLogPage() {
           user: h.scanned_by || 'System / Scanner'
         }));
         setActivities(mapped);
+      } else if (error) {
+        console.error("Error fetching scan_history:", error.message);
       }
     };
     fetchActivities();

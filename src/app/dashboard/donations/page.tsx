@@ -21,15 +21,17 @@ export default function DonationsPage() {
     const fetchDonations = async () => {
       const supabase = createClient();
       const { data, error } = await supabase.from('donations').select('*').order('created_at', { ascending: false });
-      if (data && !error) {
+      if (!error && Array.isArray(data)) {
         setDonations(data.map((d: any) => ({
-          id: d.id,
-          donorName: d.donor_name,
-          amount: d.amount,
-          date: d.date,
-          purpose: d.purpose,
-          receiptSent: d.receipt_sent
+          id: String(d.id),
+          donorName: d.donor_name || d.donorName || '',
+          amount: Number(d.amount) || 0,
+          date: d.date || '',
+          purpose: d.purpose || '',
+          receiptSent: !!d.receipt_sent
         })));
+      } else if (error) {
+        console.error("Error fetching donations:", error.message);
       }
     };
     fetchDonations();

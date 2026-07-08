@@ -2,7 +2,7 @@
 DROP TABLE IF EXISTS public.bookings;
 
 CREATE TABLE public.bookings (
-    id BIGINT PRIMARY KEY,
+    id TEXT PRIMARY KEY,
     devotee_name TEXT,
     email TEXT,
     phone TEXT,
@@ -112,7 +112,7 @@ ON CONFLICT (email) DO UPDATE SET
 DROP TABLE IF EXISTS public.scan_history;
 CREATE TABLE public.scan_history (
     id TEXT PRIMARY KEY,
-    booking_id BIGINT NOT NULL,
+    booking_id TEXT NOT NULL,
     scanned_at TEXT NOT NULL,
     status TEXT NOT NULL,
     scanned_by TEXT,

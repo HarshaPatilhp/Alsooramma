@@ -22,29 +22,41 @@ export default function DashboardPage() {
       const supabase = createClient();
       
       // Fetch bookings
-      const { data: bookingsData } = await supabase.from('bookings').select('*');
+      const { data: bookingsData, error: bookingsErr } = await supabase.from('bookings').select('*');
+      if (bookingsErr) console.error("Error loading bookings:", bookingsErr.message);
       const bookings = bookingsData || [];
       
       // Fetch scan history
-      const { data: historyData } = await supabase.from('scan_history').select('*').order('created_at', { ascending: false }).limit(5);
+      const { data: historyData, error: historyErr } = await supabase.from('scan_history').select('*').order('created_at', { ascending: false }).limit(5);
+      if (historyErr) console.error("Error loading scan history:", historyErr.message);
       const history = historyData || [];
 
       // Calculate live stats
       const today = new Date();
       const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
       
-      const todaysBookings = bookings.filter((b: any) => b.date && b.date.startsWith(todayStr));
+      const todaysBookings = bookings.filter((b: any) => {
+        const dateVal = b.date || '';
+        return dateVal.startsWith(todayStr) || dateVal === today.toLocaleDateString('en-IN');
+      });
       
       // 1. Total Devotees (All Time)
-      const totalDevotees = bookings.reduce((sum: number, b: any) => sum + (Number(b.numberOfPeople) || 1), 0);
-      const devoteesToday = todaysBookings.reduce((sum: number, b: any) => sum + (Number(b.numberOfPeople) || 1), 0);
+      const totalDevotees = bookings.reduce((sum: number, b: any) => {
+        const people = Number(b.number_of_people !== undefined ? b.number_of_people : b.numberOfPeople);
+        return sum + (people || 1);
+      }, 0);
+      const devoteesToday = todaysBookings.reduce((sum: number, b: any) => {
+        const people = Number(b.number_of_people !== undefined ? b.number_of_people : b.numberOfPeople);
+        return sum + (people || 1);
+      }, 0);
       
       // 2. Sevas Completed (All Time)
-      const completedTotal = bookings.filter((b: any) => b.status === 'completed').length;
+      const completedTotal = bookings.filter((b: any) => (b.status || '').toLowerCase() === 'completed').length;
       
       // 3. Total Revenue (All Time)
       const revenueTotal = bookings.reduce((sum: number, b: any) => {
-        const costStr = String(b.total_cost || '0').replace('₹', '').replace(',', '').trim();
+        const rawCost = b.total_cost !== undefined ? b.total_cost : (b.totalCost !== undefined ? b.totalCost : '0');
+        const costStr = String(rawCost).replace('₹', '').replace(/,/g, '').trim();
         return sum + (Number(costStr) || 0);
       }, 0);
 
@@ -53,7 +65,7 @@ export default function DashboardPage() {
         { title: 'Sevas Completed', value: completedTotal.toString(), Icon: BookOpen, subtitle: `Of ${bookings.length} total booked` },
       ];
 
-      if (user?.role === 'admin') {
+      if (user?.role === 'admin' || user?.role === 'super_admin') {
         baseStats.push({ title: 'Total Revenue', value: `₹${revenueTotal.toLocaleString('en-IN')}`, Icon: Gift, subtitle: 'Total collected' });
       }
       
@@ -64,9 +76,9 @@ export default function DashboardPage() {
       const recent = history.map((h: any) => ({
         id: h.id,
         name: `Booking #${h.booking_id}`,
-        time: new Date(h.scanned_at || Date.now()).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }),
-        seva: 'Seva',
-        status: h.status || 'Checked In'
+        time: new Date(h.scanned_at || h.created_at || Date.now()).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }),
+        seva: h.scanned_by || 'QR Verification',
+        status: h.status || 'Verified'
       }));
       setRecentCheckins(recent);
     } catch (e) {
