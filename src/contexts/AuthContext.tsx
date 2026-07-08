@@ -26,7 +26,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Check for stored auth in session storage on mount
+    // Check if the current navigation is a page refresh / reload
+    let isReload = false;
+    if (typeof window !== 'undefined') {
+      const navEntries = window.performance?.getEntriesByType('navigation');
+      if (navEntries && navEntries.length > 0) {
+        isReload = (navEntries[0] as PerformanceNavigationTiming).type === 'reload';
+      } else if ((window.performance as any)?.navigation?.type === 1) {
+        isReload = true;
+      }
+    }
+
+    if (isReload) {
+      // Requirement: when the page is refreshed, automatically log out
+      sessionStorage.removeItem('temple_auth_user');
+      sessionStorage.removeItem('temple_auth_phone');
+      if (typeof document !== 'undefined') {
+        document.cookie = 'temple_auth_user_id=; path=/; max-age=0';
+        document.cookie = 'temple_auth_user_email=; path=/; max-age=0';
+      }
+      setUser(null);
+      return;
+    }
+
+    // Check for stored auth in session storage if not a reload
     const storedUser = sessionStorage.getItem('temple_auth_user');
     
     if (storedUser) {
@@ -47,24 +70,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Warn user to logout before closing the tab/window
+  // Automatically logout when page is refreshed, closed, or unloaded
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (user) {
-        e.preventDefault();
-        e.returnValue = '';
-        return '';
+    const handlePageExit = () => {
+      sessionStorage.removeItem('temple_auth_user');
+      sessionStorage.removeItem('temple_auth_phone');
+      if (typeof document !== 'undefined') {
+        document.cookie = 'temple_auth_user_id=; path=/; max-age=0';
+        document.cookie = 'temple_auth_user_email=; path=/; max-age=0';
       }
     };
 
-    if (user) {
-      window.addEventListener('beforeunload', handleBeforeUnload);
-    }
+    window.addEventListener('beforeunload', handlePageExit);
+    window.addEventListener('pagehide', handlePageExit);
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('beforeunload', handlePageExit);
+      window.removeEventListener('pagehide', handlePageExit);
     };
-  }, [user]);
+  }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
