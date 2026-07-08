@@ -70,25 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Automatically logout when page is refreshed, closed, or unloaded
-  useEffect(() => {
-    const handlePageExit = () => {
-      sessionStorage.removeItem('temple_auth_user');
-      sessionStorage.removeItem('temple_auth_phone');
-      if (typeof document !== 'undefined') {
-        document.cookie = 'temple_auth_user_id=; path=/; max-age=0';
-        document.cookie = 'temple_auth_user_email=; path=/; max-age=0';
-      }
-    };
 
-    window.addEventListener('beforeunload', handlePageExit);
-    window.addEventListener('pagehide', handlePageExit);
-
-    return () => {
-      window.removeEventListener('beforeunload', handlePageExit);
-      window.removeEventListener('pagehide', handlePageExit);
-    };
-  }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {

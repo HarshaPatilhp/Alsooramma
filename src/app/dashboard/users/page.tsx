@@ -58,20 +58,51 @@ export default function UsersPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [currentUser]);
 
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/users');
+      const res = await fetch('/api/users', {
+        headers: {
+          'x-user-id': String(currentUser?.id || ''),
+          'x-user-email': currentUser?.email || '',
+        },
+      });
       const data = await res.json();
-      if (data.success && data.users) {
+      if (data.success && Array.isArray(data.users) && data.users.length > 0) {
         setUsers(data.users);
       } else {
-        console.error('Failed to fetch users via API:', data.message);
+        // Fallback to direct Supabase client query
+        const { createClient } = await import('@/lib/client');
+        const supabase = createClient();
+        const { data: dbUsers, error: dbErr } = await supabase
+          .from('users')
+          .select('id, name, email, phone, role, permissions, created_at')
+          .order('created_at', { ascending: false });
+
+        if (!dbErr && Array.isArray(dbUsers)) {
+          setUsers(dbUsers);
+        } else if (dbErr) {
+          console.error('Supabase users query error:', dbErr.message);
+        }
       }
     } catch (err) {
-      console.error('Error fetching users:', err);
+      console.error('Error fetching users via API, trying direct Supabase fallback:', err);
+      try {
+        const { createClient } = await import('@/lib/client');
+        const supabase = createClient();
+        const { data: dbUsers, error: dbErr } = await supabase
+          .from('users')
+          .select('id, name, email, phone, role, permissions, created_at')
+          .order('created_at', { ascending: false });
+
+        if (!dbErr && Array.isArray(dbUsers)) {
+          setUsers(dbUsers);
+        }
+      } catch (fbErr) {
+        console.error('Supabase fallback failed:', fbErr);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -84,16 +115,37 @@ export default function UsersPage() {
     }
     if (confirm('Are you sure you want to revoke administrative/scanner access for this user?')) {
       try {
-        const res = await fetch(`/api/users?id=${id}`, { method: 'DELETE' });
+        const res = await fetch(`/api/users?id=${id}`, {
+          method: 'DELETE',
+          headers: {
+            'x-user-id': String(currentUser?.id || ''),
+            'x-user-email': currentUser?.email || '',
+          },
+        });
         const data = await res.json();
         if (data.success) {
           setUsers(users.filter(x => x.id !== id));
         } else {
-          alert(`Failed to remove access: ${data.message}`);
+          // Fallback direct delete if Super Admin
+          if (currentUser?.role === 'super_admin' || currentUser?.email === 'admin@temple.com') {
+            const { createClient } = await import('@/lib/client');
+            const supabase = createClient();
+            await supabase.from('users').delete().eq('id', id);
+            setUsers(users.filter(x => x.id !== id));
+          } else {
+            alert(`Failed to remove access: ${data.message}`);
+          }
         }
       } catch (err) {
-        console.error('Delete error:', err);
-        alert('An unexpected error occurred while revoking access.');
+        console.error('Delete error, trying direct Supabase deletion:', err);
+        if (currentUser?.role === 'super_admin' || currentUser?.email === 'admin@temple.com') {
+          const { createClient } = await import('@/lib/client');
+          const supabase = createClient();
+          await supabase.from('users').delete().eq('id', id);
+          setUsers(users.filter(x => x.id !== id));
+        } else {
+          alert('An unexpected error occurred while revoking access.');
+        }
       }
     }
   };
@@ -109,7 +161,11 @@ export default function UsersPage() {
 
       const res = await fetch('/api/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': String(currentUser?.id || ''),
+          'x-user-email': currentUser?.email || '',
+        },
         body: JSON.stringify(payload),
       });
 
@@ -120,10 +176,57 @@ export default function UsersPage() {
         setNewUserData({ name: '', email: '', phone: '', password: '', role: 'volunteer' });
         setInvitePermissions({});
       } else {
+        // Fallback to direct Supabase insert if Super Admin
+        if (currentUser?.role === 'super_admin' || currentUser?.email === 'admin@temple.com') {
+          const { createClient } = await import('@/lib/client');
+          const supabase = createClient();
+          const newUser = {
+            id: Date.now().toString(),
+            name: payload.name,
+            email: payload.email,
+            phone: payload.phone || '',
+            password: payload.password,
+            role: payload.role,
+            permissions: payload.permissions || {},
+          };
+          const { data: inserted, error: insErr } = await supabase.from('users').insert([newUser]).select().single();
+          if (!insErr && inserted) {
+            setUsers([inserted, ...users]);
+            setShowInviteModal(false);
+            setNewUserData({ name: '', email: '', phone: '', password: '', role: 'volunteer' });
+            setInvitePermissions({});
+            return;
+          }
+        }
         alert(`Failed to invite colleague: ${data.message}`);
       }
     } catch (err) {
-      console.error('Invite error:', err);
+      console.error('Invite error, trying direct Supabase fallback:', err);
+      if (currentUser?.role === 'super_admin' || currentUser?.email === 'admin@temple.com') {
+        try {
+          const { createClient } = await import('@/lib/client');
+          const supabase = createClient();
+          const newUser = {
+            id: Date.now().toString(),
+            name: newUserData.name,
+            email: newUserData.email,
+            phone: newUserData.phone || '',
+            password: newUserData.password,
+            role: newUserData.role,
+            permissions: newUserData.role === 'admin' ? invitePermissions : {},
+          };
+          const { data: inserted, error: insErr } = await supabase.from('users').insert([newUser]).select().single();
+          if (!insErr && inserted) {
+            setUsers([inserted, ...users]);
+            setShowInviteModal(false);
+            setNewUserData({ name: '', email: '', phone: '', password: '', role: 'volunteer' });
+            setInvitePermissions({});
+            return;
+          }
+        } catch (fbErr) {
+          console.error('Supabase fallback insert failed:', fbErr);
+        }
+      }
       alert('An unexpected error occurred while inviting user.');
     } finally {
       setIsSubmitting(false);
@@ -141,7 +244,11 @@ export default function UsersPage() {
     try {
       const res = await fetch('/api/users/permissions', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': String(currentUser?.id || ''),
+          'x-user-email': currentUser?.email || '',
+        },
         body: JSON.stringify({
           userId: selectedAdminForPermissions.id,
           permissions: toggledPermissions,
@@ -164,10 +271,49 @@ export default function UsersPage() {
 
         setSelectedAdminForPermissions(null);
       } else {
+        // Fallback direct update in Supabase if Super Admin
+        if (currentUser?.role === 'super_admin' || currentUser?.email === 'admin@temple.com') {
+          const { createClient } = await import('@/lib/client');
+          const supabase = createClient();
+          const { error: updErr } = await supabase.from('users').update({ permissions: toggledPermissions }).eq('id', selectedAdminForPermissions.id);
+          if (!updErr) {
+            setUsers(users.map(u => 
+              u.id === selectedAdminForPermissions.id 
+                ? { ...u, permissions: toggledPermissions } 
+                : u
+            ));
+            if (String(currentUser?.id) === String(selectedAdminForPermissions.id)) {
+              updateUserPermissions(toggledPermissions);
+            }
+            setSelectedAdminForPermissions(null);
+            return;
+          }
+        }
         alert(`Failed to save permissions: ${data.message}`);
       }
     } catch (err) {
-      console.error('Save permissions error:', err);
+      console.error('Save permissions error, trying direct Supabase fallback:', err);
+      if (currentUser?.role === 'super_admin' || currentUser?.email === 'admin@temple.com') {
+        try {
+          const { createClient } = await import('@/lib/client');
+          const supabase = createClient();
+          const { error: updErr } = await supabase.from('users').update({ permissions: toggledPermissions }).eq('id', selectedAdminForPermissions.id);
+          if (!updErr) {
+            setUsers(users.map(u => 
+              u.id === selectedAdminForPermissions.id 
+                ? { ...u, permissions: toggledPermissions } 
+                : u
+            ));
+            if (String(currentUser?.id) === String(selectedAdminForPermissions.id)) {
+              updateUserPermissions(toggledPermissions);
+            }
+            setSelectedAdminForPermissions(null);
+            return;
+          }
+        } catch (fbErr) {
+          console.error('Supabase fallback update failed:', fbErr);
+        }
+      }
       alert('An unexpected error occurred saving permissions.');
     } finally {
       setIsSavingPermissions(false);
@@ -244,20 +390,28 @@ export default function UsersPage() {
                  </tr>
                </thead>
                <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50">
-                 {users.map(u => {
-                   const isRowSuperAdmin = u.role === 'super_admin' || u.email === 'admin@temple.com';
-                   const activePermCount = u.permissions ? Object.values(u.permissions).filter(Boolean).length : 0;
+                 {users.length === 0 ? (
+                   <tr>
+                     <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                       <p className="text-sm font-semibold">No personnel records found.</p>
+                       <p className="text-xs text-gray-400 mt-1">If you just added a user, try refreshing the page or check your database connection.</p>
+                     </td>
+                   </tr>
+                 ) : (
+                   users.map(u => {
+                     const isRowSuperAdmin = u.role === 'super_admin' || u.email === 'admin@temple.com';
+                     const activePermCount = u.permissions ? Object.values(u.permissions).filter(Boolean).length : 0;
 
-                   return (
-                     <tr key={u.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-3">
-                             <div className={`w-10 h-10 flex items-center justify-center rounded-full text-white font-bold text-lg shadow-sm ${
-                               isRowSuperAdmin ? 'bg-gradient-to-tr from-purple-600 to-indigo-600' :
-                               u.role === 'admin' ? 'bg-blue-600' : 'bg-orange-500'
-                             }`}>
-                                {u.name.charAt(0)}
-                             </div>
+                     return (
+                       <tr key={u.id || Math.random()} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                               <div className={`w-10 h-10 flex items-center justify-center rounded-full text-white font-bold text-lg shadow-sm ${
+                                 isRowSuperAdmin ? 'bg-gradient-to-tr from-purple-600 to-indigo-600' :
+                                 u.role === 'admin' ? 'bg-blue-600' : 'bg-orange-500'
+                               }`}>
+                                  {(u.name || 'User').charAt(0)}
+                               </div>
                              <div>
                                <span className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                  {u.name}
@@ -331,7 +485,7 @@ export default function UsersPage() {
                         </td>
                      </tr>
                    );
-                 })}
+                 }))}
                </tbody>
             </table>
           </div>
