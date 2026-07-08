@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/server';
+import { verifyApiPermission } from '@/lib/server-rbac';
 
 export async function POST(request: NextRequest) {
+  const authCheck = await verifyApiPermission(request, ['qr_checkin']);
+  if (!authCheck.authorized) return authCheck.errorResponse!;
+
   try {
     const body = await request.json();
     const { id, status } = body;

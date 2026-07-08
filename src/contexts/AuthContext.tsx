@@ -2,18 +2,21 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { createClient } from '@/lib/client';
+import { RBACUser } from '@/lib/rbac';
 
-interface User {
+export interface User extends RBACUser {
   id: string | number;
   name: string;
-  role: 'volunteer' | 'admin';
+  role: 'super_admin' | 'admin' | 'volunteer' | string;
   email: string;
+  permissions?: Record<string, boolean>;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  updateUserPermissions: (newPermissions: Record<string, boolean>) => void;
   isAuthenticated: boolean;
 }
 
@@ -28,7 +31,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsed: User = JSON.parse(storedUser);
+        if (parsed.email === 'admin@temple.com') {
+          parsed.role = 'super_admin';
+        }
+        setUser(parsed);
+        // Ensure auth cookies exist for API server verification
+        if (typeof document !== 'undefined') {
+          document.cookie = `temple_auth_user_id=${parsed.id}; path=/; max-age=86400`;
+          document.cookie = `temple_auth_user_email=${encodeURIComponent(parsed.email)}; path=/; max-age=86400`;
+        }
       } catch (error) {
         sessionStorage.removeItem('temple_auth_user');
       }
@@ -39,7 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (user) {
-        // Modern browsers don't support custom messages, but require these
         e.preventDefault();
         e.returnValue = '';
         return '';
@@ -68,9 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // If user not found (PGRST116 = no rows returned), let's auto-seed the demo users
       if (error && error.code === 'PGRST116') {
          if (email === 'admin@temple.com' || email === 'gururaj@volunteer.com') {
-             const role = email === 'admin@temple.com' ? 'admin' : 'volunteer';
-             const name = role === 'admin' ? 'Master Admin' : 'Volunteer 01';
-             const phone = role === 'admin' ? '9876543210' : '9000000001';
+             const role = email === 'admin@temple.com' ? 'super_admin' : 'volunteer';
+             const name = role === 'super_admin' ? 'Master Admin' : 'Volunteer 01';
+             const phone = role === 'super_admin' ? '9876543210' : '9000000001';
+             const permissions = role === 'super_admin' 
+               ? { dashboard: true, qr_checkin: true, devotees: true, activity_log: true, seva_dashboard: true, donations: true, annadanam: true, reports: true, user_management: true }
+               : { dashboard: true, qr_checkin: true, devotees: true, activity_log: true };
              
              const { data: insertData, error: insertError } = await supabase.from('users').insert([{
                  id: Date.now().toString(),
@@ -78,7 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                  email,
                  password,
                  phone,
-                 role
+                 role,
+                 permissions
              }]).select().single();
              
              if (insertData && !insertError) {
@@ -89,16 +104,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data && !error) {
+        if (data.email === 'admin@temple.com') {
+          data.role = 'super_admin';
+        }
+
         const userData: User = {
           id: data.id,
           name: data.name,
-          role: data.role as 'admin' | 'volunteer',
-          email: data.email
+          role: data.role as 'super_admin' | 'admin' | 'volunteer' | string,
+          email: data.email,
+          permissions: data.permissions || {}
         };
 
         setUser(userData);
         sessionStorage.setItem('temple_auth_user', JSON.stringify(userData));
         sessionStorage.setItem('temple_auth_phone', data.phone || '');
+
+        if (typeof document !== 'undefined') {
+          document.cookie = `temple_auth_user_id=${userData.id}; path=/; max-age=86400`;
+          document.cookie = `temple_auth_user_email=${encodeURIComponent(userData.email)}; path=/; max-age=86400`;
+        }
+
         return true;
       }
 
@@ -118,9 +144,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     sessionStorage.removeItem('temple_auth_user');
     sessionStorage.removeItem('temple_auth_phone');
-    // Redirect to login page
+    if (typeof document !== 'undefined') {
+      document.cookie = 'temple_auth_user_id=; path=/; max-age=0';
+      document.cookie = 'temple_auth_user_email=; path=/; max-age=0';
+    }
     if (typeof window !== 'undefined') {
       window.location.href = '/login';
+    }
+  };
+
+  const updateUserPermissions = (newPermissions: Record<string, boolean>) => {
+    if (user) {
+      const updatedUser: User = { ...user, permissions: newPermissions };
+      setUser(updatedUser);
+      sessionStorage.setItem('temple_auth_user', JSON.stringify(updatedUser));
     }
   };
 
@@ -128,6 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     login,
     logout,
+    updateUserPermissions,
     isAuthenticated: !!user
   };
 
@@ -145,3 +183,4 @@ export function useAuth() {
   }
   return context;
 }
+

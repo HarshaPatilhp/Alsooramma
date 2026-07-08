@@ -23,29 +23,36 @@ interface SidebarProps {
   userRole?: string;
 }
 
+import { hasPermission, PermissionKey } from '@/lib/rbac';
+
 export default function Sidebar({ isOpen, setIsOpen, userRole }: SidebarProps) {
   const pathname = usePathname();
-  const { logout } = useAuth();
-  const isAdmin = userRole === 'admin';
+  const { logout, user } = useAuth();
 
-  type NavLink = { name: string; href: string; icon: any; highlight?: boolean; };
+  type NavLink = { name: string; href: string; icon: any; key: PermissionKey; highlight?: boolean; };
 
-  const volunteerLinks: NavLink[] = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'QR Check-in', href: '/dashboard/scanner', icon: QrCode, highlight: true },
-    { name: 'Devotees', href: '/dashboard/devotees', icon: Users },
-    { name: 'Activity Log', href: '/dashboard/activity', icon: Clock },
+  const allLinks: NavLink[] = [
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, key: 'dashboard' },
+    { name: 'QR Check-in', href: '/dashboard/scanner', icon: QrCode, key: 'qr_checkin', highlight: true },
+    { name: 'Devotees', href: '/dashboard/devotees', icon: Users, key: 'devotees' },
+    { name: 'Activity Log', href: '/dashboard/activity', icon: Clock, key: 'activity_log' },
+    { name: 'Seva Dashboard', href: '/seva-list', icon: Calendar, key: 'seva_dashboard' },
+    { name: 'Donations', href: '/dashboard/donations', icon: Gift, key: 'donations' },
+    { name: 'Annadanam', href: '/dashboard/annadanam', icon: Coffee, key: 'annadanam' },
+    { name: 'Reports', href: '/dashboard/reports', icon: PieChart, key: 'reports' },
+    { name: 'User Management', href: '/dashboard/users', icon: Settings, key: 'user_management' },
   ];
 
-  const adminAdditions: NavLink[] = [
-    { name: 'Seva Dashboard', href: '/seva-list', icon: Calendar },
-    { name: 'Donations', href: '/dashboard/donations', icon: Gift },
-    { name: 'Annadanam', href: '/dashboard/annadanam', icon: Coffee },
-    { name: 'Reports', href: '/dashboard/reports', icon: PieChart },
-    { name: 'User Management', href: '/dashboard/users', icon: Settings },
-  ];
+  // Requirement 4: Dynamically build the sidebar - only display menu items for which logged-in admin has permission
+  const links = allLinks.filter(link => hasPermission(user, link.key));
 
-  const links = isAdmin ? [...volunteerLinks, ...adminAdditions] : volunteerLinks;
+  const roleBadgeText = 
+    user?.role === 'super_admin' ? 'Super Admin' :
+    user?.role === 'admin' ? 'Administrator' : 'Scanner / Volunteer';
+
+  const roleBadgeColor =
+    user?.role === 'super_admin' ? 'text-purple-300' :
+    user?.role === 'admin' ? 'text-amber-400' : 'text-orange-300';
 
   return (
     <>
@@ -70,8 +77,8 @@ export default function Sidebar({ isOpen, setIsOpen, userRole }: SidebarProps) {
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight text-white leading-none">Mutt Panel</h2>
-              <p className="text-xs text-amber-400 font-medium tracking-wider uppercase mt-1">
-                {isAdmin ? 'Administrator' : 'Staff / Volunteer'}
+              <p className={`text-xs ${roleBadgeColor} font-bold tracking-wider uppercase mt-1.5`}>
+                {roleBadgeText}
               </p>
             </div>
           </div>

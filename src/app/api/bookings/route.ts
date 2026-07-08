@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/server';
+import { verifyApiPermission } from '@/lib/server-rbac';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authCheck = await verifyApiPermission(request, ['qr_checkin', 'seva_dashboard', 'reports', 'dashboard', 'devotees']);
+  if (!authCheck.authorized) return authCheck.errorResponse!;
+
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -46,6 +50,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const authCheck = await verifyApiPermission(request, ['seva_dashboard']);
+  if (!authCheck.authorized) return authCheck.errorResponse!;
+
   try {
     const body = await request.json();
     const { booking } = body;

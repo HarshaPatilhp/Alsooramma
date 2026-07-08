@@ -1,10 +1,11 @@
 "use client";
 
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Sidebar from '@/components/dashboard/Sidebar';
 import Header from '@/components/dashboard/Header';
+import { hasPermission, ROUTE_PERMISSIONS_MAP } from '@/lib/rbac';
 
 export default function DashboardLayout({
   children,
@@ -13,18 +14,33 @@ export default function DashboardLayout({
 }) {
   const { isAuthenticated, user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
-    // Basic protection to bounce unauthenticated users back to login
     if (!isAuthenticated) {
       router.push('/login');
+      return;
     }
-  }, [isAuthenticated, router]);
+
+    // Requirement 4: If admin manually enters exact or sub-path of restricted page, redirect to 403 page
+    if (pathname && pathname !== '/dashboard/access-denied') {
+      const matchedRoute = Object.keys(ROUTE_PERMISSIONS_MAP).find(
+        (route) => pathname === route || pathname.startsWith(`${route}/`)
+      );
+
+      if (matchedRoute) {
+        const requiredPerm = ROUTE_PERMISSIONS_MAP[matchedRoute];
+        if (!hasPermission(user, requiredPerm)) {
+          router.replace('/dashboard/access-denied');
+        }
+      }
+    }
+  }, [isAuthenticated, user, pathname, router]);
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
         <div className="w-16 h-16 border-4 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { hasPermission } from '@/lib/rbac';
 import QRCode from 'qrcode';
 import emailjs from '@emailjs/browser';
 
@@ -27,6 +29,7 @@ interface Hall {
 
 export default function SevaList() {
   const { user, isAuthenticated } = useAuth();
+  const router = useRouter();
   const [selectedSeva, setSelectedSeva] = useState<Seva | null>(null);
   const [selectedHall, setSelectedHall] = useState<Hall | null>(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -36,7 +39,15 @@ export default function SevaList() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Check if current user is admin
-  const isAdmin = isAuthenticated && user?.role === 'admin';
+  const isAdmin = isAuthenticated && (user?.role === 'admin' || user?.role === 'super_admin');
+
+  useEffect(() => {
+    if (isAuthenticated && user && (user.role === 'admin' || user.role === 'volunteer')) {
+      if (!hasPermission(user, 'seva_dashboard')) {
+        router.replace('/dashboard/access-denied');
+      }
+    }
+  }, [isAuthenticated, user, router]);
 
     const [activeTab, setActiveTab] = useState<'seva' | 'hall'>('seva');
     const [sevaSearch, setSevaSearch] = useState('');
