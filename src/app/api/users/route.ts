@@ -117,8 +117,8 @@ export async function GET(request: NextRequest) {
         if (!insErr && insertedAdmin) {
           if (!Array.isArray(users)) users = [];
           users.unshift({
-            ...insertedAdmin,
-            permissions: insertedAdmin.permissions || DEFAULT_SUPER_ADMIN_PERMISSIONS
+            ...(insertedAdmin as any),
+            permissions: (insertedAdmin as any).permissions || DEFAULT_SUPER_ADMIN_PERMISSIONS
           });
           hasMasterAdmin = true;
         }
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
       role,
     };
 
-    let data = null;
+    let data: any = null;
     let error = null;
 
     try {
