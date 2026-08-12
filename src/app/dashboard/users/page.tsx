@@ -79,7 +79,7 @@ export default function UsersPage() {
         // Fallback to direct Supabase client query
         const { createClient } = await import('@/lib/client');
         const supabase = createClient();
-        let dbResult = await supabase
+        let dbResult: any = await supabase
           .from('users')
           .select('id, name, email, phone, role, permissions, created_at')
           .order('created_at', { ascending: false });
@@ -162,7 +162,7 @@ export default function UsersPage() {
       try {
         const { createClient } = await import('@/lib/client');
         const supabase = createClient();
-        let dbResult = await supabase
+        let dbResult: any = await supabase
           .from('users')
           .select('id, name, email, phone, role, permissions, created_at')
           .order('created_at', { ascending: false });
