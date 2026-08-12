@@ -2,11 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/server';
 import { verifyApiPermission } from '@/lib/server-rbac';
 
+const DEFAULT_VOLUNTEER_PERMISSIONS = {
+  dashboard: true,
+  qr_checkin: true,
+  devotees: true,
+  activity_log: true,
+};
+
+const DEFAULT_SUPER_ADMIN_PERMISSIONS = {
+  dashboard: true,
+  qr_checkin: true,
+  devotees: true,
+  activity_log: true,
+  seva_dashboard: true,
+  donations: true,
+  annadanam: true,
+  reports: true,
+  user_management: true,
+};
+
 export async function GET(request: NextRequest) {
   // Check identity from headers/cookies without blocking on strict 'user_management' permission just to view the table
   const authCheck = await verifyApiPermission(request, []);
   if (!authCheck.authorized) {
-    // If authCheck fails because cookies/headers weren't sent yet, allow basic reading for logged in session requests
     const userId = request.headers.get('x-user-id') || request.cookies.get('temple_auth_user_id')?.value;
     const userEmail = request.headers.get('x-user-email') || request.cookies.get('temple_auth_user_email')?.value;
     if (!userId && !userEmail) {
@@ -16,7 +34,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
+
+    // 1. Fetch current users from Supabase table
+    let { data: users, error } = await supabase
       .from('users')
       .select('id, name, email, phone, role, permissions, created_at')
       .order('created_at', { ascending: false });
@@ -25,28 +45,61 @@ export async function GET(request: NextRequest) {
       console.error('GET /api/users supabase error:', error.message);
     }
 
-    if (data && Array.isArray(data) && data.length > 0) {
-      return NextResponse.json({ success: true, users: data });
-    }
+    // 2. Ensure Master Admin (admin@temple.com) exists in the database table
+    let hasMasterAdmin = Array.isArray(users) && users.some((u) => u.email === 'admin@temple.com');
 
-    // If RLS returns [] because publishable_key is used without open RLS policy, construct fallback list from verified auth and master admin
-    const fallbackUsers: any[] = [];
-    if (authCheck.user) {
-      fallbackUsers.push(authCheck.user);
-    }
-    if (!fallbackUsers.some(u => u.email === 'admin@temple.com')) {
-      fallbackUsers.push({
+    if (!hasMasterAdmin) {
+      const masterAdminUser = {
         id: '1',
         name: 'Master Admin',
         email: 'admin@temple.com',
+        password: 'admin123',
         phone: '9876543210',
         role: 'super_admin',
-        permissions: { dashboard: true, qr_checkin: true, devotees: true, activity_log: true, seva_dashboard: true, donations: true, annadanam: true, reports: true, user_management: true },
-        created_at: new Date().toISOString()
-      });
+        permissions: DEFAULT_SUPER_ADMIN_PERMISSIONS,
+      };
+
+      try {
+        const { data: insertedAdmin, error: insErr } = await supabase
+          .from('users')
+          .upsert([masterAdminUser], { onConflict: 'email' })
+          .select('id, name, email, phone, role, permissions, created_at')
+          .single();
+
+        if (!insErr && insertedAdmin) {
+          if (!Array.isArray(users)) users = [];
+          users.unshift(insertedAdmin);
+          hasMasterAdmin = true;
+        }
+      } catch (seedErr) {
+        console.warn('Failed to seed Master Admin to DB:', seedErr);
+      }
     }
 
-    return NextResponse.json({ success: true, users: fallbackUsers });
+    // 3. If table was completely empty or failed to retrieve, re-query or provide fallback
+    if (!users || users.length === 0) {
+      const fallbackList: any[] = [];
+
+      if (authCheck.user) {
+        fallbackList.push(authCheck.user);
+      }
+
+      if (!fallbackList.some((u) => u.email === 'admin@temple.com')) {
+        fallbackList.push({
+          id: '1',
+          name: 'Master Admin',
+          email: 'admin@temple.com',
+          phone: '9876543210',
+          role: 'super_admin',
+          permissions: DEFAULT_SUPER_ADMIN_PERMISSIONS,
+          created_at: new Date().toISOString(),
+        });
+      }
+
+      return NextResponse.json({ success: true, users: fallbackList, isFallback: true });
+    }
+
+    return NextResponse.json({ success: true, users });
   } catch (err: any) {
     console.error('GET /api/users error:', err.message);
     return NextResponse.json(
@@ -68,7 +121,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Requirement 1 & 5: Only Super Admin can create new admins
+    // Only Super Admin can create new admins or manage personnel
     const requireSuperAdmin = role === 'admin' || role === 'super_admin';
     const authCheck = await verifyApiPermission(request, 'user_management', requireSuperAdmin);
     if (!authCheck.authorized) return authCheck.errorResponse!;
@@ -84,6 +137,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Assign default permissions based on role if missing
+    let assignedPermissions = permissions || {};
+    if (role === 'volunteer' && Object.keys(assignedPermissions).length === 0) {
+      assignedPermissions = DEFAULT_VOLUNTEER_PERMISSIONS;
+    } else if (role === 'super_admin') {
+      assignedPermissions = DEFAULT_SUPER_ADMIN_PERMISSIONS;
+    }
+
     const newUser = {
       id: Date.now().toString(),
       name,
@@ -91,7 +152,7 @@ export async function POST(request: NextRequest) {
       phone: phone || '',
       password,
       role,
-      permissions: permissions || {},
+      permissions: assignedPermissions,
     };
 
     const { data, error } = await supabase.from('users').insert([newUser]).select().single();
@@ -132,7 +193,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Target user not found' }, { status: 404 });
     }
 
-    // Requirement 1: Super Admin cannot have their own permissions/role modified or deleted
+    // Requirement: Super Admin account cannot be deleted or modified
     if (targetUser.role === 'super_admin' || targetUser.email === 'admin@temple.com') {
       return NextResponse.json(
         { success: false, message: 'Access Denied (403): The Super Admin account cannot be deleted or modified.' },

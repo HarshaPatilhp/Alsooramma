@@ -53,8 +53,11 @@ export default function UsersPage() {
 
   // Manage permissions modal states
   const [selectedAdminForPermissions, setSelectedAdminForPermissions] = useState<Volunteer | null>(null);
+  const [toggledRole, setToggledRole] = useState<'admin' | 'volunteer'>('volunteer');
   const [toggledPermissions, setToggledPermissions] = useState<Record<string, boolean>>({});
   const [isSavingPermissions, setIsSavingPermissions] = useState(false);
+
+  const isSuperAdmin = currentUser?.role === 'super_admin' || currentUser?.email === 'admin@temple.com';
 
   useEffect(() => {
     fetchUsers();
@@ -70,7 +73,7 @@ export default function UsersPage() {
         },
       });
       const data = await res.json();
-      if (data.success && Array.isArray(data.users) && data.users.length > 0) {
+      if (data.success && Array.isArray(data.users)) {
         setUsers(data.users);
       } else {
         // Fallback to direct Supabase client query
@@ -84,7 +87,7 @@ export default function UsersPage() {
         if (!dbErr && Array.isArray(dbUsers) && dbUsers.length > 0) {
           setUsers(dbUsers);
         } else {
-          // If RLS returns [] or blocks query, ensure the currently logged in user and Master Admin are displayed
+          // If RLS returns [] or blocks query, ensure current user and Master Admin are displayed
           const fallbackUsers: Volunteer[] = [];
           if (currentUser) {
             fallbackUsers.push({
@@ -167,25 +170,29 @@ export default function UsersPage() {
         });
         const data = await res.json();
         if (data.success) {
-          setUsers(users.filter(x => x.id !== id));
+          await fetchUsers();
         } else {
           // Fallback direct delete if Super Admin
-          if (currentUser?.role === 'super_admin' || currentUser?.email === 'admin@temple.com') {
+          if (isSuperAdmin) {
             const { createClient } = await import('@/lib/client');
             const supabase = createClient();
             await supabase.from('users').delete().eq('id', id);
-            setUsers(users.filter(x => x.id !== id));
+            await fetchUsers();
           } else {
             alert(`Failed to remove access: ${data.message}`);
           }
         }
       } catch (err) {
         console.error('Delete error, trying direct Supabase deletion:', err);
-        if (currentUser?.role === 'super_admin' || currentUser?.email === 'admin@temple.com') {
-          const { createClient } = await import('@/lib/client');
-          const supabase = createClient();
-          await supabase.from('users').delete().eq('id', id);
-          setUsers(users.filter(x => x.id !== id));
+        if (isSuperAdmin) {
+          try {
+            const { createClient } = await import('@/lib/client');
+            const supabase = createClient();
+            await supabase.from('users').delete().eq('id', id);
+            await fetchUsers();
+          } catch (fbErr) {
+            alert('An unexpected error occurred while revoking access.');
+          }
         } else {
           alert('An unexpected error occurred while revoking access.');
         }
@@ -197,9 +204,18 @@ export default function UsersPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      const defaultVolunteerPerms = {
+        dashboard: true,
+        qr_checkin: true,
+        devotees: true,
+        activity_log: true,
+      };
+
       const payload = {
         ...newUserData,
-        permissions: newUserData.role === 'admin' ? invitePermissions : {},
+        permissions: newUserData.role === 'admin' 
+          ? invitePermissions 
+          : (Object.keys(invitePermissions).length > 0 ? invitePermissions : defaultVolunteerPerms),
       };
 
       const res = await fetch('/api/users', {
@@ -214,13 +230,13 @@ export default function UsersPage() {
 
       const data = await res.json();
       if (data.success && data.user) {
-        setUsers([data.user, ...users]);
         setShowInviteModal(false);
         setNewUserData({ name: '', email: '', phone: '', password: '', role: 'volunteer' });
         setInvitePermissions({});
+        await fetchUsers();
       } else {
         // Fallback to direct Supabase insert if Super Admin
-        if (currentUser?.role === 'super_admin' || currentUser?.email === 'admin@temple.com') {
+        if (isSuperAdmin) {
           const { createClient } = await import('@/lib/client');
           const supabase = createClient();
           const newUser = {
@@ -230,14 +246,14 @@ export default function UsersPage() {
             phone: payload.phone || '',
             password: payload.password,
             role: payload.role,
-            permissions: payload.permissions || {},
+            permissions: payload.permissions,
           };
           const { data: inserted, error: insErr } = await supabase.from('users').insert([newUser]).select().single();
           if (!insErr && inserted) {
-            setUsers([inserted, ...users]);
             setShowInviteModal(false);
             setNewUserData({ name: '', email: '', phone: '', password: '', role: 'volunteer' });
             setInvitePermissions({});
+            await fetchUsers();
             return;
           }
         }
@@ -245,7 +261,7 @@ export default function UsersPage() {
       }
     } catch (err) {
       console.error('Invite error, trying direct Supabase fallback:', err);
-      if (currentUser?.role === 'super_admin' || currentUser?.email === 'admin@temple.com') {
+      if (isSuperAdmin) {
         try {
           const { createClient } = await import('@/lib/client');
           const supabase = createClient();
@@ -256,14 +272,14 @@ export default function UsersPage() {
             phone: newUserData.phone || '',
             password: newUserData.password,
             role: newUserData.role,
-            permissions: newUserData.role === 'admin' ? invitePermissions : {},
+            permissions: newUserData.role === 'admin' ? invitePermissions : { dashboard: true, qr_checkin: true, devotees: true, activity_log: true },
           };
           const { data: inserted, error: insErr } = await supabase.from('users').insert([newUser]).select().single();
           if (!insErr && inserted) {
-            setUsers([inserted, ...users]);
             setShowInviteModal(false);
             setNewUserData({ name: '', email: '', phone: '', password: '', role: 'volunteer' });
             setInvitePermissions({});
+            await fetchUsers();
             return;
           }
         } catch (fbErr) {
@@ -278,6 +294,7 @@ export default function UsersPage() {
 
   const openManagePermissionsModal = (adminUser: Volunteer) => {
     setSelectedAdminForPermissions(adminUser);
+    setToggledRole((adminUser.role === 'admin' ? 'admin' : 'volunteer'));
     setToggledPermissions(adminUser.permissions || {});
   };
 
@@ -294,70 +311,65 @@ export default function UsersPage() {
         },
         body: JSON.stringify({
           userId: selectedAdminForPermissions.id,
+          role: toggledRole,
           permissions: toggledPermissions,
         }),
       });
 
       const data = await res.json();
       if (data.success) {
-        // Update local users table state immediately
-        setUsers(users.map(u => 
-          u.id === selectedAdminForPermissions.id 
-            ? { ...u, permissions: toggledPermissions } 
-            : u
-        ));
-
         // If the logged-in user just modified their own permissions, sync context
         if (String(currentUser?.id) === String(selectedAdminForPermissions.id)) {
           updateUserPermissions(toggledPermissions);
         }
 
         setSelectedAdminForPermissions(null);
+        await fetchUsers();
       } else {
         // Fallback direct update in Supabase if Super Admin
-        if (currentUser?.role === 'super_admin' || currentUser?.email === 'admin@temple.com') {
+        if (isSuperAdmin) {
           const { createClient } = await import('@/lib/client');
           const supabase = createClient();
-          const { error: updErr } = await supabase.from('users').update({ permissions: toggledPermissions }).eq('id', selectedAdminForPermissions.id);
+          const { error: updErr } = await supabase.from('users').update({ 
+            role: toggledRole,
+            permissions: toggledPermissions 
+          }).eq('id', selectedAdminForPermissions.id);
+
           if (!updErr) {
-            setUsers(users.map(u => 
-              u.id === selectedAdminForPermissions.id 
-                ? { ...u, permissions: toggledPermissions } 
-                : u
-            ));
             if (String(currentUser?.id) === String(selectedAdminForPermissions.id)) {
               updateUserPermissions(toggledPermissions);
             }
             setSelectedAdminForPermissions(null);
+            await fetchUsers();
             return;
           }
         }
-        alert(`Failed to save permissions: ${data.message}`);
+        alert(`Failed to save access settings: ${data.message}`);
       }
     } catch (err) {
       console.error('Save permissions error, trying direct Supabase fallback:', err);
-      if (currentUser?.role === 'super_admin' || currentUser?.email === 'admin@temple.com') {
+      if (isSuperAdmin) {
         try {
           const { createClient } = await import('@/lib/client');
           const supabase = createClient();
-          const { error: updErr } = await supabase.from('users').update({ permissions: toggledPermissions }).eq('id', selectedAdminForPermissions.id);
+          const { error: updErr } = await supabase.from('users').update({ 
+            role: toggledRole,
+            permissions: toggledPermissions 
+          }).eq('id', selectedAdminForPermissions.id);
+
           if (!updErr) {
-            setUsers(users.map(u => 
-              u.id === selectedAdminForPermissions.id 
-                ? { ...u, permissions: toggledPermissions } 
-                : u
-            ));
             if (String(currentUser?.id) === String(selectedAdminForPermissions.id)) {
               updateUserPermissions(toggledPermissions);
             }
             setSelectedAdminForPermissions(null);
+            await fetchUsers();
             return;
           }
         } catch (fbErr) {
           console.error('Supabase fallback update failed:', fbErr);
         }
       }
-      alert('An unexpected error occurred saving permissions.');
+      alert('An unexpected error occurred saving access settings.');
     } finally {
       setIsSavingPermissions(false);
     }
@@ -386,17 +398,20 @@ export default function UsersPage() {
     }
   };
 
-  const isSuperAdmin = currentUser?.role === 'super_admin' || currentUser?.email === 'admin@temple.com';
-
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-             <Shield className="text-blue-500" />
-             Access & Personnel Management
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="p-2.5 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl text-white shadow-md">
+              <Shield size={22} />
+            </div>
+            <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+              Access & Personnel Management
+            </h1>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             Control administrative boundaries, granular module permissions, and volunteer scanner access.
           </p>
         </div>
@@ -488,13 +503,9 @@ export default function UsersPage() {
                              <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-lg border border-purple-100 dark:border-purple-900/30">
                                All Modules (Unrestricted)
                              </span>
-                           ) : u.role === 'admin' ? (
+                           ) : (
                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700/60 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-slate-600">
                                {activePermCount} of {AVAILABLE_PERMISSIONS.length} Modules Allowed
-                             </span>
-                           ) : (
-                             <span className="text-xs text-gray-400 font-medium italic">
-                               Default Scanner Access
                              </span>
                            )}
                         </td>
@@ -505,13 +516,13 @@ export default function UsersPage() {
                              </span>
                            ) : (
                              <div className="flex items-center justify-end gap-2">
-                               {u.role === 'admin' && isSuperAdmin && (
+                               {isSuperAdmin && (
                                  <button 
                                    onClick={() => openManagePermissionsModal(u)} 
                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold transition-colors border border-blue-200/60 dark:border-blue-800/50" 
-                                   title="Manage or Edit Admin Permissions"
+                                   title="Manage Permissions and Role Access"
                                  >
-                                   <Edit size={14} /> Manage Permissions
+                                   <Edit size={14} /> Manage Access
                                  </button>
                                )}
                                {isSuperAdmin && (
@@ -582,58 +593,56 @@ export default function UsersPage() {
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold"
                 >
                   <option value="volunteer">Scanner / Volunteer (Default check-in access)</option>
-                  <option value="admin">Administrator (Custom module permissions via checkboxes below)</option>
+                  <option value="admin">Administrator (Custom module permissions)</option>
                 </select>
               </div>
 
-              {/* Requirement 2: Permissions section displayed when Admin role is selected */}
-              {newUserData.role === 'admin' && (
-                <div className="pt-3 border-t border-gray-100 dark:border-slate-700/80 animate-fade-in space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400">
-                      Assign Module Permissions (Granular Checkbox Cards)
-                    </label>
-                    <span className="text-xs font-medium text-gray-500">
-                      New admins do not get all modules automatically
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {AVAILABLE_PERMISSIONS.map(perm => {
-                      const isChecked = !!invitePermissions[perm.key];
-                      return (
-                        <div 
-                          key={perm.key}
-                          onClick={() => togglePermissionCheckbox(perm.key, true)}
-                          className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
-                            isChecked 
-                              ? 'border-blue-600 bg-blue-50/80 dark:bg-blue-950/40 dark:border-blue-500 shadow-sm' 
-                              : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 hover:border-gray-300 dark:hover:border-slate-600'
-                          }`}
-                        >
-                          <div className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 transition-colors ${
-                            isChecked 
-                              ? 'bg-blue-600 text-white dark:bg-blue-500' 
-                              : 'border-2 border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-800'
-                          }`}>
-                            {isChecked && <Check size={14} strokeWidth={3} />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-sm font-bold truncate ${isChecked ? 'text-blue-900 dark:text-blue-200' : 'text-gray-800 dark:text-gray-300'}`}>
-                                {perm.label}
-                              </span>
-                            </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5 line-clamp-2">
-                              {perm.description}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+              {/* Permissions section */}
+              <div className="pt-3 border-t border-gray-100 dark:border-slate-700/80 animate-fade-in space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                    Assign Module Permissions
+                  </label>
+                  <span className="text-xs font-medium text-gray-500">
+                    {newUserData.role === 'admin' ? 'Select specific module permissions' : 'Default scanner modules auto-assigned if unselected'}
+                  </span>
                 </div>
-              )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {AVAILABLE_PERMISSIONS.map(perm => {
+                    const isChecked = !!invitePermissions[perm.key];
+                    return (
+                      <div 
+                        key={perm.key}
+                        onClick={() => togglePermissionCheckbox(perm.key, true)}
+                        className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
+                          isChecked 
+                            ? 'border-blue-600 bg-blue-50/80 dark:bg-blue-950/40 dark:border-blue-500 shadow-sm' 
+                            : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 hover:border-gray-300 dark:hover:border-slate-600'
+                        }`}
+                      >
+                        <div className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 transition-colors ${
+                          isChecked 
+                            ? 'bg-blue-600 text-white dark:bg-blue-500' 
+                            : 'border-2 border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-800'
+                        }`}>
+                          {isChecked && <Check size={14} strokeWidth={3} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-bold truncate ${isChecked ? 'text-blue-900 dark:text-blue-200' : 'text-gray-800 dark:text-gray-300'}`}>
+                              {perm.label}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5 line-clamp-2">
+                            {perm.description}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
               <div className="pt-4 border-t border-gray-100 dark:border-slate-700 flex gap-3">
                 <button type="button" onClick={() => setShowInviteModal(false)} className="flex-1 px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors text-gray-700 dark:text-gray-300 text-sm">Cancel</button>
@@ -646,7 +655,7 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* MANAGE PERMISSIONS MODAL WITH CHECKBOX CARDS */}
+      {/* MANAGE PERMISSIONS & ROLE MODAL */}
       {selectedAdminForPermissions && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-fade-in my-8 border border-gray-100 dark:border-slate-700">
@@ -656,7 +665,7 @@ export default function UsersPage() {
                   <Shield size={22} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">Manage Admin Permissions</h3>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">Manage Access & Role</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     Modifying access boundary for <span className="font-bold text-gray-800 dark:text-gray-200">{selectedAdminForPermissions.name}</span> ({selectedAdminForPermissions.email})
                   </p>
@@ -668,10 +677,22 @@ export default function UsersPage() {
             </div>
 
             <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">System Role</label>
+                <select 
+                  value={toggledRole} 
+                  onChange={e => setToggledRole(e.target.value as 'admin'|'volunteer')} 
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm font-semibold"
+                >
+                  <option value="volunteer">Scanner / Volunteer</option>
+                  <option value="admin">Administrator</option>
+                </select>
+              </div>
+
               <div className="p-4 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 flex items-center gap-3 text-xs text-indigo-900 dark:text-indigo-300">
                 <AlertCircle size={18} className="text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
                 <span>
-                  Toggle the modules below. Changes take effect immediately after clicking <strong>Save Permissions</strong>.
+                  Toggle the modules below. Changes take effect immediately after clicking <strong>Save Access Settings</strong>.
                 </span>
               </div>
 
@@ -721,7 +742,7 @@ export default function UsersPage() {
                   disabled={isSavingPermissions} 
                   className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold transition-all shadow-md disabled:opacity-50 text-sm flex items-center justify-center gap-2"
                 >
-                  {isSavingPermissions ? 'Saving...' : 'Save Permissions'}
+                  {isSavingPermissions ? 'Saving...' : 'Save Access Settings'}
                 </button>
               </div>
             </div>

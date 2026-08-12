@@ -70,8 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-
-
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const supabase = createClient();
@@ -82,12 +80,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('password', password)
         .single();
 
-      // If user not found (PGRST116 = no rows returned), let's auto-seed the demo users
+      // If user not found (PGRST116 = no rows returned), let's auto-seed default demo users
       if (error && error.code === 'PGRST116') {
-         if (email === 'admin@temple.com' || email === 'gururaj@volunteer.com') {
+         if (email === 'admin@temple.com' || email === 'gururaj@volunteer.com' || email === 'scanner1@vidyaranyapura-mutt.com') {
              const role = email === 'admin@temple.com' ? 'super_admin' : 'volunteer';
-             const name = role === 'super_admin' ? 'Master Admin' : 'Volunteer 01';
-             const phone = role === 'super_admin' ? '9876543210' : '9000000001';
+             const name = email === 'admin@temple.com' ? 'Master Admin' : email === 'gururaj@volunteer.com' ? 'Gururaj Patil' : 'Scanner Vol 01';
+             const phone = email === 'admin@temple.com' ? '9876543210' : '9000000001';
              const permissions = role === 'super_admin' 
                ? { dashboard: true, qr_checkin: true, devotees: true, activity_log: true, seva_dashboard: true, donations: true, annadanam: true, reports: true, user_management: true }
                : { dashboard: true, qr_checkin: true, devotees: true, activity_log: true };
@@ -189,4 +187,3 @@ export function useAuth() {
   }
   return context;
 }
-
