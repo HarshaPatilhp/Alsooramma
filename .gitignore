@@ -23,7 +23,7 @@ node_modules/
 
 # misc
 .DS_Store
-*.pem
+*.pemii
 
 # debug
 npm-debug.log*
