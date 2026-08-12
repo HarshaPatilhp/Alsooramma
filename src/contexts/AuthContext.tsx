@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                ? { dashboard: true, qr_checkin: true, devotees: true, activity_log: true, seva_dashboard: true, donations: true, annadanam: true, reports: true, user_management: true }
                : { dashboard: true, qr_checkin: true, devotees: true, activity_log: true };
              
-             const { data: insertData, error: insertError } = await supabase.from('users').insert([{
+             let insertResult = await supabase.from('users').insert([{
                  id: Date.now().toString(),
                  name,
                  email,
@@ -99,6 +99,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                  role,
                  permissions
              }]).select().single();
+             
+             if (insertResult.error && (insertResult.error.message.includes('permissions') || insertResult.error.code === '42703')) {
+               insertResult = await supabase.from('users').insert([{
+                   id: Date.now().toString(),
+                   name,
+                   email,
+                   password,
+                   phone,
+                   role
+               }]).select().single();
+             }
+
+             const { data: insertData, error: insertError } = insertResult;
              
              if (insertData && !insertError) {
                  data = insertData;

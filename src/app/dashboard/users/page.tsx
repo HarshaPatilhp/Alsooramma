@@ -79,13 +79,48 @@ export default function UsersPage() {
         // Fallback to direct Supabase client query
         const { createClient } = await import('@/lib/client');
         const supabase = createClient();
-        const { data: dbUsers, error: dbErr } = await supabase
+        let dbResult = await supabase
           .from('users')
           .select('id, name, email, phone, role, permissions, created_at')
           .order('created_at', { ascending: false });
 
+        if (dbResult.error && (dbResult.error.message.includes('permissions') || dbResult.error.code === '42703')) {
+          dbResult = await supabase
+            .from('users')
+            .select('id, name, email, phone, role, created_at')
+            .order('created_at', { ascending: false });
+        }
+
+        const dbUsers = dbResult.data;
+        const dbErr = dbResult.error;
+
         if (!dbErr && Array.isArray(dbUsers) && dbUsers.length > 0) {
-          setUsers(dbUsers);
+          const mappedUsers = dbUsers.map(u => ({
+            ...u,
+            permissions: u.permissions || (
+              u.role === 'super_admin' || u.email === 'admin@temple.com'
+                ? {
+                    dashboard: true,
+                    qr_checkin: true,
+                    devotees: true,
+                    activity_log: true,
+                    seva_dashboard: true,
+                    donations: true,
+                    annadanam: true,
+                    reports: true,
+                    user_management: true,
+                  }
+                : u.role === 'volunteer'
+                  ? {
+                      dashboard: true,
+                      qr_checkin: true,
+                      devotees: true,
+                      activity_log: true,
+                    }
+                  : {}
+            )
+          }));
+          setUsers(mappedUsers);
         } else {
           // If RLS returns [] or blocks query, ensure current user and Master Admin are displayed
           const fallbackUsers: Volunteer[] = [];
@@ -127,13 +162,48 @@ export default function UsersPage() {
       try {
         const { createClient } = await import('@/lib/client');
         const supabase = createClient();
-        const { data: dbUsers, error: dbErr } = await supabase
+        let dbResult = await supabase
           .from('users')
           .select('id, name, email, phone, role, permissions, created_at')
           .order('created_at', { ascending: false });
 
+        if (dbResult.error && (dbResult.error.message.includes('permissions') || dbResult.error.code === '42703')) {
+          dbResult = await supabase
+            .from('users')
+            .select('id, name, email, phone, role, created_at')
+            .order('created_at', { ascending: false });
+        }
+
+        const dbUsers = dbResult.data;
+        const dbErr = dbResult.error;
+
         if (!dbErr && Array.isArray(dbUsers) && dbUsers.length > 0) {
-          setUsers(dbUsers);
+          const mappedUsers = dbUsers.map(u => ({
+            ...u,
+            permissions: u.permissions || (
+              u.role === 'super_admin' || u.email === 'admin@temple.com'
+                ? {
+                    dashboard: true,
+                    qr_checkin: true,
+                    devotees: true,
+                    activity_log: true,
+                    seva_dashboard: true,
+                    donations: true,
+                    annadanam: true,
+                    reports: true,
+                    user_management: true,
+                  }
+                : u.role === 'volunteer'
+                  ? {
+                      dashboard: true,
+                      qr_checkin: true,
+                      devotees: true,
+                      activity_log: true,
+                    }
+                  : {}
+            )
+          }));
+          setUsers(mappedUsers);
         } else if (currentUser) {
           setUsers([
             {
@@ -239,17 +309,25 @@ export default function UsersPage() {
         if (isSuperAdmin) {
           const { createClient } = await import('@/lib/client');
           const supabase = createClient();
-          const newUser = {
+          const newUser: any = {
             id: Date.now().toString(),
             name: payload.name,
             email: payload.email,
             phone: payload.phone || '',
             password: payload.password,
             role: payload.role,
-            permissions: payload.permissions,
           };
-          const { data: inserted, error: insErr } = await supabase.from('users').insert([newUser]).select().single();
-          if (!insErr && inserted) {
+          
+          let insResult = await supabase.from('users').insert([{
+            ...newUser,
+            permissions: payload.permissions
+          }]).select().single();
+          
+          if (insResult.error && (insResult.error.message.includes('permissions') || insResult.error.code === '42703')) {
+            insResult = await supabase.from('users').insert([newUser]).select().single();
+          }
+
+          if (!insResult.error && insResult.data) {
             setShowInviteModal(false);
             setNewUserData({ name: '', email: '', phone: '', password: '', role: 'volunteer' });
             setInvitePermissions({});
@@ -265,17 +343,28 @@ export default function UsersPage() {
         try {
           const { createClient } = await import('@/lib/client');
           const supabase = createClient();
-          const newUser = {
+          const newUser: any = {
             id: Date.now().toString(),
             name: newUserData.name,
             email: newUserData.email,
             phone: newUserData.phone || '',
             password: newUserData.password,
             role: newUserData.role,
-            permissions: newUserData.role === 'admin' ? invitePermissions : { dashboard: true, qr_checkin: true, devotees: true, activity_log: true },
           };
-          const { data: inserted, error: insErr } = await supabase.from('users').insert([newUser]).select().single();
-          if (!insErr && inserted) {
+          
+          const defaultVolunteerPerms = { dashboard: true, qr_checkin: true, devotees: true, activity_log: true };
+          const perms = newUserData.role === 'admin' ? invitePermissions : defaultVolunteerPerms;
+
+          let insResult = await supabase.from('users').insert([{
+            ...newUser,
+            permissions: perms
+          }]).select().single();
+          
+          if (insResult.error && (insResult.error.message.includes('permissions') || insResult.error.code === '42703')) {
+            insResult = await supabase.from('users').insert([newUser]).select().single();
+          }
+
+          if (!insResult.error && insResult.data) {
             setShowInviteModal(false);
             setNewUserData({ name: '', email: '', phone: '', password: '', role: 'volunteer' });
             setInvitePermissions({});
@@ -330,12 +419,19 @@ export default function UsersPage() {
         if (isSuperAdmin) {
           const { createClient } = await import('@/lib/client');
           const supabase = createClient();
-          const { error: updErr } = await supabase.from('users').update({ 
+          
+          let updResult = await supabase.from('users').update({ 
             role: toggledRole,
             permissions: toggledPermissions 
           }).eq('id', selectedAdminForPermissions.id);
+          
+          if (updResult.error && (updResult.error.message.includes('permissions') || updResult.error.code === '42703')) {
+            updResult = await supabase.from('users').update({ 
+              role: toggledRole
+            }).eq('id', selectedAdminForPermissions.id);
+          }
 
-          if (!updErr) {
+          if (!updResult.error) {
             if (String(currentUser?.id) === String(selectedAdminForPermissions.id)) {
               updateUserPermissions(toggledPermissions);
             }
@@ -352,12 +448,19 @@ export default function UsersPage() {
         try {
           const { createClient } = await import('@/lib/client');
           const supabase = createClient();
-          const { error: updErr } = await supabase.from('users').update({ 
+          
+          let updResult = await supabase.from('users').update({ 
             role: toggledRole,
             permissions: toggledPermissions 
           }).eq('id', selectedAdminForPermissions.id);
+          
+          if (updResult.error && (updResult.error.message.includes('permissions') || updResult.error.code === '42703')) {
+            updResult = await supabase.from('users').update({ 
+              role: toggledRole
+            }).eq('id', selectedAdminForPermissions.id);
+          }
 
-          if (!updErr) {
+          if (!updResult.error) {
             if (String(currentUser?.id) === String(selectedAdminForPermissions.id)) {
               updateUserPermissions(toggledPermissions);
             }

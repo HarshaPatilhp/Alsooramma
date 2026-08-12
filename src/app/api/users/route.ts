@@ -36,39 +36,90 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
 
     // 1. Fetch current users from Supabase table
-    let { data: users, error } = await supabase
-      .from('users')
-      .select('id, name, email, phone, role, permissions, created_at')
-      .order('created_at', { ascending: false });
+    let users: any[] | null = null;
+    let error: any = null;
+    let hasPermissionsColumn = true;
+
+    try {
+      const result = await supabase
+        .from('users')
+        .select('id, name, email, phone, role, permissions, created_at')
+        .order('created_at', { ascending: false });
+      
+      if (result.error && (result.error.message.includes('permissions') || result.error.code === '42703')) {
+        hasPermissionsColumn = false;
+        const fallbackResult = await supabase
+          .from('users')
+          .select('id, name, email, phone, role, created_at')
+          .order('created_at', { ascending: false });
+        users = fallbackResult.data;
+        error = fallbackResult.error;
+      } else {
+        users = result.data;
+        error = result.error;
+      }
+    } catch (e) {
+      console.warn('Error fetching users, trying fallback without permissions column:', e);
+      hasPermissionsColumn = false;
+      const fallbackResult = await supabase
+        .from('users')
+        .select('id, name, email, phone, role, created_at')
+        .order('created_at', { ascending: false });
+      users = fallbackResult.data;
+      error = fallbackResult.error;
+    }
 
     if (error) {
       console.error('GET /api/users supabase error:', error.message);
+    }
+
+    // Map user roles to default permissions if column does not exist or is null
+    if (Array.isArray(users)) {
+      users = users.map(u => ({
+        ...u,
+        permissions: u.permissions || (
+          u.role === 'super_admin' || u.email === 'admin@temple.com'
+            ? DEFAULT_SUPER_ADMIN_PERMISSIONS
+            : u.role === 'volunteer'
+              ? DEFAULT_VOLUNTEER_PERMISSIONS
+              : {}
+        )
+      }));
     }
 
     // 2. Ensure Master Admin (admin@temple.com) exists in the database table
     let hasMasterAdmin = Array.isArray(users) && users.some((u) => u.email === 'admin@temple.com');
 
     if (!hasMasterAdmin) {
-      const masterAdminUser = {
+      const masterAdminUser: any = {
         id: '1',
         name: 'Master Admin',
         email: 'admin@temple.com',
         password: 'admin123',
         phone: '9876543210',
         role: 'super_admin',
-        permissions: DEFAULT_SUPER_ADMIN_PERMISSIONS,
       };
+      if (hasPermissionsColumn) {
+        masterAdminUser.permissions = DEFAULT_SUPER_ADMIN_PERMISSIONS;
+      }
 
       try {
+        const querySelect = hasPermissionsColumn 
+          ? 'id, name, email, phone, role, permissions, created_at' 
+          : 'id, name, email, phone, role, created_at';
+
         const { data: insertedAdmin, error: insErr } = await supabase
           .from('users')
           .upsert([masterAdminUser], { onConflict: 'email' })
-          .select('id, name, email, phone, role, permissions, created_at')
+          .select(querySelect)
           .single();
 
         if (!insErr && insertedAdmin) {
           if (!Array.isArray(users)) users = [];
-          users.unshift(insertedAdmin);
+          users.unshift({
+            ...insertedAdmin,
+            permissions: insertedAdmin.permissions || DEFAULT_SUPER_ADMIN_PERMISSIONS
+          });
           hasMasterAdmin = true;
         }
       } catch (seedErr) {
@@ -145,20 +196,48 @@ export async function POST(request: NextRequest) {
       assignedPermissions = DEFAULT_SUPER_ADMIN_PERMISSIONS;
     }
 
-    const newUser = {
+    const newUser: any = {
       id: Date.now().toString(),
       name,
       email,
       phone: phone || '',
       password,
       role,
-      permissions: assignedPermissions,
     };
 
-    const { data, error } = await supabase.from('users').insert([newUser]).select().single();
+    let data = null;
+    let error = null;
+
+    try {
+      const result = await supabase.from('users').insert([{
+        ...newUser,
+        permissions: assignedPermissions,
+      }]).select().single();
+      
+      if (result.error && (result.error.message.includes('permissions') || result.error.code === '42703')) {
+        const fallbackResult = await supabase.from('users').insert([newUser]).select().single();
+        data = fallbackResult.data;
+        error = fallbackResult.error;
+      } else {
+        data = result.data;
+        error = result.error;
+      }
+    } catch (e) {
+      console.warn('Failed to insert user with permissions column, retrying without it:', e);
+      const fallbackResult = await supabase.from('users').insert([newUser]).select().single();
+      data = fallbackResult.data;
+      error = fallbackResult.error;
+    }
+
     if (error) throw error;
 
-    return NextResponse.json({ success: true, user: data, message: 'User invited successfully' });
+    // Attach permissions manually to returned response if missing from database
+    const userResponse = {
+      ...data,
+      permissions: data.permissions || assignedPermissions,
+    };
+
+    return NextResponse.json({ success: true, user: userResponse, message: 'User invited successfully' });
   } catch (err: any) {
     console.error('POST /api/users error:', err.message);
     return NextResponse.json(

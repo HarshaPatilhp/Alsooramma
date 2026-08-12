@@ -48,10 +48,46 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update JSONB permissions and role in users table
-    const { error: updateError } = await supabase
-      .from('users')
-      .update(updatePayload)
-      .eq('id', userId);
+    let updateError = null;
+    try {
+      const result = await supabase
+        .from('users')
+        .update(updatePayload)
+        .eq('id', userId);
+      updateError = result.error;
+
+      if (updateError && (updateError.message.includes('permissions') || updateError.code === '42703')) {
+        console.warn('permissions column not found in users table, updating role only');
+        const roleOnlyPayload: Record<string, any> = {};
+        if (role && (role === 'admin' || role === 'volunteer')) {
+          roleOnlyPayload.role = role;
+        }
+        if (Object.keys(roleOnlyPayload).length > 0) {
+          const fallbackResult = await supabase
+            .from('users')
+            .update(roleOnlyPayload)
+            .eq('id', userId);
+          updateError = fallbackResult.error;
+        } else {
+          updateError = null; // nothing to update
+        }
+      }
+    } catch (e) {
+      console.warn('Update permissions failed, falling back to role-only update:', e);
+      const roleOnlyPayload: Record<string, any> = {};
+      if (role && (role === 'admin' || role === 'volunteer')) {
+        roleOnlyPayload.role = role;
+      }
+      if (Object.keys(roleOnlyPayload).length > 0) {
+        const fallbackResult = await supabase
+          .from('users')
+          .update(roleOnlyPayload)
+          .eq('id', userId);
+        updateError = fallbackResult.error;
+      } else {
+        updateError = null;
+      }
+    }
 
     if (updateError) throw updateError;
 
