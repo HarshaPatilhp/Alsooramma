@@ -1,60 +1,215 @@
 'use client';
 
+import { useState } from 'react';
 import VolunteerCard from '@/components/VolunteerCard';
-import { useRouter } from 'next/navigation';
+import { 
+  Clock, 
+  ArrowRight, 
+  BookOpen, 
+  Users, 
+  CheckCircle2, 
+  X, 
+  UserPlus, 
+  Send,
+  Sparkles,
+  Flame,
+  Calendar,
+  Utensils,
+  ShieldCheck
+} from 'lucide-react';
+
+interface VolunteerItem {
+  name: string;
+  role: string;
+  description: string;
+  imageSrc: string;
+  alt: string;
+  phone: string;
+  instagram: string;
+  linkedin: string;
+  category: string;
+  skills: string[];
+  status: string;
+  shiftsServed: number;
+}
+
+const categories = [
+  { name: 'All Domains', icon: Users },
+  { name: 'Temple Operations', icon: Sparkles },
+  { name: 'Pooja Rituals', icon: Flame },
+  { name: 'Event Management', icon: Calendar },
+  { name: 'Kitchen & Annadanam', icon: Utensils },
+  { name: 'Security & Crowd', icon: ShieldCheck },
+];
+
+const volunteersData: VolunteerItem[] = [
+  {
+    name: "Gururaj Patil",
+    role: "Temple Operations Head",
+    description: "Overseeing daily temple operations, seva logistics, and infrastructure maintenance.",
+    imageSrc: "/images/2.jpg",
+    alt: "Gururaj Patil",
+    phone: "+91 98765 43210",
+    instagram: "https://instagram.com/gururajpatil",
+    linkedin: "https://linkedin.com/in/gururajpatil",
+    category: "Temple Operations",
+    skills: ["Operations", "Facility Management", "Seva Logistics"],
+    status: "Active Lead",
+    shiftsServed: 58
+  },
+  {
+    name: "Vivek",
+    role: "Festival & Event Lead",
+    description: "Organizing grand Aradhana utsavams, cultural events, and special pooja gatherings.",
+    imageSrc: "/images/4.JPEG",
+    alt: "Vivek",
+    phone: "+91 98765 43211",
+    instagram: "https://instagram.com/vivek",
+    linkedin: "https://linkedin.com/in/vivek",
+    category: "Event Management",
+    skills: ["Utsavam Planning", "Sound & Stage", "Crowd Coordination"],
+    status: "Senior Coordinator",
+    shiftsServed: 49
+  },
+  {
+    name: "Harsha Patil",
+    role: "Pooja Rituals Coordinator",
+    description: "Assisting Acharyas during daily Nirmalya Visarjana, Panchamrutha Abhisheka, and Rathotsava.",
+    imageSrc: "/images/1..jpg",
+    alt: "Harsha Patil",
+    phone: "+91 9738624467",
+    instagram: "https://www.instagram.com/harsha._._.patil/",
+    linkedin: "https://www.linkedin.com/in/harsha-patil-28059327b",
+    category: "Pooja Rituals",
+    skills: ["Sanskrit Stotras", "Alankara", "Pooja Samagri"],
+    status: "Daily Sevak",
+    shiftsServed: 74
+  },
+  {
+    name: "Ramesh Kumar",
+    role: "Security & Crowd Lead",
+    description: "Ensuring queue discipline, safety protocols, and orderly darshan during peak festival hours.",
+    imageSrc: "/images/ramesh-kumar.jpg",
+    alt: "Ramesh Kumar",
+    phone: "+91 98765 43213",
+    instagram: "https://instagram.com/rameshkumar",
+    linkedin: "https://linkedin.com/in/rameshkumar",
+    category: "Security & Crowd",
+    skills: ["Crowd Control", "Emergency Response", "Devotee Care"],
+    status: "Team Lead",
+    shiftsServed: 63
+  },
+  {
+    name: "Karthik Nair",
+    role: "Kitchen & Annadanam Lead",
+    description: "Managing sacred prasadam preparation, distribution hygiene, and Maha Annadanam seva.",
+    imageSrc: "/images/karthik-nair.jpg",
+    alt: "Karthik Nair",
+    phone: "+91 98765 43214",
+    instagram: "https://instagram.com/karthiknair",
+    linkedin: "https://linkedin.com/in/karthiknair",
+    category: "Kitchen & Annadanam",
+    skills: ["Annadanam Seva", "Prasada Distribution", "Hygiene Standard"],
+    status: "Active Sevak",
+    shiftsServed: 41
+  },
+  {
+    name: "Deepa Joshi",
+    role: "Administrative & Seva Desk",
+    description: "Devotee registration, seva booking coordination, and Mutt digital communication.",
+    imageSrc: "/images/deepa-joshi.jpg",
+    alt: "Deepa Joshi",
+    phone: "+91 98765 43215",
+    instagram: "https://instagram.com/deepajoshi",
+    linkedin: "https://linkedin.com/in/deepajoshi",
+    category: "Temple Operations",
+    skills: ["Seva Bookings", "Accounts", "Devotee Support"],
+    status: "Support Lead",
+    shiftsServed: 36
+  }
+];
+
+const shiftsByDay: Record<string, Array<{ title: string; location: string; urgency: string; slots: number; time: string }>> = {
+  Today: [
+    { title: "Evening Maha Mangalarathi Crowd Support", location: "Main Sanctum", urgency: "Urgent", slots: 3, time: "6:30 PM - 8:30 PM" },
+    { title: "Annadanam Prasadam Distribution", location: "Bhojanashala", urgency: "Normal", slots: 5, time: "12:00 PM - 2:30 PM" },
+    { title: "Temple Sanctorum Flower Decoration", location: "Moola Brindavana", urgency: "Normal", slots: 2, time: "4:00 PM - 6:00 PM" }
+  ],
+  Tomorrow: [
+    { title: "Morning Abhishekam Assistance", location: "Sanctum", urgency: "Urgent", slots: 4, time: "6:00 AM - 9:00 AM" },
+    { title: "Prasadam Packing & Counter Seva", location: "Counter 2", urgency: "Normal", slots: 6, time: "10:00 AM - 1:00 PM" },
+    { title: "Evening Bhajan Sandhya Setup", location: "Pravachana Hall", urgency: "Normal", slots: 3, time: "5:30 PM - 8:00 PM" }
+  ],
+  Weekend: [
+    { title: "Mega Weekend Annadanam Seva", location: "Main Dining Hall", urgency: "Urgent", slots: 8, time: "11:30 AM - 3:30 PM" },
+    { title: "Special Rathotsava Procession Team", location: "Temple Perimeter", urgency: "Urgent", slots: 10, time: "6:00 PM - 9:30 PM" },
+    { title: "Devotee Queue & Footwear Management", location: "Entrance Plaza", urgency: "Normal", slots: 6, time: "8:00 AM - 12:00 PM" }
+  ]
+};
 
 export default function Volunteers() {
-  const router = useRouter();
+  const [selectedCategory, setSelectedCategory] = useState<string>('All Domains');
+  const [selectedShiftDay, setSelectedShiftDay] = useState<string>('Today');
+  const [showApplyModal, setShowApplyModal] = useState<boolean>(false);
+  const [applicantName, setApplicantName] = useState<string>('');
+  const [applicantPhone, setApplicantPhone] = useState<string>('');
+  const [applicantRole, setApplicantRole] = useState<string>('Temple Operations');
+  const [applicantAvailability, setApplicantAvailability] = useState<string>('Weekends');
+  const [applicationSubmitted, setApplicationSubmitted] = useState<boolean>(false);
+
+  const filteredVolunteers = selectedCategory === 'All Domains'
+    ? volunteersData
+    : volunteersData.filter(v => v.category === selectedCategory);
+
+  const openShifts = shiftsByDay[selectedShiftDay] || shiftsByDay['Today'];
+
+  const handleApplySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setApplicationSubmitted(true);
+    setTimeout(() => {
+      setApplicationSubmitted(false);
+      setShowApplyModal(false);
+      setApplicantName('');
+      setApplicantPhone('');
+    }, 2500);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-orange-600 to-orange-800 text-white py-16">
-        <div className="container mx-auto px-4">
-          <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">Sarvotham Swayamsevakar Sangha</h1>
-          <p className="text-xl text-center max-w-3xl mx-auto">
-            Dedicated devotees serving the temple and community
+      <section className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white py-16">
+        <div className="container mx-auto px-4 text-center">
+          <span className="inline-block px-3.5 py-1 rounded-full bg-white/20 text-orange-100 text-xs font-bold uppercase tracking-wider mb-3 backdrop-blur-md">
+            Sri Raghavendra Swamy Seva
+          </span>
+          <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">Sarvotham Swayamsevakar Sangha</h1>
+          <p className="text-lg md:text-xl text-orange-100 max-w-3xl mx-auto leading-relaxed">
+            Dedicated devotees serving the sacred Mutt and devotee community with devotion and selflessness.
           </p>
         </div>
       </section>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-16">
+      {/* Intro Context */}
+      <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
-          {/* Main Section */}
-          <div className="bg-orange-50 rounded-lg p-8 mb-8">
-            <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-              Volunteers
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-orange-100 dark:border-slate-800">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-4 text-center">
+              The Spirit of Seva & Devotion
             </h2>
-
-            <div className="space-y-6 text-gray-700 leading-relaxed">
+            <div className="space-y-4 text-gray-700 dark:text-gray-300 leading-relaxed text-sm sm:text-base">
               <p>
-                The volunteers at Vidyaranyapura Sri Raghavendra Swamy Mutt are the backbone of our temple's
-                daily operations and community services. These dedicated devotees contribute their time, skills,
-                and energy to ensure that the temple functions smoothly and serves the community effectively.
-                From maintaining the temple premises to organizing events and helping with various activities,
-                our volunteers play a crucial role in preserving our spiritual heritage and traditions.
+                The Swayamsevaks at Vidyaranyapura Sri Raghavendra Swamy Mutt are the foundation of our temple's daily operations and sacred sevas. From coordinating alankara and pooja rituals to organizing festival gatherings and serving Annadanam prasada, our volunteers embody the true spirit of <em>Karma Yoga</em>.
               </p>
-
               <p>
-                Our volunteers come from diverse backgrounds and professions, united by their devotion to
-                Sri Raghavendra Swami and their commitment to serving the community. Their selfless service
-                reflects the true spirit of Karma Yoga and devotion, inspiring others to follow the path
-                of righteousness and service.
-              </p>
-
-              <p>
-                We are always grateful for the time and effort our volunteers put into making our temple
-                a vibrant center of spiritual and cultural activities. Their dedication ensures that the
-                teachings and traditions of our Gurus are preserved and passed on to future generations.
+                Whether you are a student, working professional, or retiree, our Sangha welcomes everyone dedicated to offering their time and skills at the lotus feet of Sri Rayaru.
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Container */}
-      <div className="container mx-auto max-w-7xl px-4 py-12 space-y-16">
-        
+      {/* Main Interactive Swayamsevak Explorer */}
+      <div className="container mx-auto max-w-7xl px-4 pb-16 space-y-16">
         {/* Category Filter Tabs */}
         <div>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -80,7 +235,7 @@ export default function Volunteers() {
                 <button
                   key={cat.name}
                   onClick={() => setSelectedCategory(cat.name)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-extrabold uppercase tracking-wider whitespace-nowrap transition-all duration-300 shadow-xs ${
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-extrabold uppercase tracking-wider whitespace-nowrap transition-all duration-300 shadow-xs cursor-pointer ${
                     isActive
                       ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md shadow-orange-600/20 scale-105'
                       : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700'
@@ -131,7 +286,7 @@ export default function Volunteers() {
                 <button
                   key={day}
                   onClick={() => setSelectedShiftDay(day)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
                     selectedShiftDay === day ? 'bg-orange-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -171,7 +326,7 @@ export default function Volunteers() {
                     setApplicantRole(shift.title);
                     setShowApplyModal(true);
                   }}
-                  className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-md"
+                  className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
                 >
                   <span>Sign Up For Shift</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -228,7 +383,7 @@ export default function Volunteers() {
           <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 dark:border-slate-800 relative animate-slide-up">
             <button 
               onClick={() => setShowApplyModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-white p-1 rounded-full"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-white p-1 rounded-full cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -316,7 +471,7 @@ export default function Volunteers() {
 
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-sm uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 mt-4"
+                  className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-sm uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 mt-4 cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
                   <span>Submit Application</span>
