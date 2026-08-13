@@ -160,18 +160,27 @@ export default function Header({ toggleSidebar, user }: HeaderProps) {
           </button>
 
           {/* Profile */}
-          <div className="flex items-center gap-3 pl-2">
-
+          <div className="flex items-center gap-3 pl-2 border-l border-gray-100 dark:border-slate-800">
             <div className="hidden md:block text-right">
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 leading-none mb-1">
+              <p className="text-sm font-bold text-gray-900 dark:text-white leading-none mb-1">
                 {user?.name || 'Vidyaranyapura Mutt'}
               </p>
-              <p className="text-xs text-amber-600 dark:text-amber-500 font-medium tracking-wide uppercase">
-                {user?.role === 'admin' ? 'Super Admin' : 'Staff Member'}
+              <p className={`text-[10px] font-extrabold tracking-wider uppercase ${
+                user?.role === 'super_admin' ? 'text-purple-600 dark:text-purple-400' :
+                user?.role === 'admin' ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
+              }`}>
+                {user?.role === 'super_admin' ? 'Super Admin' : user?.role === 'admin' ? 'Administrator' : 'Swayamsevak / Scanner'}
               </p>
             </div>
-            <div className="h-9 w-9 rounded-full bg-orange-100 flex items-center justify-center border-2 border-orange-500/20 shadow-sm overflow-hidden">
-               <User className="h-5 w-5 text-orange-600" />
+            <div className="relative group cursor-pointer">
+              <div className={`h-10 w-10 rounded-full flex items-center justify-center border-2 shadow-sm transition-transform group-hover:scale-105 ${
+                user?.role === 'super_admin' ? 'bg-purple-100 text-purple-700 border-purple-400 dark:bg-purple-950 dark:text-purple-300' :
+                user?.role === 'admin' ? 'bg-amber-100 text-amber-700 border-amber-400 dark:bg-amber-950 dark:text-amber-300' :
+                'bg-emerald-100 text-emerald-700 border-emerald-400 dark:bg-emerald-950 dark:text-emerald-300'
+              }`}>
+                <User className="h-5 w-5" />
+              </div>
+              <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
             </div>
           </div>
         </div>
