@@ -49,78 +49,9 @@ export default function Volunteers() {
               </p>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Volunteer Roles Section
-          <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-              Volunteer Roles and Responsibilities
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-orange-600 rounded-full mt-2"></div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800">Temple Maintenance</h4>
-                    <p className="text-gray-600 text-sm">Daily cleaning, decoration, and upkeep of temple premises</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-orange-600 rounded-full mt-2"></div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800">Pooja Assistance</h4>
-                    <p className="text-gray-600 text-sm">Helping priests during daily and special poojas</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-orange-600 rounded-full mt-2"></div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800">Event Management</h4>
-                    <p className="text-gray-600 text-sm">Organizing festivals, celebrations, and special events</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-orange-600 rounded-full mt-2"></div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800">Kitchen Service</h4>
-                    <p className="text-gray-600 text-sm">Preparing and distributing prasadam during events</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-orange-600 rounded-full mt-2"></div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800">Security & Crowd Management</h4>
-                    <p className="text-gray-600 text-sm">Ensuring safety and order during peak hours</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-orange-600 rounded-full mt-2"></div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800">Administrative Support</h4>
-                    <p className="text-gray-600 text-sm">Helping with office work, record keeping, and communication</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-orange-600 rounded-full mt-2"></div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800">Educational Activities</h4>
-                    <p className="text-gray-600 text-sm">Supporting classes, workshops, and spiritual discourses</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-orange-600 rounded-full mt-2"></div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800">Community Outreach</h4>
-                    <p className="text-gray-600 text-sm">Reaching out to devotees and local community</p>
       {/* Main Container */}
       <div className="container mx-auto max-w-7xl px-4 py-12 space-y-16">
         
