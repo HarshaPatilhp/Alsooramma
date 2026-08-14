@@ -15,7 +15,7 @@ interface Booking {
 }
 
 export default function DevoteesPage() {
-  const { currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
