@@ -13,7 +13,10 @@ export default function ReportsPage() {
       let donationsTotal = 0;
       
       const supabase = createClient();
-      const { data: bks } = await supabase.from('bookings').select('*');
+      const { data: bks } = await supabase
+        .from('bookings')
+        .select('*')
+        .neq('status', 'deleted');
       
       if (bks) {
         let revenue = bks.reduce((sum: number, b: any) => {

@@ -46,8 +46,11 @@ export default function DashboardPage() {
     try {
       const supabase = createClient();
       
-      // Fetch bookings
-      const { data: bookingsData, error: bookingsErr } = await supabase.from('bookings').select('*');
+      // Fetch bookings (excluding deleted)
+      const { data: bookingsData, error: bookingsErr } = await supabase
+        .from('bookings')
+        .select('*')
+        .neq('status', 'deleted');
       if (bookingsErr) console.error("Error loading bookings:", bookingsErr.message);
       const bookings = bookingsData || [];
       

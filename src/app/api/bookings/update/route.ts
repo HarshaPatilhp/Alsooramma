@@ -15,6 +15,18 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient();
+
+    if (String(status).toLowerCase() === 'deleted') {
+      const { error } = await supabase
+        .from('bookings')
+        .delete()
+        .eq('id', String(id));
+
+      if (error) throw error;
+
+      return NextResponse.json({ success: true, message: 'Booking deleted successfully from Supabase' });
+    }
+
     const { error } = await supabase
       .from('bookings')
       .update({ status: String(status) })

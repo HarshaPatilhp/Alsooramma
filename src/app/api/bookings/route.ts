@@ -15,36 +15,39 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase
       .from('bookings')
       .select('*')
+      .neq('status', 'deleted')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
     // Map snake_case from DB back to camelCase for the frontend
-    const mappedBookings = (data || []).map((row) => ({
-      id: row.id,
-      devoteeName: row.devotee_name || '',
-      email: row.email || '',
-      phone: row.phone || '',
-      sevaName: row.seva_name || '',
-      date: row.date || '',
-      time: row.time || '',
-      numberOfPeople: row.number_of_people || '1',
-      gotra: row.gotra || '',
-      nakshatra: row.nakshatra || '',
-      hall: row.hall || '',
-      tirthaPrasadaRequired: !!row.tirtha_prasada_required,
-      tirthaPrasadaCount: row.tirtha_prasada_count || 0,
-      lunchRequired: !!row.lunch_required,
-      lunchCount: row.lunch_count || 0,
-      lunchHall: row.lunch_hall || '',
-      specialRequests: row.special_requests || '',
-      status: row.status || 'confirmed',
-      sevaCost: row.seva_cost || '',
-      lunchCost: row.lunch_cost || 0,
-      totalCost: row.total_cost || 0,
-      qrCode: row.qr_code || String(row.id || ''),
-      createdAt: row.created_at || new Date().toISOString(),
-    }));
+    const mappedBookings = (data || [])
+      .filter((row) => (row.status || '').toLowerCase() !== 'deleted')
+      .map((row) => ({
+        id: row.id,
+        devoteeName: row.devotee_name || '',
+        email: row.email || '',
+        phone: row.phone || '',
+        sevaName: row.seva_name || '',
+        date: row.date || '',
+        time: row.time || '',
+        numberOfPeople: row.number_of_people || '1',
+        gotra: row.gotra || '',
+        nakshatra: row.nakshatra || '',
+        hall: row.hall || '',
+        tirthaPrasadaRequired: !!row.tirtha_prasada_required,
+        tirthaPrasadaCount: row.tirtha_prasada_count || 0,
+        lunchRequired: !!row.lunch_required,
+        lunchCount: row.lunch_count || 0,
+        lunchHall: row.lunch_hall || '',
+        specialRequests: row.special_requests || '',
+        status: row.status || 'confirmed',
+        sevaCost: row.seva_cost || '',
+        lunchCost: row.lunch_cost || 0,
+        totalCost: row.total_cost || 0,
+        qrCode: row.qr_code || String(row.id || ''),
+        createdAt: row.created_at || new Date().toISOString(),
+      }));
 
     return NextResponse.json({ success: true, bookings: mappedBookings });
   } catch (error: any) {
@@ -106,5 +109,42 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('API POST booking error:', error.message);
     return NextResponse.json({ success: false, message: 'Failed to save booking', error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  // Allow authorized admins/volunteers to delete bookings
+  const authCheck = await verifyApiPermission(request, ['devotees', 'dashboard', 'reports', 'qr_checkin', 'seva_dashboard']);
+  if (!authCheck.authorized) {
+    return authCheck.errorResponse!;
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    let id = searchParams.get('id');
+    if (!id) {
+      const body = await request.json().catch(() => ({}));
+      id = body.id;
+    }
+
+    if (!id) {
+      return NextResponse.json({ success: false, message: 'Booking ID is required' }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from('bookings')
+      .delete()
+      .eq('id', String(id));
+
+    if (error) {
+      console.error('Supabase DELETE booking error:', error);
+      throw error;
+    }
+
+    return NextResponse.json({ success: true, message: 'Booking deleted successfully from database' });
+  } catch (error: any) {
+    console.error('API DELETE booking error:', error.message);
+    return NextResponse.json({ success: false, message: 'Failed to delete booking', error: error.message }, { status: 500 });
   }
 }

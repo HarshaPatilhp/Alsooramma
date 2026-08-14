@@ -1,78 +1,117 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, MoreVertical, CheckCircle, Trash2, Users, Clock } from 'lucide-react';
-
+import { Search, Filter, Calendar, CheckCircle, Trash2, Users, Clock } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Booking {
-  id: number;
+  id: number | string;
   devoteeName: string;
   sevaName: string;
   phone: string;
   date: string;
   status: string;
+  fullName?: string;
 }
 
 export default function DevoteesPage() {
+  const { currentUser } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      setIsLoading(true);
+  const getAuthHeaders = () => {
+    let id = currentUser?.id;
+    let email = currentUser?.email;
+    if (!id || !email) {
       try {
-        // Try fetching via API first
-        const res = await fetch('/api/bookings');
-        const data = await res.json();
-        
-        if (data && data.success && Array.isArray(data.bookings)) {
-          setBookings(data.bookings);
-        } else {
-          // Fallback to direct Supabase client if API returned error or unauthorized
-          const { createClient } = await import('@/lib/client');
-          const supabase = createClient();
-          const { data: dbRows, error: dbErr } = await supabase.from('bookings').select('*').order('created_at', { ascending: false });
-          if (!dbErr && dbRows) {
-            const mapped = dbRows.map((row: any) => ({
-              id: row.id,
-              devoteeName: row.devotee_name || row.devoteeName || '',
-              sevaName: row.seva_name || row.sevaName || '',
-              phone: row.phone || '',
-              date: row.date || '',
-              status: row.status || 'confirmed',
-              fullName: row.devotee_name || row.devoteeName || ''
-            }));
-            setBookings(mapped);
-          }
+        const stored = sessionStorage.getItem('temple_auth_user');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          id = id || parsed.id;
+          email = email || parsed.email;
         }
-      } catch (err) {
-        console.error("Failed to fetch bookings via API, trying Supabase fallback", err);
-        try {
-          const { createClient } = await import('@/lib/client');
-          const supabase = createClient();
-          const { data: dbRows, error: dbErr } = await supabase.from('bookings').select('*').order('created_at', { ascending: false });
-          if (!dbErr && dbRows) {
-            const mapped = dbRows.map((row: any) => ({
-              id: row.id,
-              devoteeName: row.devotee_name || row.devoteeName || '',
-              sevaName: row.seva_name || row.sevaName || '',
-              phone: row.phone || '',
-              date: row.date || '',
-              status: row.status || 'confirmed',
-              fullName: row.devotee_name || row.devoteeName || ''
-            }));
-            setBookings(mapped);
-          }
-        } catch (fbErr) {
-          console.error("Supabase fallback error:", fbErr);
-        }
-      } finally {
-        setIsLoading(false);
-      }
+      } catch (e) {}
+    }
+    return {
+      'x-user-id': String(id || ''),
+      'x-user-email': email || '',
     };
+  };
+
+  const fetchBookings = async () => {
+    setIsLoading(true);
+    try {
+      // Try fetching via API first with proper headers
+      const res = await fetch('/api/bookings', {
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json().catch(() => ({}));
+      
+      if (data && data.success && Array.isArray(data.bookings)) {
+        const validBookings = data.bookings.filter((b: any) => (b.status || '').toLowerCase() !== 'deleted');
+        setBookings(validBookings);
+      } else {
+        // Fallback to direct Supabase client if API returned error or unauthorized
+        const { createClient } = await import('@/lib/client');
+        const supabase = createClient();
+        const { data: dbRows, error: dbErr } = await supabase
+          .from('bookings')
+          .select('*')
+          .neq('status', 'deleted')
+          .order('created_at', { ascending: false });
+          
+        if (!dbErr && dbRows) {
+          const mapped = dbRows
+            .filter((row: any) => (row.status || '').toLowerCase() !== 'deleted')
+            .map((row: any) => ({
+              id: row.id,
+              devoteeName: row.devotee_name || row.devoteeName || '',
+              sevaName: row.seva_name || row.sevaName || '',
+              phone: row.phone || '',
+              date: row.date || '',
+              status: row.status || 'confirmed',
+              fullName: row.devotee_name || row.devoteeName || ''
+            }));
+          setBookings(mapped);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch bookings via API, trying Supabase fallback", err);
+      try {
+        const { createClient } = await import('@/lib/client');
+        const supabase = createClient();
+        const { data: dbRows, error: dbErr } = await supabase
+          .from('bookings')
+          .select('*')
+          .neq('status', 'deleted')
+          .order('created_at', { ascending: false });
+          
+        if (!dbErr && dbRows) {
+          const mapped = dbRows
+            .filter((row: any) => (row.status || '').toLowerCase() !== 'deleted')
+            .map((row: any) => ({
+              id: row.id,
+              devoteeName: row.devotee_name || row.devoteeName || '',
+              sevaName: row.seva_name || row.sevaName || '',
+              phone: row.phone || '',
+              date: row.date || '',
+              status: row.status || 'confirmed',
+              fullName: row.devotee_name || row.devoteeName || ''
+            }));
+          setBookings(mapped);
+        }
+      } catch (fbErr) {
+        console.error("Supabase fallback error:", fbErr);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchBookings();
-  }, []);
+  }, [currentUser]);
 
   const getStatusColor = (status: string) => {
     switch(status.toLowerCase()) {
@@ -84,47 +123,88 @@ export default function DevoteesPage() {
   };
 
   const deleteBooking = async (id: number | string) => {
-    if(confirm('Are you sure you want to delete this booking?')) {
+    if (confirm('Are you sure you want to permanently delete this booking?')) {
+      const originalBookings = [...bookings];
+      // Optimistically remove from UI
       const updated = bookings.filter(b => String(b.id) !== String(id));
       setBookings(updated);
 
       try {
-        const { createClient } = await import('@/lib/client');
-        const supabase = createClient();
-        await supabase.from('bookings').update({ status: 'deleted' }).eq('id', String(id));
-        
-        await fetch('/api/bookings/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: String(id), status: 'deleted' }),
+        // 1. Call DELETE API route
+        const res = await fetch(`/api/bookings?id=${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify({ id: String(id) }),
         });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || !data.success) {
+          console.warn('API delete returned non-success, attempting direct Supabase deletion fallback:', data?.message);
+          
+          // 2. Direct client hard-delete fallback
+          const { createClient } = await import('@/lib/client');
+          const supabase = createClient();
+          const { error: delErr } = await supabase.from('bookings').delete().eq('id', String(id));
+          
+          if (delErr) {
+            console.warn('Direct delete failed, soft deleting row in Supabase:', delErr.message);
+            await supabase.from('bookings').update({ status: 'deleted' }).eq('id', String(id));
+          }
+        }
       } catch (err: any) {
-        console.error('Failed to sync deletion:', err.message);
+        console.error('Failed to sync deletion:', err);
+        // Direct client fallback
+        try {
+          const { createClient } = await import('@/lib/client');
+          const supabase = createClient();
+          const { error: delErr } = await supabase.from('bookings').delete().eq('id', String(id));
+          if (delErr) {
+            await supabase.from('bookings').update({ status: 'deleted' }).eq('id', String(id));
+          }
+        } catch (fbErr: any) {
+          console.error('Fallback deletion failed:', fbErr);
+          alert('Failed to delete booking from database: ' + (err.message || 'Please try again.'));
+          setBookings(originalBookings);
+        }
       }
     }
-  }
+  };
 
   const markCompleted = async (id: number | string) => {
-    if(confirm('Mark this seva booking as completed?')) {
+    if (confirm('Mark this seva booking as completed?')) {
       const updated = bookings.map(b => String(b.id) === String(id) ? { ...b, status: 'completed' } : b);
       setBookings(updated);
 
       try {
-        const { createClient } = await import('@/lib/client');
-        const supabase = createClient();
-        await supabase.from('bookings').update({ status: 'completed' }).eq('id', String(id));
-
-        await fetch('/api/bookings/update', {
+        const res = await fetch('/api/bookings/update', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+          },
           body: JSON.stringify({ id: String(id), status: 'completed' }),
         });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          const { createClient } = await import('@/lib/client');
+          const supabase = createClient();
+          await supabase.from('bookings').update({ status: 'completed' }).eq('id', String(id));
+        }
       } catch (err: any) {
         console.error('Failed to sync status:', err.message);
+        try {
+          const { createClient } = await import('@/lib/client');
+          const supabase = createClient();
+          await supabase.from('bookings').update({ status: 'completed' }).eq('id', String(id));
+        } catch (fbErr) {}
       }
     }
-  }
-
+  };
 
   const highlightText = (text: string, search: string) => {
     if (!search.trim()) return text;
@@ -153,7 +233,7 @@ export default function DevoteesPage() {
     const headers = ['Booking ID', 'Devotee Name', 'Phone', 'Seva Name', 'Date', 'Status'];
     const rows = filteredBookings.map(b => [
       b.id,
-      b.devoteeName || (b as any).fullName || '',
+      b.devoteeName || b.fullName || '',
       b.phone || '',
       b.sevaName || '',
       b.date || '',
@@ -173,14 +253,16 @@ export default function DevoteesPage() {
     document.body.removeChild(link);
   };
 
-
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed'>('all');
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [showSortMenu, setShowSortMenu] = useState(false);
 
   const filteredBookings = bookings.filter(b => {
-    const name = b.devoteeName || (b as any).fullName || '';
+    // Exclude deleted status
+    if ((b.status || '').toLowerCase() === 'deleted') return false;
+
+    const name = b.devoteeName || b.fullName || '';
     const seva = b.sevaName || '';
     const id = b.id ? String(b.id) : '';
     const term = searchTerm.toLowerCase();
@@ -238,7 +320,6 @@ export default function DevoteesPage() {
         </div>
       </div>
 
-
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 overflow-hidden">
         {/* Table Controls */}
         <div className="p-4 border-b border-gray-100 dark:border-slate-700/50 flex flex-col sm:flex-row gap-4 justify-between bg-gray-50/50 dark:bg-slate-800/50">
@@ -255,7 +336,7 @@ export default function DevoteesPage() {
           <div className="flex gap-3 items-center">
             <button 
               onClick={exportToCSV}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-800 font-semibold text-sm text-gray-700 dark:text-gray-300 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-800 font-semibold text-sm text-gray-700 dark:text-gray-300 transition-colors cursor-pointer"
             >
               <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -265,34 +346,34 @@ export default function DevoteesPage() {
             <div className="relative">
               <button 
                 onClick={() => setShowStatusMenu(!showStatusMenu)}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-800 font-medium text-gray-700 dark:text-gray-300"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-800 font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
               >
                 <Filter size={18} />
                 {statusFilter === 'all' ? 'All Statuses' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
               </button>
 
-            
-            {showStatusMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 z-10 py-1">
-                {['all', 'pending', 'confirmed', 'completed'].map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => {
-                      setStatusFilter(status as any);
-                      setShowStatusMenu(false);
-                    }}
-                    className={`block w-full text-left px-4 py-2 text-sm ${statusFilter === status ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
-                  >
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </button>
-                ))}
-              </div>
-            )}
+              {showStatusMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 z-10 py-1">
+                  {['all', 'pending', 'confirmed', 'completed'].map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => {
+                        setStatusFilter(status as any);
+                        setShowStatusMenu(false);
+                      }}
+                      className={`block w-full text-left px-4 py-2 text-sm cursor-pointer ${statusFilter === status ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                    >
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div className="relative">
               <button 
                 onClick={() => setShowSortMenu(!showSortMenu)}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-800 font-medium text-gray-700 dark:text-gray-300"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-800 font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
               >
                 <Calendar size={18} />
                 {sortOrder === 'newest' ? 'Latest Seva' : 'Earliest Seva'}
@@ -301,13 +382,13 @@ export default function DevoteesPage() {
                 <div className="absolute right-0 mt-2 w-36 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 z-10 py-1">
                   <button
                     onClick={() => { setSortOrder('newest'); setShowSortMenu(false); }}
-                    className={`block w-full text-left px-4 py-2 text-sm ${sortOrder === 'newest' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                    className={`block w-full text-left px-4 py-2 text-sm cursor-pointer ${sortOrder === 'newest' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
                   >
                     Latest Seva
                   </button>
                   <button
                     onClick={() => { setSortOrder('oldest'); setShowSortMenu(false); }}
-                    className={`block w-full text-left px-4 py-2 text-sm ${sortOrder === 'oldest' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                    className={`block w-full text-left px-4 py-2 text-sm cursor-pointer ${sortOrder === 'oldest' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
                   >
                     Earliest Seva
                   </button>
@@ -316,76 +397,90 @@ export default function DevoteesPage() {
             </div>
           </div>
         </div>
-      </div>
 
         {/* Desktop Table View */}
         <div className="overflow-x-auto min-h-[300px]">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-semibold border-b border-gray-100 dark:border-slate-700/50">
-                <th className="px-6 py-4">Booking ID</th>
-                <th className="px-6 py-4">Devotee Name</th>
-                <th className="px-6 py-4">Seva Info</th>
-                <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50">
-              {filteredBookings.length > 0 ? (
-                filteredBookings.map((booking) => (
-                  <tr key={booking.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500 dark:text-gray-400">
-                      #{highlightText(String(booking.id).slice(-8), searchTerm)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center font-bold text-orange-700 dark:text-orange-400">
-                          {((booking as any).fullName || booking.devoteeName)?.charAt(0) || 'U'}
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+              <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+              <p className="text-sm font-medium">Loading devotees and bookings...</p>
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-semibold border-b border-gray-100 dark:border-slate-700/50">
+                  <th className="px-6 py-4">Booking ID</th>
+                  <th className="px-6 py-4">Devotee Name</th>
+                  <th className="px-6 py-4">Seva Info</th>
+                  <th className="px-6 py-4">Date</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50">
+                {filteredBookings.length > 0 ? (
+                  filteredBookings.map((booking) => (
+                    <tr key={booking.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500 dark:text-gray-400">
+                        #{highlightText(String(booking.id).slice(-8), searchTerm)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center font-bold text-orange-700 dark:text-orange-400">
+                            {(booking.fullName || booking.devoteeName)?.charAt(0) || 'U'}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900 dark:text-white leading-tight">{highlightText(booking.fullName || booking.devoteeName || 'Unknown Devotee', searchTerm)}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{highlightText(booking.phone || 'No phone', searchTerm)}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-semibold text-gray-900 dark:text-white leading-tight">{highlightText((booking as any).fullName || booking.devoteeName || 'Unknown Devotee', searchTerm)}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{highlightText(booking.phone || 'No phone', searchTerm)}</p>
-                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-200">{highlightText(booking.sevaName, searchTerm)}</p>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                        {highlightText(booking.date, searchTerm)}
+                      </td>
+
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full uppercase tracking-wider ${getStatusColor(booking.status || 'pending')}`}>
+                          {booking.status || 'pending'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        {booking.status !== 'completed' && (
+                          <button 
+                            onClick={() => markCompleted(booking.id)} 
+                            className="p-1.5 text-gray-400 hover:text-orange-600 transition-colors ml-2 cursor-pointer" 
+                            title="Mark Completed"
+                          >
+                            <CheckCircle size={16} />
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => deleteBooking(booking.id)} 
+                          className="p-1.5 text-gray-400 hover:text-red-600 transition-colors ml-2 cursor-pointer" 
+                          title="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                      <div className="flex flex-col items-center justify-center">
+                        <Search className="h-10 w-10 text-gray-300 mb-3" />
+                        <p className="text-lg font-medium">No devotees found</p>
+                        <p className="text-sm">Try adjusting your search or filters.</p>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-200">{highlightText(booking.sevaName, searchTerm)}</p>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                      {highlightText(booking.date, searchTerm)}
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full uppercase tracking-wider ${getStatusColor(booking.status || 'pending')}`}>
-                        {booking.status || 'pending'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                      {booking.status !== 'completed' && (
-                        <button onClick={() => markCompleted(booking.id)} className="p-1.5 text-gray-400 hover:text-orange-600 transition-colors ml-2" title="Mark Completed">
-                          <CheckCircle size={16} />
-                        </button>
-                      )}
-                      <button onClick={() => deleteBooking(booking.id)} className="p-1.5 text-gray-400 hover:text-red-600 transition-colors ml-2" title="Delete">
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                    <div className="flex flex-col items-center justify-center">
-                      <Search className="h-10 w-10 text-gray-300 mb-3" />
-                      <p className="text-lg font-medium">No devotees found</p>
-                      <p className="text-sm">Try adjusting your search or filters.</p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
         
         {/* Pagination Status */}
