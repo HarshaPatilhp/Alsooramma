@@ -164,12 +164,13 @@ export default function ReportsPage() {
     const mealsFromSponsorships = Math.round(annadanamRevenue / 35);
     const totalMealsServed = prasadaCountFromBookings + mealsFromSponsorships;
 
-    // 4. Online Bookings vs Total Checkins
+    // 4. Online Bookings vs Total Transactions (Real Live Computation)
     const totalBookingsCount = filteredBookings.length;
     const completedOrScanned = filteredBookings.filter(b => (b.status || '').toLowerCase() === 'completed').length;
-    const onlineBookingRate = totalBookingsCount > 0 
-      ? Math.min(100, Math.round(((totalBookingsCount) / (totalBookingsCount + 10)) * 100))
-      : 82;
+    const totalTransactionsCount = totalBookingsCount + filteredDonations.length + filteredAnnadanam.length;
+    const onlineBookingRate = totalTransactionsCount > 0 
+      ? Math.round((totalBookingsCount / totalTransactionsCount) * 100)
+      : (totalBookingsCount > 0 ? 100 : 0);
 
     // 5. Build Live Daily Revenue Curve (Last 7 Days)
     const daysMap: Record<string, number> = {};
