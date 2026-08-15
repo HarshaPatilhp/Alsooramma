@@ -19,16 +19,25 @@ import {
   UserCheck,
   Zap,
   Award,
-  Compass
+  Compass,
+  Utensils,
+  ChevronDown,
+  Search,
+  Check,
+  Flame,
+  Phone,
+  Tag
 } from 'lucide-react';
 import StatCard from '@/components/dashboard/StatCard';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/lib/client';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState<any[]>([]);
+  const [rawBookings, setRawBookings] = useState<any[]>([]);
+  const [annadanamRecords, setAnnadanamRecords] = useState<any[]>([]);
   const [recentCheckins, setRecentCheckins] = useState<any[]>([]);
   const [activityFilter, setActivityFilter] = useState<'all' | 'scans' | 'sevas'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -38,6 +47,11 @@ export default function DashboardPage() {
     new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
   );
 
+  // Daily Lunch & Prasadam Card State
+  const [selectedLunchDate, setSelectedLunchDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [showDevoteeLunchDrawer, setShowDevoteeLunchDrawer] = useState(false);
+  const [lunchSearchQuery, setLunchSearchQuery] = useState('');
+
   const isVolunteer = user?.role === 'volunteer';
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
@@ -46,22 +60,27 @@ export default function DashboardPage() {
     try {
       const supabase = createClient();
       
-      // Fetch bookings (excluding deleted)
-      const { data: bookingsData, error: bookingsErr } = await supabase
-        .from('bookings')
-        .select('*')
-        .neq('status', 'deleted');
-      if (bookingsErr) console.error("Error loading bookings:", bookingsErr.message);
+      // Fetch bookings, scan_history, and annadanam
+      const [
+        { data: bookingsData },
+        { data: historyData },
+        { data: annadanamData }
+      ] = await Promise.all([
+        supabase.from('bookings').select('*').neq('status', 'deleted'),
+        supabase.from('scan_history').select('*').order('created_at', { ascending: false }).limit(10),
+        supabase.from('annadanam').select('*')
+      ]);
+
       const bookings = bookingsData || [];
-      
-      // Fetch scan history
-      const { data: historyData, error: historyErr } = await supabase.from('scan_history').select('*').order('created_at', { ascending: false }).limit(10);
-      if (historyErr) console.error("Error loading scan history:", historyErr.message);
       const history = historyData || [];
+      const annadanam = annadanamData || [];
+
+      setRawBookings(bookings);
+      setAnnadanamRecords(annadanam);
 
       // Calculate live stats
       const today = new Date();
-      const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+      const todayStr = today.toISOString().split('T')[0];
       
       const todaysBookings = bookings.filter((b: any) => {
         const dateVal = b.date || '';
@@ -88,7 +107,7 @@ export default function DashboardPage() {
         return sum + (Number(costStr) || 0);
       }, 0);
 
-      setTodayScansCount(history.length > 0 ? history.length + 8 : 14);
+      setTodayScansCount(history.length > 0 ? history.length : 14);
 
       const baseStats = [
         { 
@@ -144,9 +163,9 @@ export default function DashboardPage() {
       // Load recent check-ins
       const recent = history.map((h: any) => ({
         id: h.id,
-        name: `Booking #${h.booking_id}`,
+        name: h.devotee_name || `Booking #${h.booking_id}`,
         time: new Date(h.scanned_at || h.created_at || Date.now()).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }),
-        seva: h.scanned_by || 'QR Verification',
+        seva: h.seva_name || h.scanned_by || 'QR Verification',
         status: h.status || 'Verified'
       }));
       setRecentCheckins(recent);
@@ -164,10 +183,78 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [user?.role]);
 
+  // Compute Daily Lunch Attendees & Prasadam Details for selectedLunchDate
+  const dailyLunchData = useMemo(() => {
+    const targetDate = selectedLunchDate;
+
+    // Filter bookings matching this date that have lunch/tirtha prasada requested
+    const matchingBookings = rawBookings.filter((b: any) => {
+      const bDate = (b.date || '').slice(0, 10);
+      return bDate === targetDate;
+    });
+
+    let totalLunchDevotees = 0;
+    let completedLunchDevotees = 0;
+    const lunchDevoteesList: any[] = [];
+
+    matchingBookings.forEach((b: any) => {
+      // Check if lunch or tirtha prasada is required
+      const hasLunch = b.lunch_required || b.tirtha_prasada_required || true; // All seva devotees are eligible for Tirtha Prasada
+      const lunchCount = Number(b.lunch_count) || Number(b.tirtha_prasada_count) || Number(b.number_of_people) || 1;
+
+      totalLunchDevotees += lunchCount;
+      const isCompleted = (b.status || '').toLowerCase() === 'completed';
+      if (isCompleted) {
+        completedLunchDevotees += lunchCount;
+      }
+
+      lunchDevoteesList.push({
+        id: b.id,
+        devoteeName: b.devotee_name || b.devoteeName || 'Devotee',
+        phone: b.phone || '—',
+        email: b.email || '',
+        sevaName: b.seva_name || 'Seva Booking',
+        gotra: b.gotra || '',
+        mealTokens: lunchCount,
+        status: isCompleted ? 'Completed' : 'Expected',
+        hall: b.hall || b.lunch_hall || 'Annapurna Dining Hall'
+      });
+    });
+
+    // Public Annadanam sponsorships on that date
+    const matchingAnnadanam = annadanamRecords.filter((a: any) => {
+      const aDate = (a.date || '').slice(0, 10);
+      return aDate === targetDate;
+    });
+
+    const totalAnnadanamFunds = matchingAnnadanam.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
+    const sponsoredPublicMeals = Math.round(totalAnnadanamFunds / 35);
+
+    const pendingLunchDevotees = Math.max(0, totalLunchDevotees - completedLunchDevotees);
+
+    return {
+      totalLunchDevotees,
+      completedLunchDevotees,
+      pendingLunchDevotees,
+      sponsoredPublicMeals,
+      lunchDevoteesList,
+      matchingAnnadanamCount: matchingAnnadanam.length
+    };
+  }, [rawBookings, annadanamRecords, selectedLunchDate]);
+
+  const filteredLunchList = dailyLunchData.lunchDevoteesList.filter((d: any) => {
+    const q = lunchSearchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return d.devoteeName.toLowerCase().includes(q) || d.phone.includes(q) || d.sevaName.toLowerCase().includes(q);
+  });
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
   const quickActions = isAdmin ? [
     { title: 'Live QR Scanner', href: '/dashboard/scanner', description: 'Instant gate QR verification & hall redirect', icon: QrCode, live: true, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-950/50' },
     { title: 'Devotee Roster', href: '/dashboard/devotees', description: 'Manage participant list & search gotra', icon: Users, live: false, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-950/50' },
-    { title: 'Seva Management', href: '/seva-list', description: 'Browse and update available pooja slots', icon: BookOpen, live: false, color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-950/50' },
+    { title: 'Seva Management', href: '/dashboard/sevas', description: 'Browse and update available pooja slots', icon: BookOpen, live: false, color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-950/50' },
     { title: 'User Permissions', href: '/dashboard/users', description: 'Configure staff & volunteer access rights', icon: ShieldCheck, live: false, color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-950/50' },
   ] : [
     { title: 'Launch QR Scanner', href: '/dashboard/scanner', description: 'Verify incoming devotee tickets & gotras', icon: QrCode, live: true, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-950/50' },
@@ -208,7 +295,7 @@ export default function DashboardPage() {
             <button 
               onClick={loadData}
               disabled={isRefreshing}
-              className="flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white border border-white/20 backdrop-blur-md px-5 py-2.5 rounded-full font-bold text-xs uppercase tracking-wider transition-all shadow-md disabled:opacity-50"
+              className="flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white border border-white/20 backdrop-blur-md px-5 py-2.5 rounded-full font-bold text-xs uppercase tracking-wider transition-all shadow-md disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
               <span>{isRefreshing ? 'Syncing...' : `Refresh (${lastRefreshed})`}</span>
@@ -225,9 +312,208 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Role-Specific Showcase Widget */}
-      {isVolunteer ? (
-        /* Volunteer Duty & Shift Progress Widget */
+      {/* 🍛 FEATURED CARD: DAILY LUNCH & MAHA PRASADAM ATTENDANCE (FOR ADMIN & VOLUNTEERS) */}
+      <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-7 shadow-lg border border-orange-200/80 dark:border-slate-700/80 relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600" />
+        
+        {/* Card Header & Date Switcher */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20">
+              <Utensils className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xl font-black text-gray-900 dark:text-white">
+                  Daily Lunch & Maha Prasadam Attendance
+                </h3>
+                <span className="bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                  Live Dining Counter
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Real-time tracking of devotees arriving for afternoon Prasadam for the selected day.
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Date Switcher Controls */}
+          <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-900 p-1.5 rounded-2xl border border-gray-200 dark:border-slate-700">
+            <button
+              onClick={() => setSelectedLunchDate(todayStr)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+                selectedLunchDate === todayStr 
+                  ? 'bg-orange-600 text-white shadow-xs' 
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
+              }`}
+            >
+              Today
+            </button>
+            <button
+              onClick={() => setSelectedLunchDate(tomorrowStr)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+                selectedLunchDate === tomorrowStr 
+                  ? 'bg-orange-600 text-white shadow-xs' 
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
+              }`}
+            >
+              Tomorrow
+            </button>
+            <div className="flex items-center gap-1.5 pl-2 border-l border-gray-200 dark:border-slate-700">
+              <Calendar size={14} className="text-orange-500" />
+              <input
+                type="date"
+                value={selectedLunchDate}
+                onChange={(e) => setSelectedLunchDate(e.target.value)}
+                className="bg-transparent text-xs font-bold text-gray-900 dark:text-white outline-none cursor-pointer"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* 4 Lunch Metric Badges */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-slate-900/80 dark:to-slate-900/40 p-4 rounded-2xl border border-orange-200/60 dark:border-slate-700">
+            <span className="text-[11px] font-bold text-orange-700 dark:text-orange-400 uppercase tracking-wider">
+              Total Lunch Expected
+            </span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <h4 className="text-3xl font-black text-gray-900 dark:text-white">
+                {dailyLunchData.totalLunchDevotees}
+              </h4>
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Devotees</span>
+            </div>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+              For {new Date(selectedLunchDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-900/80 dark:to-slate-900/40 p-4 rounded-2xl border border-emerald-200/60 dark:border-slate-700">
+            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+              Claimed / Served
+            </span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <h4 className="text-3xl font-black text-emerald-600 dark:text-emerald-400">
+                {dailyLunchData.completedLunchDevotees}
+              </h4>
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Checked-in</span>
+            </div>
+            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
+              {dailyLunchData.totalLunchDevotees > 0 
+                ? `${Math.round((dailyLunchData.completedLunchDevotees / dailyLunchData.totalLunchDevotees) * 100)}% served` 
+                : 'Ready at gate'}
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-900/80 dark:to-slate-900/40 p-4 rounded-2xl border border-amber-200/60 dark:border-slate-700">
+            <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+              Pending / In-Transit
+            </span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <h4 className="text-3xl font-black text-amber-600 dark:text-amber-400">
+                {dailyLunchData.pendingLunchDevotees}
+              </h4>
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Remaining</span>
+            </div>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+              Awaiting hall entry
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-900/80 dark:to-slate-900/40 p-4 rounded-2xl border border-blue-200/60 dark:border-slate-700">
+            <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+              Public Annadanam
+            </span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <h4 className="text-3xl font-black text-blue-600 dark:text-blue-400">
+                ~{dailyLunchData.sponsoredPublicMeals}
+              </h4>
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Meals</span>
+            </div>
+            <p className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold mt-1">
+              {dailyLunchData.matchingAnnadanamCount} Sponsors on this day
+            </p>
+          </div>
+        </div>
+
+        {/* Toggle Devotee Lunch Roster Table */}
+        <div className="mt-5 pt-4 border-t border-gray-100 dark:border-slate-700/60 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <button
+            onClick={() => setShowDevoteeLunchDrawer(!showDevoteeLunchDrawer)}
+            className="flex items-center gap-2 text-xs font-black text-orange-600 dark:text-orange-400 hover:text-orange-700 cursor-pointer"
+          >
+            <span>{showDevoteeLunchDrawer ? 'Hide Devotee Lunch Roster' : 'View Devotee Lunch Roster & Meal Tokens'}</span>
+            <ChevronDown size={16} className={`transition-transform duration-200 ${showDevoteeLunchDrawer ? 'rotate-180' : ''}`} />
+          </button>
+
+          <span className="text-xs text-gray-400 font-medium">
+            Dining Hall: <strong className="text-gray-700 dark:text-gray-300 font-bold">Annapurna Hall (Ground Floor)</strong>
+          </span>
+        </div>
+
+        {/* Expandable Devotee Lunch List */}
+        {showDevoteeLunchDrawer && (
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700/60 space-y-3 animate-fade-in">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search lunch devotee by name, phone, seva..."
+                value={lunchSearchQuery}
+                onChange={(e) => setLunchSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-xs text-gray-900 dark:text-white"
+              />
+            </div>
+
+            <div className="overflow-x-auto max-h-60 overflow-y-auto rounded-2xl border border-gray-100 dark:border-slate-700">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-gray-50 dark:bg-slate-900 text-gray-500 font-bold uppercase tracking-wider text-[10px]">
+                  <tr>
+                    <th className="px-4 py-2.5">Devotee Name</th>
+                    <th className="px-4 py-2.5">Phone</th>
+                    <th className="px-4 py-2.5">Seva Offering</th>
+                    <th className="px-4 py-2.5 text-center">Meal Tokens</th>
+                    <th className="px-4 py-2.5 text-right">Gate Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-700/60">
+                  {filteredLunchList.length > 0 ? filteredLunchList.map((row: any, idx: number) => (
+                    <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50">
+                      <td className="px-4 py-2.5 font-bold text-gray-900 dark:text-white">
+                        {row.devoteeName}
+                        {row.gotra && <span className="text-[10px] text-gray-400 font-normal ml-1">({row.gotra})</span>}
+                      </td>
+                      <td className="px-4 py-2.5 text-gray-500">{row.phone}</td>
+                      <td className="px-4 py-2.5 font-medium text-gray-700 dark:text-gray-300">{row.sevaName}</td>
+                      <td className="px-4 py-2.5 text-center font-extrabold text-orange-600">
+                        {row.mealTokens} Tokens
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          row.status === 'Completed' 
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
+                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                        }`}>
+                          {row.status}
+                        </span>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-6 text-center text-gray-400">
+                        No specific lunch bookings found for {selectedLunchDate}.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Role-Specific Showcase Widget for Volunteers */}
+      {isVolunteer && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Daily Scan Goal Card */}
           <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-gray-100 dark:border-slate-700/60 shadow-lg flex flex-col justify-between">
@@ -327,42 +613,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      ) : (
-        /* Admin Operational Overview Banner */
-        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-gray-100 dark:border-slate-700/60 shadow-lg">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-md">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-extrabold text-gray-900 dark:text-white">
-                  Executive System Analytics
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  Real-time database sync active with Supabase & local API endpoints
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                Supabase Connected
-              </span>
-
-              <Link 
-                href="/dashboard/reports"
-                className="text-xs font-bold text-orange-600 dark:text-orange-400 hover:underline uppercase tracking-wider"
-              >
-                View Full Reports →
-              </Link>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Stats Overview */}
@@ -436,7 +686,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-slate-800 p-1 rounded-xl">
             <button 
               onClick={() => setActivityFilter('all')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activityFilter === 'all' ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-xs' : 'text-gray-500'
               }`}
             >
@@ -444,7 +694,7 @@ export default function DashboardPage() {
             </button>
             <button 
               onClick={() => setActivityFilter('scans')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activityFilter === 'scans' ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-xs' : 'text-gray-500'
               }`}
             >
@@ -459,7 +709,7 @@ export default function DashboardPage() {
               <div key={checkin.id} className="p-5 hover:bg-orange-50/50 dark:hover:bg-slate-800/80 transition-colors flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-white font-black text-lg flex items-center justify-center shadow-md">
-                    {checkin.name.charAt(0)}
+                    {checkin.name ? checkin.name.charAt(0).toUpperCase() : 'D'}
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900 dark:text-white text-base">{checkin.name}</h4>
