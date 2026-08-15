@@ -375,7 +375,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-slate-900/80 dark:to-slate-900/40 p-4 rounded-2xl border border-orange-200/60 dark:border-slate-700">
             <span className="text-[11px] font-bold text-orange-700 dark:text-orange-400 uppercase tracking-wider">
-              Total Lunch Expected
+              Devotees Arrived for Seva
             </span>
             <div className="flex items-baseline gap-2 mt-1">
               <h4 className="text-3xl font-black text-gray-900 dark:text-white">
@@ -384,13 +384,13 @@ export default function DashboardPage() {
               <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Devotees</span>
             </div>
             <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-              For {new Date(selectedLunchDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+              Attended on {new Date(selectedLunchDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
             </p>
           </div>
 
           <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-900/80 dark:to-slate-900/40 p-4 rounded-2xl border border-emerald-200/60 dark:border-slate-700">
             <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-              Claimed / Served
+              Prasadam Claimed / Served
             </span>
             <div className="flex items-baseline gap-2 mt-1">
               <h4 className="text-3xl font-black text-emerald-600 dark:text-emerald-400">
@@ -401,7 +401,7 @@ export default function DashboardPage() {
             <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
               {dailyLunchData.totalLunchDevotees > 0 
                 ? `${Math.round((dailyLunchData.completedLunchDevotees / dailyLunchData.totalLunchDevotees) * 100)}% served` 
-                : 'Ready at gate'}
+                : 'Ready at dining hall'}
             </p>
           </div>
 
@@ -512,42 +512,41 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Role-Specific Showcase Widget for Volunteers */}
+      {/* Role-Specific Showcase Widget for Volunteers (Unlimited Scans) */}
       {isVolunteer && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Daily Scan Goal Card */}
+          {/* Daily Scan Counter Card (Unlimited Scans) */}
           <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-gray-100 dark:border-slate-700/60 shadow-lg flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs font-extrabold text-orange-600 dark:text-orange-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Zap className="w-4 h-4" />
-                  Today's Gate Goal
+                  <QrCode className="w-4 h-4" />
+                  Today's Gate Verification
                 </span>
-                <span className="bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                  Active Shift
+                <span className="bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  Live Scanner
                 </span>
               </div>
 
               <h3 className="text-3xl font-black text-gray-900 dark:text-white">
-                {todayScansCount} <span className="text-sm font-normal text-gray-400">/ {dailyScanTarget} Scans</span>
+                {todayScansCount} <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">Devotees Verified</span>
               </h3>
 
-              {/* Progress bar */}
-              <div className="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-3 mt-4 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-orange-500 to-amber-400 h-full rounded-full transition-all duration-1000 shadow-sm"
-                  style={{ width: `${Math.min(100, (todayScansCount / dailyScanTarget) * 100)}%` }}
-                />
+              <div className="mt-4 p-3.5 rounded-2xl bg-orange-50/70 dark:bg-slate-900/60 border border-orange-100 dark:border-slate-700 text-xs text-orange-950 dark:text-orange-200 space-y-1">
+                <p className="font-bold flex items-center gap-1.5">
+                  <Sparkles size={14} className="text-orange-500" />
+                  <span>Unlimited Scanner Mode Active</span>
+                </p>
+                <p className="text-gray-500 dark:text-gray-400 text-[11px]">
+                  All incoming gate check-ins and meal tokens are recorded directly into the ledger with no quota restriction.
+                </p>
               </div>
-
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 font-medium">
-                {Math.round((todayScansCount / dailyScanTarget) * 100)}% of daily target verified. Keep up the great seva!
-              </p>
             </div>
 
             <Link 
               href="/dashboard/scanner"
-              className="mt-6 w-full py-3 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs uppercase tracking-wider transition-all text-center block shadow-md shadow-orange-600/20"
+              className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-xs uppercase tracking-wider transition-all text-center block shadow-md shadow-orange-600/20"
             >
               Start Live Camera Scan →
             </Link>

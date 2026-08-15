@@ -192,7 +192,7 @@ export default function ScannerPage() {
 
         <div className="grid grid-cols-3 gap-3 text-center">
           <div className="p-3 bg-orange-50/60 dark:bg-slate-900/60 rounded-2xl border border-orange-100 dark:border-slate-700/60">
-            <span className="text-[10px] font-bold text-orange-700 dark:text-orange-400 uppercase">Total Expected</span>
+            <span className="text-[10px] font-bold text-orange-700 dark:text-orange-400 uppercase">Devotees Arrived</span>
             <p className="text-2xl font-black text-gray-900 dark:text-white mt-0.5">{todayLunchStats.totalExpected}</p>
             <span className="text-[10px] text-gray-400">Devotees</span>
           </div>
