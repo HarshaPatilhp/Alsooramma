@@ -121,15 +121,19 @@ export default function ScannerPage() {
       }).catch(() => {});
 
       // Record Scan in scan_history
-      const newScan = {
-        booking_id: cleanId,
-        devotee_name: details.devoteeName,
-        seva_name: details.sevaName,
-        status: 'Completed',
-        scanned_at: new Date().toISOString(),
-        scanned_by: 'Main Gate Scanner'
-      };
-      await supabase.from('scan_history').insert([newScan]).catch(() => {});
+      try {
+        const newScan = {
+          booking_id: cleanId,
+          devotee_name: details.devoteeName,
+          seva_name: details.sevaName,
+          status: 'Completed',
+          scanned_at: new Date().toISOString(),
+          scanned_by: 'Main Gate Scanner'
+        };
+        await supabase.from('scan_history').insert([newScan]);
+      } catch (scanErr) {
+        console.warn('Could not insert scan history row:', scanErr);
+      }
 
       setScanResult({
         status: 'success',
