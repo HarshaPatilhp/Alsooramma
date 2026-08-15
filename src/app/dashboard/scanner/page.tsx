@@ -175,7 +175,7 @@ export default function ScannerPage() {
             </div>
             <div>
               <h3 className="font-extrabold text-sm text-gray-900 dark:text-white">
-                Today's Lunch / Prasadam Attendance
+                Tirtha Prasada Attendance
               </h3>
               <p className="text-[11px] text-gray-400">Live count for {new Date().toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
             </div>

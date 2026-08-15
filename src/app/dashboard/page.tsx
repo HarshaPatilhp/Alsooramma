@@ -183,11 +183,25 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [user?.role]);
 
-  // Compute Daily Lunch Attendees & Prasadam Details for selectedLunchDate
+  // Compute Daily Lunch & Tirtha Prasadam Attendees for Today, Tomorrow, and selectedLunchDate
   const dailyLunchData = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
     const targetDate = selectedLunchDate;
 
-    // Filter bookings matching this date that have lunch/tirtha prasada requested
+    // Helper to sum meal tokens for a given date
+    const getTokensForDate = (dateStr: string) => {
+      const bks = rawBookings.filter((b: any) => (b.date || '').slice(0, 10) === dateStr);
+      return bks.reduce((sum: number, b: any) => {
+        const count = Number(b.lunch_count) || Number(b.tirtha_prasada_count) || Number(b.number_of_people) || 1;
+        return sum + count;
+      }, 0);
+    };
+
+    const todayRegisteredCount = getTokensForDate(today);
+    const tomorrowRegisteredCount = getTokensForDate(tomorrow);
+
+    // Filter bookings matching selected date
     const matchingBookings = rawBookings.filter((b: any) => {
       const bDate = (b.date || '').slice(0, 10);
       return bDate === targetDate;
@@ -198,8 +212,6 @@ export default function DashboardPage() {
     const lunchDevoteesList: any[] = [];
 
     matchingBookings.forEach((b: any) => {
-      // Check if lunch or tirtha prasada is required
-      const hasLunch = b.lunch_required || b.tirtha_prasada_required || true; // All seva devotees are eligible for Tirtha Prasada
       const lunchCount = Number(b.lunch_count) || Number(b.tirtha_prasada_count) || Number(b.number_of_people) || 1;
 
       totalLunchDevotees += lunchCount;
@@ -221,7 +233,7 @@ export default function DashboardPage() {
       });
     });
 
-    // Public Annadanam sponsorships on that date
+    // Public Annadanam sponsorships on selected date
     const matchingAnnadanam = annadanamRecords.filter((a: any) => {
       const aDate = (a.date || '').slice(0, 10);
       return aDate === targetDate;
@@ -233,6 +245,8 @@ export default function DashboardPage() {
     const pendingLunchDevotees = Math.max(0, totalLunchDevotees - completedLunchDevotees);
 
     return {
+      todayRegisteredCount,
+      tomorrowRegisteredCount,
       totalLunchDevotees,
       completedLunchDevotees,
       pendingLunchDevotees,
@@ -312,7 +326,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 🍛 FEATURED CARD: DAILY LUNCH & MAHA PRASADAM ATTENDANCE (FOR ADMIN & VOLUNTEERS) */}
+      {/* 🍛 FEATURED CARD: TIRTHA PRASADA (TODAY & NEXT DAY MEAL REGISTRATIONS) */}
       <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-7 shadow-lg border border-orange-200/80 dark:border-slate-700/80 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600" />
         
@@ -325,14 +339,14 @@ export default function DashboardPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-xl font-black text-gray-900 dark:text-white">
-                  Daily Lunch & Maha Prasadam Attendance
+                  Tirtha Prasada
                 </h3>
                 <span className="bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
-                  Live Dining Counter
+                  Daily & Next Day Dining Counter
                 </span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Real-time tracking of devotees arriving for afternoon Prasadam for the selected day.
+                Real-time tracking of devotees registered for sacred afternoon Tirtha Prasada & Lunch.
               </p>
             </div>
           </div>
@@ -357,7 +371,7 @@ export default function DashboardPage() {
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
               }`}
             >
-              Tomorrow
+              Next Day (Tomorrow)
             </button>
             <div className="flex items-center gap-1.5 pl-2 border-l border-gray-200 dark:border-slate-700">
               <Calendar size={14} className="text-orange-500" />
@@ -371,20 +385,89 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 4 Lunch Metric Badges */}
+        {/* 🌟 SIDE-BY-SIDE REGISTRATION HIGHLIGHT BAR: TODAY VS NEXT DAY */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Today's Registered Count Card */}
+          <div 
+            onClick={() => setSelectedLunchDate(todayStr)}
+            className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+              selectedLunchDate === todayStr
+                ? 'bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-transparent border-orange-500 shadow-md ring-2 ring-orange-500/20'
+                : 'bg-gray-50/80 dark:bg-slate-900/60 border-gray-200 dark:border-slate-700 hover:border-orange-300'
+            }`}
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-orange-600 text-white flex items-center justify-center font-black shadow-xs">
+                🍛
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 dark:text-orange-400">
+                  Today's Tirtha Prasada
+                </span>
+                <h4 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
+                  {dailyLunchData.todayRegisteredCount} <span className="text-xs font-normal text-gray-400">Devotees Registered</span>
+                </h4>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  {new Date().toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}
+                </p>
+              </div>
+            </div>
+
+            {selectedLunchDate === todayStr && (
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-orange-600 text-white shadow-xs">
+                Active View
+              </span>
+            )}
+          </div>
+
+          {/* Next Day (Tomorrow) Registered Count Card */}
+          <div 
+            onClick={() => setSelectedLunchDate(tomorrowStr)}
+            className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+              selectedLunchDate === tomorrowStr
+                ? 'bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent border-amber-500 shadow-md ring-2 ring-amber-500/20'
+                : 'bg-gray-50/80 dark:bg-slate-900/60 border-gray-200 dark:border-slate-700 hover:border-amber-300'
+            }`}
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center font-black shadow-xs">
+                🌅
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  Next Day's Tirtha Prasada
+                </span>
+                <h4 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
+                  {dailyLunchData.tomorrowRegisteredCount} <span className="text-xs font-normal text-gray-400">Devotees Registered</span>
+                </h4>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  {new Date(Date.now() + 86400000).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}
+                </p>
+              </div>
+            </div>
+
+            {selectedLunchDate === tomorrowStr && (
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-600 text-white shadow-xs">
+                Active View
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* 4 Lunch Metric Badges for Selected Date */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-slate-900/80 dark:to-slate-900/40 p-4 rounded-2xl border border-orange-200/60 dark:border-slate-700">
             <span className="text-[11px] font-bold text-orange-700 dark:text-orange-400 uppercase tracking-wider">
-              Devotees Arrived for Seva
+              Total Devotees Registered
             </span>
             <div className="flex items-baseline gap-2 mt-1">
               <h4 className="text-3xl font-black text-gray-900 dark:text-white">
                 {dailyLunchData.totalLunchDevotees}
               </h4>
-              <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Devotees</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">People</span>
             </div>
             <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-              Attended on {new Date(selectedLunchDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+              For {new Date(selectedLunchDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
             </p>
           </div>
 
