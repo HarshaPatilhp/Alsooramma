@@ -217,28 +217,29 @@ export default function DevoteesPage() {
   const handleOpenBookingModal = (presetDevotee?: Booking | DevoteeProfile) => {
     setBookingSuccessData(null);
     if (presetDevotee) {
-      const name = (presetDevotee as any).devoteeName || (presetDevotee as any).fullName || presetDevotee.name || '';
+      const p = presetDevotee as any;
+      const name = p.devoteeName || p.fullName || p.name || '';
       setFormDevoteeName(name);
-      setFormEmail(presetDevotee.email || '');
-      setFormPhone(presetDevotee.phone || '');
-      setFormGotra(presetDevotee.gotra || '');
-      setFormNakshatra(presetDevotee.nakshatra || '');
+      setFormEmail(p.email || '');
+      setFormPhone(p.phone || '');
+      setFormGotra(p.gotra || '');
+      setFormNakshatra(p.nakshatra || '');
       setDevoteeSearchQuery(name);
       
-      const foundProfile = uniqueDevoteeProfiles.find(p => 
-        (p.email && p.email === presetDevotee.email) || 
-        (p.phone && p.phone === presetDevotee.phone) || 
-        p.name.toLowerCase() === name.toLowerCase()
+      const foundProfile = uniqueDevoteeProfiles.find(item => 
+        (item.email && p.email && item.email === p.email) || 
+        (item.phone && p.phone && item.phone === p.phone) || 
+        item.name.toLowerCase() === name.toLowerCase()
       );
       setSelectedReturningDevotee(foundProfile || {
         name,
-        email: presetDevotee.email || '',
-        phone: presetDevotee.phone || '',
-        gotra: presetDevotee.gotra || '',
-        nakshatra: presetDevotee.nakshatra || '',
+        email: p.email || '',
+        phone: p.phone || '',
+        gotra: p.gotra || '',
+        nakshatra: p.nakshatra || '',
         totalBookings: 1,
-        lastSevaName: (presetDevotee as any).sevaName || 'Previous Seva',
-        lastBookingDate: (presetDevotee as any).date || ''
+        lastSevaName: p.sevaName || 'Previous Seva',
+        lastBookingDate: p.date || ''
       });
     } else {
       setFormDevoteeName('');
