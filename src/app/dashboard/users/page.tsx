@@ -1,23 +1,23 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { 
-  Shield, 
-  UserPlus, 
-  Trash2, 
-  Edit, 
-  X, 
-  CheckSquare, 
-  Square, 
-  Check, 
-  LayoutDashboard, 
-  QrCode, 
-  Users, 
-  Clock, 
-  Calendar, 
-  Gift, 
-  Coffee, 
-  PieChart, 
+import {
+  Shield,
+  UserPlus,
+  Trash2,
+  Edit,
+  X,
+  CheckSquare,
+  Square,
+  Check,
+  LayoutDashboard,
+  QrCode,
+  Users,
+  Clock,
+  Calendar,
+  Gift,
+  Coffee,
+  PieChart,
   Settings,
   Lock,
   AlertCircle,
@@ -36,11 +36,11 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AVAILABLE_PERMISSIONS, PermissionKey, RBACUser } from '@/lib/rbac';
-import { 
-  sendVolunteerPassEmail, 
-  generateVolunteerQRCodeDataURL, 
+import {
+  sendVolunteerPassEmail,
+  generateVolunteerQRCodeDataURL,
   generateVolunteerPassCode,
-  VolunteerPassPayload 
+  VolunteerPassPayload
 } from '@/lib/volunteer-email';
 
 interface Volunteer extends RBACUser {
@@ -87,17 +87,17 @@ export default function UsersPage() {
   const [scannedBadgeFilter, setScannedBadgeFilter] = useState('All');
   const [isLoadingScans, setIsLoadingScans] = useState(false);
   const [selectedScannedIds, setSelectedScannedIds] = useState<string[]>([]);
-  
+
   // Selection state for sending emails
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [customRecipients, setCustomRecipients] = useState<ManualRecipient[]>([]);
   const [showEmailDispatchModal, setShowEmailDispatchModal] = useState(false);
-  
+
   // Manual Gmail inputs inside modal
   const [manualEmailInput, setManualEmailInput] = useState('');
   const [manualNameInput, setManualNameInput] = useState('');
   const [manualPhoneInput, setManualPhoneInput] = useState('');
-  
+
   // Email dispatch form
   const [dispatchDutyTitle, setDispatchDutyTitle] = useState('Maha Aradhana Utsavam & Annadanam Seva');
   const [dispatchDutyDate, setDispatchDutyDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -105,7 +105,7 @@ export default function UsersPage() {
   const [dispatchDutyLocation, setDispatchDutyLocation] = useState('Main Sanctum & Annapurna Dining Hall');
   const [dispatchBadgeLevel, setDispatchBadgeLevel] = useState('🎖️ Active Swayamsevak');
   const [dispatchInstructions, setDispatchInstructions] = useState('Please arrive 15 minutes before your shift and present this QR pass at the entrance scanner for badge verification.');
-  
+
   // Dispatch execution state
   const [isDispatching, setIsDispatching] = useState(false);
   const [dispatchProgress, setDispatchProgress] = useState<{ current: number; total: number; activeName: string } | null>(null);
@@ -113,12 +113,12 @@ export default function UsersPage() {
   const [previewQrUrl, setPreviewQrUrl] = useState<string>('');
 
   // Invite modal states
-  const [newUserData, setNewUserData] = useState({ 
-    name: '', 
-    email: '', 
-    phone: '', 
-    password: '', 
-    role: 'volunteer' as 'super_admin' | 'admin' | 'volunteer' 
+  const [newUserData, setNewUserData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: 'volunteer' as 'super_admin' | 'admin' | 'volunteer'
   });
   const [invitePermissions, setInvitePermissions] = useState<Record<string, boolean>>({
     qr_checkin: true,
@@ -220,7 +220,7 @@ export default function UsersPage() {
             });
           }
         }
-      } catch (lsErr) {}
+      } catch (lsErr) { }
 
       // Parse and format volunteer badge records
       const parsedList = combinedRows
@@ -319,7 +319,7 @@ export default function UsersPage() {
   };
 
   const toggleSelectScanned = (id: string) => {
-    setSelectedScannedIds(prev => 
+    setSelectedScannedIds(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
@@ -346,7 +346,7 @@ export default function UsersPage() {
       const localList = JSON.parse(localStorage.getItem('alsur_scanned_volunteers') || '[]');
       const updated = localList.filter((item: any) => String(item.id) !== String(id));
       localStorage.setItem('alsur_scanned_volunteers', JSON.stringify(updated));
-    } catch (e) {}
+    } catch (e) { }
 
     // 3. Delete from API / Supabase
     try {
@@ -375,7 +375,7 @@ export default function UsersPage() {
       const localList = JSON.parse(localStorage.getItem('alsur_scanned_volunteers') || '[]');
       const updated = localList.filter((item: any) => !idsToDelete.includes(String(item.id)));
       localStorage.setItem('alsur_scanned_volunteers', JSON.stringify(updated));
-    } catch (e) {}
+    } catch (e) { }
 
     // 3. Delete from API / Supabase
     try {
@@ -440,7 +440,7 @@ export default function UsersPage() {
           badgeLevel: dispatchBadgeLevel,
           instructions: dispatchInstructions
         };
-        generateVolunteerQRCodeDataURL(samplePass).then(url => setPreviewQrUrl(url)).catch(() => {});
+        generateVolunteerQRCodeDataURL(samplePass).then(url => setPreviewQrUrl(url)).catch(() => { });
       }
     }
   }, [showEmailDispatchModal, selectedUserIds, customRecipients, dispatchDutyTitle, dispatchDutyDate, dispatchDutyTime, dispatchDutyLocation, dispatchBadgeLevel, dispatchInstructions]);
@@ -453,7 +453,7 @@ export default function UsersPage() {
 
   const filteredScannedVolunteers = scannedVolunteers.filter(item => {
     const searchLower = scannedSearch.toLowerCase();
-    const matchesSearch = 
+    const matchesSearch =
       item.volunteerName.toLowerCase().includes(searchLower) ||
       item.sevaDuty.toLowerCase().includes(searchLower) ||
       item.badge.toLowerCase().includes(searchLower) ||
@@ -465,7 +465,7 @@ export default function UsersPage() {
   });
 
   const toggleSelectUser = (id: string) => {
-    setSelectedUserIds(prev => 
+    setSelectedUserIds(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
@@ -503,10 +503,10 @@ export default function UsersPage() {
     rawEmails.forEach((emailStr, idx) => {
       const cleanEmail = emailStr.trim();
       if (cleanEmail.includes('@')) {
-        const derivedName = manualNameInput.trim() 
+        const derivedName = manualNameInput.trim()
           ? (rawEmails.length === 1 ? manualNameInput.trim() : `${manualNameInput.trim()} (${idx + 1})`)
           : cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        
+
         newItems.push({
           id: `manual-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
           name: derivedName,
@@ -718,12 +718,12 @@ export default function UsersPage() {
             password: payload.password,
             role: payload.role,
           };
-          
+
           let insResult = await supabase.from('users').insert([{
             ...newUser,
             permissions: payload.permissions
           }]).select().single();
-          
+
           if (insResult.error && (insResult.error.message.includes('permissions') || insResult.error.code === '42703')) {
             insResult = await supabase.from('users').insert([newUser]).select().single();
           }
@@ -752,7 +752,7 @@ export default function UsersPage() {
             password: newUserData.password,
             role: newUserData.role,
           };
-          
+
           const defaultVolunteerPerms = { qr_checkin: true, devotees: true, activity_log: true };
           const perms = newUserData.role === 'admin' ? invitePermissions : defaultVolunteerPerms;
 
@@ -760,7 +760,7 @@ export default function UsersPage() {
             ...newUser,
             permissions: perms
           }]).select().single();
-          
+
           if (insResult.error && (insResult.error.message.includes('permissions') || insResult.error.code === '42703')) {
             insResult = await supabase.from('users').insert([newUser]).select().single();
           }
@@ -837,14 +837,14 @@ export default function UsersPage() {
         if (isSuperAdmin) {
           const { createClient } = await import('@/lib/client');
           const supabase = createClient();
-          
-          let updResult = await supabase.from('users').update({ 
+
+          let updResult = await supabase.from('users').update({
             role: toggledRole,
-            permissions: permissionsToSend 
+            permissions: permissionsToSend
           }).eq('id', selectedAdminForPermissions.id);
-          
+
           if (updResult.error && (updResult.error.message.includes('permissions') || updResult.error.code === '42703')) {
-            updResult = await supabase.from('users').update({ 
+            updResult = await supabase.from('users').update({
               role: toggledRole
             }).eq('id', selectedAdminForPermissions.id);
           }
@@ -866,7 +866,7 @@ export default function UsersPage() {
         try {
           const { createClient } = await import('@/lib/client');
           const supabase = createClient();
-          
+
           let permissionsToSend = { ...toggledPermissions };
           if (toggledRole === 'volunteer') {
             permissionsToSend = {
@@ -876,13 +876,13 @@ export default function UsersPage() {
             };
           }
 
-          let updResult = await supabase.from('users').update({ 
+          let updResult = await supabase.from('users').update({
             role: toggledRole,
-            permissions: permissionsToSend 
+            permissions: permissionsToSend
           }).eq('id', selectedAdminForPermissions.id);
-          
+
           if (updResult.error && (updResult.error.message.includes('permissions') || updResult.error.code === '42703')) {
-            updResult = await supabase.from('users').update({ 
+            updResult = await supabase.from('users').update({
               role: toggledRole
             }).eq('id', selectedAdminForPermissions.id);
           }
@@ -965,12 +965,12 @@ export default function UsersPage() {
           </button>
 
           {isSuperAdmin && (
-            <button 
+            <button
               onClick={() => {
                 setNewUserData({ name: '', email: '', phone: '', password: '', role: 'volunteer' });
                 setInvitePermissions({ qr_checkin: true, devotees: true, activity_log: true });
                 setShowInviteModal(true);
-              }} 
+              }}
               className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition-all duration-200 text-sm transform hover:-translate-y-0.5 cursor-pointer"
             >
               <UserPlus size={17} />
@@ -984,32 +984,29 @@ export default function UsersPage() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'all'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'all'
                 ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
-            }`}
+              }`}
           >
             All Personnel ({users.length})
           </button>
           <button
             onClick={() => setActiveTab('volunteers')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'volunteers'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${activeTab === 'volunteers'
                 ? 'bg-orange-600 text-white shadow-sm shadow-orange-600/30'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
-            }`}
+              }`}
           >
             <QrCode size={14} />
             <span>Volunteers ({users.filter(u => u.role === 'volunteer').length})</span>
           </button>
           <button
             onClick={() => setActiveTab('admins')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'admins'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${activeTab === 'admins'
                 ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
-            }`}
+              }`}
           >
             <Shield size={14} />
             <span>Admins ({users.filter(u => u.role === 'admin' || u.role === 'super_admin').length})</span>
@@ -1019,11 +1016,10 @@ export default function UsersPage() {
               setActiveTab('scanned_badges');
               fetchScannedVolunteers();
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'scanned_badges'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${activeTab === 'scanned_badges'
                 ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-sm shadow-amber-500/30 font-black'
                 : 'text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-amber-300/50'
-            }`}
+              }`}
           >
             <Award size={14} />
             <span>Scanned Badges ({scannedVolunteers.length})</span>
@@ -1238,13 +1234,12 @@ export default function UsersPage() {
                     {filteredScannedVolunteers.map(item => {
                       const isChecked = selectedScannedIds.includes(item.id);
                       return (
-                        <tr 
-                          key={item.id} 
-                          className={`transition-colors ${
-                            isChecked 
-                              ? 'bg-red-50/50 dark:bg-red-950/20' 
+                        <tr
+                          key={item.id}
+                          className={`transition-colors ${isChecked
+                              ? 'bg-red-50/50 dark:bg-red-950/20'
                               : 'hover:bg-amber-50/40 dark:hover:bg-slate-700/30'
-                          }`}
+                            }`}
                         >
                           <td className="px-4 py-4 text-center">
                             <input
@@ -1327,159 +1322,156 @@ export default function UsersPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[750px]">
-                 <thead>
-                   <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-semibold border-b border-gray-100 dark:border-slate-700/50">
-                      <th className="px-6 py-4 w-12 text-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0}
-                          onChange={selectAllFiltered}
-                          className="rounded text-orange-600 focus:ring-orange-500 w-4 h-4 cursor-pointer"
-                          title="Select/Deselect all"
-                        />
-                      </th>
-                      <th className="px-6 py-4">Personnel / Volunteer</th>
-                      <th className="px-6 py-4">Email & Phone</th>
-                      <th className="px-6 py-4">Assigned Role</th>
-                      <th className="px-6 py-4">Module Permissions</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
-                   </tr>
-                 </thead>
-                 <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50">
-                   {filteredUsers.length === 0 ? (
-                     <tr>
-                       <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                         <p className="text-sm font-semibold">No records found in this category.</p>
-                         <p className="text-xs text-gray-400 mt-1">Try changing your filter tab or invite new volunteers.</p>
-                       </td>
-                     </tr>
-                   ) : (
-                     filteredUsers.map(u => {
-                       const isRowSuperAdmin = u.role === 'super_admin' || u.email === 'admin@temple.com';
-                       const isSelected = selectedUserIds.includes(u.id);
-                       const activePermCount = u.permissions ? Object.values(u.permissions).filter(Boolean).length : 0;
+                <thead>
+                  <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-semibold border-b border-gray-100 dark:border-slate-700/50">
+                    <th className="px-6 py-4 w-12 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0}
+                        onChange={selectAllFiltered}
+                        className="rounded text-orange-600 focus:ring-orange-500 w-4 h-4 cursor-pointer"
+                        title="Select/Deselect all"
+                      />
+                    </th>
+                    <th className="px-6 py-4">Personnel / Volunteer</th>
+                    <th className="px-6 py-4">Email & Phone</th>
+                    <th className="px-6 py-4">Assigned Role</th>
+                    <th className="px-6 py-4">Module Permissions</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50">
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                        <p className="text-sm font-semibold">No records found in this category.</p>
+                        <p className="text-xs text-gray-400 mt-1">Try changing your filter tab or invite new volunteers.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredUsers.map(u => {
+                      const isRowSuperAdmin = u.role === 'super_admin' || u.email === 'admin@temple.com';
+                      const isSelected = selectedUserIds.includes(u.id);
+                      const activePermCount = u.permissions ? Object.values(u.permissions).filter(Boolean).length : 0;
 
-                       return (
-                         <tr 
-                           key={u.id || Math.random()} 
-                           className={`transition-colors ${
-                             isSelected 
-                               ? 'bg-orange-50/70 dark:bg-orange-950/20' 
-                               : 'hover:bg-gray-50/80 dark:hover:bg-slate-700/40'
-                           }`}
-                         >
-                           {/* Checkbox */}
-                           <td className="px-6 py-4 text-center">
-                             <input
-                               type="checkbox"
-                               checked={isSelected}
-                               onChange={() => toggleSelectUser(u.id)}
-                               className="rounded text-orange-600 focus:ring-orange-500 w-4 h-4 cursor-pointer"
-                             />
-                           </td>
+                      return (
+                        <tr
+                          key={u.id || Math.random()}
+                          className={`transition-colors ${isSelected
+                              ? 'bg-orange-50/70 dark:bg-orange-950/20'
+                              : 'hover:bg-gray-50/80 dark:hover:bg-slate-700/40'
+                            }`}
+                        >
+                          {/* Checkbox */}
+                          <td className="px-6 py-4 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelectUser(u.id)}
+                              className="rounded text-orange-600 focus:ring-orange-500 w-4 h-4 cursor-pointer"
+                            />
+                          </td>
 
-                           {/* User Profile */}
-                           <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center gap-3">
-                                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm text-white shadow-sm ${
-                                   u.role === 'super_admin' ? 'bg-gradient-to-tr from-amber-500 to-red-500' :
-                                   u.role === 'admin' ? 'bg-gradient-to-tr from-blue-600 to-indigo-600' :
-                                   'bg-gradient-to-tr from-orange-500 to-amber-500'
-                                 }`}>
-                                    {u.name?.charAt(0)?.toUpperCase() || 'U'}
-                                 </div>
-                                 <div>
-                                    <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-                                      <span>{u.name}</span>
-                                      {isRowSuperAdmin && (
-                                        <span className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 font-extrabold px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700">
-                                          Super Admin
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="text-xs text-gray-400 font-mono">ID: {u.id?.slice(0, 10) || 'N/A'}</div>
-                                 </div>
+                          {/* User Profile */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm text-white shadow-sm ${u.role === 'super_admin' ? 'bg-gradient-to-tr from-amber-500 to-red-500' :
+                                  u.role === 'admin' ? 'bg-gradient-to-tr from-blue-600 to-indigo-600' :
+                                    'bg-gradient-to-tr from-orange-500 to-amber-500'
+                                }`}>
+                                {u.name?.charAt(0)?.toUpperCase() || 'U'}
                               </div>
-                           </td>
+                              <div>
+                                <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                                  <span>{u.name}</span>
+                                  {isRowSuperAdmin && (
+                                    <span className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 font-extrabold px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700">
+                                      Super Admin
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-400 font-mono">ID: {u.id?.slice(0, 10) || 'N/A'}</div>
+                              </div>
+                            </div>
+                          </td>
 
-                           {/* Contact info */}
-                           <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-xs text-gray-700 dark:text-gray-300 font-medium">{u.email}</div>
-                              <div className="text-xs text-gray-400 font-mono">{u.phone || 'No phone'}</div>
-                           </td>
+                          {/* Contact info */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-xs text-gray-700 dark:text-gray-300 font-medium">{u.email}</div>
+                            <div className="text-xs text-gray-400 font-mono">{u.phone || 'No phone'}</div>
+                          </td>
 
-                           {/* Role */}
-                           <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
-                                u.role === 'super_admin' 
-                                  ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800' :
-                                u.role === 'admin' 
+                          {/* Role */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${u.role === 'super_admin'
+                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800' :
+                                u.role === 'admin'
                                   ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800' :
                                   'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 border border-orange-200 dark:border-orange-800'
                               }`}>
-                                 <Shield size={12} />
-                                 <span className="capitalize">{u.role?.replace('_', ' ')}</span>
+                              <Shield size={12} />
+                              <span className="capitalize">{u.role?.replace('_', ' ')}</span>
+                            </span>
+                          </td>
+
+                          {/* Permissions count & pills */}
+                          <td className="px-6 py-4">
+                            {u.role === 'super_admin' ? (
+                              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800/40">
+                                Full System Access
                               </span>
-                           </td>
-
-                           {/* Permissions count & pills */}
-                           <td className="px-6 py-4">
-                              {u.role === 'super_admin' ? (
-                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800/40">
-                                  Full System Access
+                            ) : (
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700/60 px-2.5 py-1 rounded-lg">
+                                  {activePermCount} Enabled
                                 </span>
-                              ) : (
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                  <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700/60 px-2.5 py-1 rounded-lg">
-                                    {activePermCount} Enabled
-                                  </span>
-                                </div>
-                              )}
-                           </td>
-
-                           {/* Action Buttons */}
-                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                              <div className="flex items-center justify-end gap-2">
-                                {/* Single Send QR Pass Button */}
-                                <button
-                                  onClick={() => {
-                                    setSelectedUserIds([u.id]);
-                                    setDispatchResults([]);
-                                    setShowEmailDispatchModal(true);
-                                  }}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-orange-50 dark:bg-orange-950/50 hover:bg-orange-100 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 rounded-lg text-xs font-bold transition-colors border border-orange-200/60 dark:border-orange-800/50 cursor-pointer"
-                                  title="Send QR Duty Pass to this user"
-                                >
-                                  <Mail size={13} />
-                                  <span className="hidden sm:inline">Send Pass</span>
-                                </button>
-
-                                {!isRowSuperAdmin && isSuperAdmin && (
-                                  <button 
-                                    onClick={() => openManagePermissionsModal(u)} 
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold transition-colors border border-blue-200/60 dark:border-blue-800/50 cursor-pointer" 
-                                    title="Manage Permissions and Role Access"
-                                  >
-                                    <Edit size={13} />
-                                    <span className="hidden sm:inline">Access</span>
-                                  </button>
-                                )}
-
-                                {!isRowSuperAdmin && isSuperAdmin && (
-                                  <button 
-                                    onClick={() => deleteUser(u.id, u.role)} 
-                                    className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer" 
-                                    title="Revoke Access"
-                                  >
-                                    <Trash2 size={15} />
-                                  </button>
-                                )}
                               </div>
-                           </td>
-                         </tr>
-                       );
-                     }))}
-                 </tbody>
+                            )}
+                          </td>
+
+                          {/* Action Buttons */}
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                            <div className="flex items-center justify-end gap-2">
+                              {/* Single Send QR Pass Button */}
+                              <button
+                                onClick={() => {
+                                  setSelectedUserIds([u.id]);
+                                  setDispatchResults([]);
+                                  setShowEmailDispatchModal(true);
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-orange-50 dark:bg-orange-950/50 hover:bg-orange-100 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 rounded-lg text-xs font-bold transition-colors border border-orange-200/60 dark:border-orange-800/50 cursor-pointer"
+                                title="Send QR Duty Pass to this user"
+                              >
+                                <Mail size={13} />
+                                <span className="hidden sm:inline">Send Pass</span>
+                              </button>
+
+                              {!isRowSuperAdmin && isSuperAdmin && (
+                                <button
+                                  onClick={() => openManagePermissionsModal(u)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold transition-colors border border-blue-200/60 dark:border-blue-800/50 cursor-pointer"
+                                  title="Manage Permissions and Role Access"
+                                >
+                                  <Edit size={13} />
+                                  <span className="hidden sm:inline">Access</span>
+                                </button>
+                              )}
+
+                              {!isRowSuperAdmin && isSuperAdmin && (
+                                <button
+                                  onClick={() => deleteUser(u.id, u.role)}
+                                  className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer"
+                                  title="Revoke Access"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }))}
+                </tbody>
               </table>
             </div>
           )}
@@ -1515,7 +1507,7 @@ export default function UsersPage() {
             </div>
 
             <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto text-left">
-              
+
               {/* 🌟 1. MANUAL GMAIL / EMAIL INPUT SECTION */}
               <div className="p-4 rounded-2xl bg-orange-50/80 dark:bg-slate-800/80 border border-orange-200 dark:border-slate-700 space-y-3">
                 <div className="flex items-center justify-between">
@@ -1583,11 +1575,10 @@ export default function UsersPage() {
                   {allTargetRecipients.map((recipient) => (
                     <span
                       key={recipient.id}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border shadow-xs transition-all ${
-                        recipient.isManual
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border shadow-xs transition-all ${recipient.isManual
                           ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800'
                           : 'bg-white text-gray-900 dark:bg-slate-700 dark:text-gray-100 border-gray-200 dark:border-slate-600'
-                      }`}
+                        }`}
                     >
                       <span className={`w-2 h-2 rounded-full ${recipient.isManual ? 'bg-emerald-500' : 'bg-orange-500'}`}></span>
                       <strong>{recipient.name}</strong>
@@ -1757,11 +1748,10 @@ export default function UsersPage() {
                     {dispatchResults.map((res, i) => (
                       <div
                         key={i}
-                        className={`flex items-center justify-between p-2 rounded-lg ${
-                          res.success
+                        className={`flex items-center justify-between p-2 rounded-lg ${res.success
                             ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300'
                             : 'bg-red-50 dark:bg-red-950/30 text-red-800 dark:text-red-300'
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-2">
                           {res.success ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
@@ -1815,11 +1805,10 @@ export default function UsersPage() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-fade-in my-8 border border-gray-100 dark:border-slate-700">
             {/* Modal Dynamic Header */}
-            <div className={`flex justify-between items-center p-6 border-b transition-colors ${
-              newUserData.role === 'admin'
+            <div className={`flex justify-between items-center p-6 border-b transition-colors ${newUserData.role === 'admin'
                 ? 'bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-900 text-white border-blue-800/40'
                 : 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white border-orange-700/40'
-            }`}>
+              }`}>
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-white/20 backdrop-blur-md rounded-2xl text-white shadow-inner">
                   {newUserData.role === 'admin' ? <Shield size={22} /> : <QrCode size={22} />}
@@ -1827,14 +1816,14 @@ export default function UsersPage() {
                 <div>
                   <h3 className="text-xl font-extrabold text-white leading-tight">Invite Colleague</h3>
                   <p className="text-xs text-white/80">
-                    {newUserData.role === 'admin' 
-                      ? 'Creating Administrator account with custom module access' 
+                    {newUserData.role === 'admin'
+                      ? 'Creating Administrator account with custom module access'
                       : 'Creating Volunteer Scanner account with restricted floor operations'}
                   </p>
                 </div>
               </div>
-              <button 
-                onClick={() => setShowInviteModal(false)} 
+              <button
+                onClick={() => setShowInviteModal(false)}
                 className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/20 transition-colors cursor-pointer"
               >
                 <X size={20} />
@@ -1845,19 +1834,19 @@ export default function UsersPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">Full Name *</label>
-                  <input required type="text" value={newUserData.name} onChange={e => setNewUserData({...newUserData, name: e.target.value})} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm" placeholder="e.g. Harsha Patil" />
+                  <input required type="text" value={newUserData.name} onChange={e => setNewUserData({ ...newUserData, name: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm" placeholder="e.g. Harsha Patil" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">Email Address *</label>
-                  <input required type="email" value={newUserData.email} onChange={e => setNewUserData({...newUserData, email: e.target.value})} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm" placeholder="admin@vidyaranyapura-mutt.com" />
+                  <input required type="email" value={newUserData.email} onChange={e => setNewUserData({ ...newUserData, email: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm" placeholder="admin@vidyaranyapura-mutt.com" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">Phone Number</label>
-                  <input type="tel" value={newUserData.phone} onChange={e => setNewUserData({...newUserData, phone: e.target.value})} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm" placeholder="9876543210" />
+                  <input type="tel" value={newUserData.phone} onChange={e => setNewUserData({ ...newUserData, phone: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm" placeholder="9876543210" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">Initial Password *</label>
-                  <input required type="text" value={newUserData.password} onChange={e => setNewUserData({...newUserData, password: e.target.value})} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm" placeholder="Assign secure password" />
+                  <input required type="text" value={newUserData.password} onChange={e => setNewUserData({ ...newUserData, password: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm" placeholder="Assign secure password" />
                 </div>
               </div>
 
@@ -1868,11 +1857,10 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={() => handleInviteRoleSwitch('admin')}
-                    className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
-                      newUserData.role === 'admin'
+                    className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${newUserData.role === 'admin'
                         ? 'bg-blue-600 text-white shadow-md'
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
+                      }`}
                   >
                     <Shield size={16} />
                     <span>Administrator</span>
@@ -1880,11 +1868,10 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={() => handleInviteRoleSwitch('volunteer')}
-                    className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
-                      newUserData.role === 'volunteer'
+                    className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${newUserData.role === 'volunteer'
                         ? 'bg-orange-600 text-white shadow-md'
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
+                      }`}
                   >
                     <QrCode size={16} />
                     <span>Volunteer / Scanner</span>
@@ -1912,9 +1899,8 @@ export default function UsersPage() {
               {/* Filtered Permissions section */}
               <div className="pt-2 space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className={`block text-xs font-extrabold uppercase tracking-wider ${
-                    newUserData.role === 'admin' ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'
-                  }`}>
+                  <label className={`block text-xs font-extrabold uppercase tracking-wider ${newUserData.role === 'admin' ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'
+                    }`}>
                     {newUserData.role === 'admin' ? 'Assign Module Permissions (9 Available)' : 'Assign Volunteer Modules (3 Restricted)'}
                   </label>
                   <span className="text-[11px] font-bold text-gray-400">
@@ -1930,24 +1916,22 @@ export default function UsersPage() {
                       const isVolunteer = newUserData.role === 'volunteer';
 
                       return (
-                        <div 
+                        <div
                           key={perm.key}
                           onClick={() => togglePermissionCheckbox(perm.key, true)}
-                          className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
-                            isChecked 
-                              ? isVolunteer 
-                                ? 'border-orange-600 bg-orange-50/90 dark:bg-orange-950/50 dark:border-orange-500 shadow-sm' 
+                          className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${isChecked
+                              ? isVolunteer
+                                ? 'border-orange-600 bg-orange-50/90 dark:bg-orange-950/50 dark:border-orange-500 shadow-sm'
                                 : 'border-blue-600 bg-blue-50/90 dark:bg-blue-950/50 dark:border-blue-500 shadow-sm'
                               : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 hover:border-gray-300 dark:hover:border-slate-600'
-                          }`}
+                            }`}
                         >
-                          <div className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 transition-colors ${
-                            isChecked 
-                              ? isVolunteer 
-                                ? 'bg-orange-600 text-white dark:bg-orange-500' 
-                                : 'bg-blue-600 text-white dark:bg-blue-500' 
+                          <div className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 transition-colors ${isChecked
+                              ? isVolunteer
+                                ? 'bg-orange-600 text-white dark:bg-orange-500'
+                                : 'bg-blue-600 text-white dark:bg-blue-500'
                               : 'border-2 border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-800'
-                          }`}>
+                            }`}>
                             {isChecked && <Check size={14} strokeWidth={3} />}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -1955,11 +1939,10 @@ export default function UsersPage() {
                               <span className={isChecked ? (isVolunteer ? 'text-orange-600 dark:text-orange-400' : 'text-blue-600 dark:text-blue-400') : 'text-gray-500'}>
                                 {getPermissionIcon(perm.iconName)}
                               </span>
-                              <span className={`text-sm font-bold truncate ${
-                                isChecked 
+                              <span className={`text-sm font-bold truncate ${isChecked
                                   ? (isVolunteer ? 'text-orange-950 dark:text-orange-100' : 'text-blue-950 dark:text-blue-100')
                                   : 'text-gray-800 dark:text-gray-300'
-                              }`}>
+                                }`}>
                                 {perm.label}
                               </span>
                             </div>
@@ -1975,14 +1958,13 @@ export default function UsersPage() {
 
               <div className="pt-4 border-t border-gray-100 dark:border-slate-700 flex gap-3">
                 <button type="button" onClick={() => setShowInviteModal(false)} className="flex-1 px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors text-gray-700 dark:text-gray-300 text-sm cursor-pointer">Cancel</button>
-                <button 
-                  type="submit" 
-                  disabled={isSubmitting} 
-                  className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all shadow-md disabled:opacity-50 text-sm text-white cursor-pointer ${
-                    newUserData.role === 'admin'
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all shadow-md disabled:opacity-50 text-sm text-white cursor-pointer ${newUserData.role === 'admin'
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-600/30'
                       : 'bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 shadow-orange-600/30'
-                  }`}
+                    }`}
                 >
                   {isSubmitting ? 'Inviting...' : 'Create Colleague'}
                 </button>
@@ -1997,11 +1979,10 @@ export default function UsersPage() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-fade-in my-8 border border-gray-100 dark:border-slate-700">
             {/* Dynamic Modal Top Header based on toggledRole */}
-            <div className={`flex justify-between items-center p-6 border-b transition-colors ${
-              toggledRole === 'admin'
+            <div className={`flex justify-between items-center p-6 border-b transition-colors ${toggledRole === 'admin'
                 ? 'bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-900 text-white border-blue-800/40'
                 : 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white border-orange-700/40'
-            }`}>
+              }`}>
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-white/20 backdrop-blur-md rounded-2xl text-white shadow-inner">
                   {toggledRole === 'admin' ? <Shield size={22} /> : <QrCode size={22} />}
@@ -2018,8 +1999,8 @@ export default function UsersPage() {
                   </p>
                 </div>
               </div>
-              <button 
-                onClick={() => setSelectedAdminForPermissions(null)} 
+              <button
+                onClick={() => setSelectedAdminForPermissions(null)}
                 className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/20 transition-colors cursor-pointer"
               >
                 <X size={20} />
@@ -2036,11 +2017,10 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={() => handleRoleSwitch('admin')}
-                    className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
-                      toggledRole === 'admin'
+                    className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${toggledRole === 'admin'
                         ? 'bg-blue-600 text-white shadow-md'
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
+                      }`}
                   >
                     <Shield size={16} />
                     <span>Administrator</span>
@@ -2048,11 +2028,10 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={() => handleRoleSwitch('volunteer')}
-                    className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
-                      toggledRole === 'volunteer'
+                    className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${toggledRole === 'volunteer'
                         ? 'bg-orange-600 text-white shadow-md'
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
+                      }`}
                   >
                     <QrCode size={16} />
                     <span>Volunteer / Scanner</span>
@@ -2080,9 +2059,8 @@ export default function UsersPage() {
               {/* Permissions Checkbox Grid Filtered by Role */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className={`block text-xs font-extrabold uppercase tracking-wider ${
-                    toggledRole === 'admin' ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'
-                  }`}>
+                  <label className={`block text-xs font-extrabold uppercase tracking-wider ${toggledRole === 'admin' ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'
+                    }`}>
                     {toggledRole === 'admin' ? 'Module Permissions (All 9 Modules)' : 'Volunteer Permissions (3 Modules Allowed)'}
                   </label>
                   <span className="text-[11px] font-bold text-gray-400">
@@ -2098,24 +2076,22 @@ export default function UsersPage() {
                       const isVolunteer = toggledRole === 'volunteer';
 
                       return (
-                        <div 
+                        <div
                           key={perm.key}
                           onClick={() => togglePermissionCheckbox(perm.key, false)}
-                          className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
-                            isChecked 
+                          className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${isChecked
                               ? isVolunteer
                                 ? 'border-orange-600 bg-orange-50/90 dark:bg-orange-950/50 dark:border-orange-500 shadow-sm'
                                 : 'border-blue-600 bg-blue-50/90 dark:bg-blue-950/50 dark:border-blue-500 shadow-sm'
                               : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 hover:border-gray-300 dark:hover:border-slate-600'
-                          }`}
+                            }`}
                         >
-                          <div className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 transition-colors ${
-                            isChecked 
-                              ? isVolunteer 
-                                ? 'bg-orange-600 text-white dark:bg-orange-500' 
-                                : 'bg-blue-600 text-white dark:bg-blue-500' 
+                          <div className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 transition-colors ${isChecked
+                              ? isVolunteer
+                                ? 'bg-orange-600 text-white dark:bg-orange-500'
+                                : 'bg-blue-600 text-white dark:bg-blue-500'
                               : 'border-2 border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-800'
-                          }`}>
+                            }`}>
                             {isChecked && <Check size={14} strokeWidth={3} />}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -2123,11 +2099,10 @@ export default function UsersPage() {
                               <span className={isChecked ? (isVolunteer ? 'text-orange-600 dark:text-orange-400' : 'text-blue-600 dark:text-blue-400') : 'text-gray-500'}>
                                 {getPermissionIcon(perm.iconName)}
                               </span>
-                              <span className={`text-sm font-bold truncate ${
-                                isChecked 
-                                  ? (isVolunteer ? 'text-orange-950 dark:text-orange-100' : 'text-blue-950 dark:text-blue-100') 
+                              <span className={`text-sm font-bold truncate ${isChecked
+                                  ? (isVolunteer ? 'text-orange-950 dark:text-orange-100' : 'text-blue-950 dark:text-blue-100')
                                   : 'text-gray-800 dark:text-gray-300'
-                              }`}>
+                                }`}>
                                 {perm.label}
                               </span>
                             </div>
@@ -2142,22 +2117,21 @@ export default function UsersPage() {
               </div>
 
               <div className="pt-4 border-t border-gray-100 dark:border-slate-700 flex gap-3">
-                <button 
-                  type="button" 
-                  onClick={() => setSelectedAdminForPermissions(null)} 
+                <button
+                  type="button"
+                  onClick={() => setSelectedAdminForPermissions(null)}
                   className="flex-1 px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors text-gray-700 dark:text-gray-300 text-sm cursor-pointer"
                 >
                   Cancel
                 </button>
-                <button 
-                  type="button" 
-                  onClick={handleSavePermissions} 
-                  disabled={isSavingPermissions} 
-                  className={`flex-1 px-4 py-3 text-white rounded-xl font-bold transition-all shadow-md disabled:opacity-50 text-sm flex items-center justify-center gap-2 cursor-pointer ${
-                    toggledRole === 'admin'
+                <button
+                  type="button"
+                  onClick={handleSavePermissions}
+                  disabled={isSavingPermissions}
+                  className={`flex-1 px-4 py-3 text-white rounded-xl font-bold transition-all shadow-md disabled:opacity-50 text-sm flex items-center justify-center gap-2 cursor-pointer ${toggledRole === 'admin'
                       ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-blue-600/30'
                       : 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 hover:from-orange-700 hover:to-amber-800 shadow-orange-600/30'
-                  }`}
+                    }`}
                 >
                   {isSavingPermissions ? 'Saving...' : 'Save Access Settings'}
                 </button>

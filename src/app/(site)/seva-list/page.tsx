@@ -704,8 +704,8 @@ export default function SevaList() {
             <button
               onClick={() => setActiveTab('seva')}
               className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors text-sm md:text-base ${activeTab === 'seva'
-                  ? 'bg-white text-orange-600'
-                  : 'bg-orange-700 text-white hover:bg-orange-600'
+                ? 'bg-white text-orange-600'
+                : 'bg-orange-700 text-white hover:bg-orange-600'
                 }`}
             >
               Book Seva
@@ -713,8 +713,8 @@ export default function SevaList() {
             <button
               onClick={() => setActiveTab('hall')}
               className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors text-sm md:text-base ${activeTab === 'hall'
-                  ? 'bg-white text-orange-600'
-                  : 'bg-orange-700 text-white hover:bg-orange-600'
+                ? 'bg-white text-orange-600'
+                : 'bg-orange-700 text-white hover:bg-orange-600'
                 }`}
             >
               Book Hall
@@ -745,8 +745,8 @@ export default function SevaList() {
                     <div className="mt-3 md:mt-4 bg-white rounded-lg p-3 md:p-4 border border-yellow-200">
                       <h4 className="font-semibold text-gray-800 mb-2 text-sm md:text-base">📞 Temple Office Contact:</h4>
                       <div className="space-y-1 text-xs md:text-sm text-gray-600">
-                        <p>Phone: +91-XXXXXXXXXX</p>
-                        <p>Email: info@vidyaranyapuramutt.org</p>
+                        <p>Phone: 080 49723252</p>
+                        <p>Email: vidyaranyapuramutt@gmail.com</p>
                         <p>Address: Mathaji Ulsooramma Sri Raghavendra Swamy Mutt, Vidyaranyapura, Bangalore</p>
                       </div>
                     </div>
@@ -774,9 +774,9 @@ export default function SevaList() {
                     <div className="mt-3 md:mt-4 bg-white rounded-lg p-3 md:p-4 border border-red-200">
                       <h4 className="font-semibold text-gray-800 mb-2 text-sm md:text-base">📞 Temple Office Contact:</h4>
                       <div className="space-y-1 text-xs md:text-sm text-gray-600">
-                        <p>Phone: +91-XXXXXXXXXX</p>
-                        <p>Email: info@vidyaranyapuramutt.org</p>
-                        <p>Address: Mathaji Ulsooramma Raghavendra Swamy Mutt, Vidyaranyapura, Bangalore</p>
+                        <p>Phone: 080 49723252</p>
+                        <p>Email: vidyaranyapuramutt@gmail.com</p>
+                        <p>Address: Mathaji Ulsooramma Sri Raghavendra Swamy Mutt, Vidyaranyapura, Bangalore</p>
                       </div>
                     </div>
                   </div>
@@ -825,8 +825,8 @@ export default function SevaList() {
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
                       className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 uppercase tracking-wider text-black ${selectedCategory === cat
-                          ? 'bg-orange-600 shadow-md'
-                          : 'bg-gray-100 dark:bg-slate-200 hover:bg-orange-100 dark:hover:bg-orange-200'
+                        ? 'bg-orange-600 shadow-md'
+                        : 'bg-gray-100 dark:bg-slate-200 hover:bg-orange-100 dark:hover:bg-orange-200'
                         }`}
                     >
                       {cat}
@@ -851,8 +851,8 @@ export default function SevaList() {
                       <button
                         onClick={() => isAdmin ? handleBookSeva(seva) : null}
                         className={`mt-auto w-full py-3 px-4 rounded-xl font-bold transition-all duration-200 touch-target text-sm md:text-base shadow-md ${isAdmin
-                            ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 hover:shadow-lg hover:-translate-y-0.5'
-                            : 'bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                          ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 hover:shadow-lg hover:-translate-y-0.5'
+                          : 'bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                           }`}
                         disabled={!isAdmin}
                       >
@@ -902,8 +902,8 @@ export default function SevaList() {
                   <button
                     onClick={() => isAdmin ? handleBookHall(hall) : null}
                     className={`mt-auto w-full py-3 px-4 rounded-xl font-bold transition-all duration-200 touch-target text-sm md:text-base shadow-md ${isAdmin
-                        ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 hover:shadow-lg hover:-translate-y-0.5'
-                        : 'bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 hover:shadow-lg hover:-translate-y-0.5'
+                      : 'bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                       }`}
                     disabled={!isAdmin}
                   >

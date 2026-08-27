@@ -43,11 +43,11 @@ export default function Footer() {
             <div className="space-y-2 text-sm">
               <p className="text-gray-400">
                 <span className="font-semibold">Email:</span><br />
-                vidyaranyapura@gmail.com
+                vidyaranyapuramutt@gmail.com
               </p>
               <p className="text-gray-400">
                 <span className="font-semibold">Phone:</span><br />
-                +91 9823260156<br />
+
                 080 4972 3252<br />
                 9538320752<br />
                 6366133799

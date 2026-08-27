@@ -48,7 +48,7 @@ export default function Contact() {
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-orange-400 rounded-full blur-3xl opacity-20"></div>
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-yellow-500 rounded-full blur-3xl opacity-20"></div>
         <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-5 mix-blend-overlay"></div>
-        
+
         <div className="container relative z-10 mx-auto px-4 text-center">
           <div className="inline-flex items-center justify-center p-3 bg-white/10 backdrop-blur-sm rounded-2xl mb-6 border border-white/20 shadow-xl">
             <Mail className="w-8 h-8 text-orange-100" />
@@ -68,22 +68,20 @@ export default function Contact() {
             <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-2 border border-gray-100 flex space-x-2">
               <button
                 onClick={() => setActiveTab('contact')}
-                className={`flex items-center gap-2 px-8 py-4 rounded-xl font-bold transition-all duration-300 ${
-                  activeTab === 'contact'
+                className={`flex items-center gap-2 px-8 py-4 rounded-xl font-bold transition-all duration-300 ${activeTab === 'contact'
                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md transform scale-100'
                     : 'text-gray-500 hover:text-orange-600 hover:bg-orange-50'
-                }`}
+                  }`}
               >
                 <Mail className="w-5 h-5" />
                 Contact Us
               </button>
               <button
                 onClick={() => setActiveTab('donate')}
-                className={`flex items-center gap-2 px-8 py-4 rounded-xl font-bold transition-all duration-300 ${
-                  activeTab === 'donate'
+                className={`flex items-center gap-2 px-8 py-4 rounded-xl font-bold transition-all duration-300 ${activeTab === 'donate'
                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md transform scale-100'
                     : 'text-gray-500 hover:text-orange-600 hover:bg-orange-50'
-                }`}
+                  }`}
               >
                 <Heart className="w-5 h-5" />
                 Make a Donation
@@ -101,11 +99,11 @@ export default function Contact() {
                     <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Send us a Message</h2>
                     <p className="text-gray-500 font-medium">Fill out the form below and our team will get back to you promptly.</p>
                   </div>
-                  
-                  <form 
-                    action="https://formspree.io/f/mgolrklv" 
+
+                  <form
+                    action="https://formspree.io/f/mgolrklv"
                     method="POST"
-                    onSubmit={handleContactSubmit} 
+                    onSubmit={handleContactSubmit}
                     className="space-y-6"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -218,8 +216,8 @@ export default function Contact() {
                         </div>
                         <div>
                           <h4 className="font-bold text-gray-900 mb-1">Email Address</h4>
-                          <a href="mailto:vidyaranyapura@gmail.com" className="text-orange-600 font-medium hover:text-orange-700 transition-colors">
-                            vidyaranyapura@gmail.com
+                          <a href="mailto:vidyaranyapuramutt@gmail.com" className="text-orange-600 font-medium hover:text-orange-700 transition-colors">
+                            vidyaranyapuramutt@gmail.com
                           </a>
                         </div>
                       </div>
@@ -244,13 +242,13 @@ export default function Contact() {
                   {/* Map Box */}
                   <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-3 relative overflow-hidden">
                     <div className="aspect-[4/3] rounded-2xl overflow-hidden relative shadow-inner">
-                      <iframe 
-                        src="https://maps.google.com/maps?q=Mathaji%20Ulsooramma%20Raghavendra%20Swamy%20Mutt,%20Vidyaranyapura,%20Bangalore&t=&z=15&ie=UTF8&iwloc=&output=embed" 
-                        width="100%" 
-                        height="100%" 
-                        style={{ border: 0, position: 'absolute', top: 0, left: 0 }} 
-                        allowFullScreen={true} 
-                        loading="lazy" 
+                      <iframe
+                        src="https://maps.google.com/maps?q=Mathaji%20Ulsooramma%20Raghavendra%20Swamy%20Mutt,%20Vidyaranyapura,%20Bangalore&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0, position: 'absolute', top: 0, left: 0 }}
+                        allowFullScreen={true}
+                        loading="lazy"
                         referrerPolicy="no-referrer-when-downgrade"
                         title="Temple Location Map"
                       ></iframe>
@@ -267,7 +265,7 @@ export default function Contact() {
                   {/* Donation Form */}
                   <div className="lg:col-span-3 bg-white rounded-3xl shadow-xl border border-gray-100 p-8 md:p-12 relative overflow-hidden h-fit">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-50"></div>
-                    
+
                     <div className="mb-8 relative z-10">
                       <h2 className="text-3xl font-extrabold text-gray-900 mb-3">Make a Contribution</h2>
                       <p className="text-gray-600 font-medium leading-relaxed max-w-lg">
@@ -375,11 +373,10 @@ export default function Contact() {
                             key={amount}
                             type="button"
                             onClick={() => setDonationAmount(amount.toString())}
-                            className={`py-3 px-4 rounded-xl font-bold transition-all duration-300 border ${
-                              donationAmount === amount.toString()
+                            className={`py-3 px-4 rounded-xl font-bold transition-all duration-300 border ${donationAmount === amount.toString()
                                 ? 'bg-orange-600 border-orange-600 text-white shadow-md'
                                 : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600'
-                            }`}
+                              }`}
                           >
                             ₹{amount.toLocaleString('en-IN')}
                           </button>
@@ -391,7 +388,7 @@ export default function Contact() {
                     <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl shadow-xl p-8 text-white relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
                       <h3 className="text-xl font-extrabold mb-6 relative z-10">How Your Support Helps</h3>
-                      
+
                       <div className="space-y-6 relative z-10">
                         <div className="flex items-start gap-4">
                           <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0 border border-orange-500/30">
