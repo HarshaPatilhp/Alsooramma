@@ -74,34 +74,85 @@ export async function sendVolunteerPassEmail(pass: VolunteerPassPayload): Promis
   const qrString = generateVolunteerPassCode(pass);
   const qrOnlineUrl = generateOnlineQRImageUrl(pass);
 
-  // Exact parameter mapping matching the user's template:
-  // {{volunteer_name}}, {{seva_title}}, {{duty_date}}, {{shift_timing}}, {{assigned_location}}, {{qr_code}}
+  // Complete parameter matrix supporting every single placeholder permutation
   const templateParams: Record<string, any> = {
-    // Exact template variables
+    // Volunteer Name variations
     volunteer_name: pass.volunteerName,
-    seva_title: pass.dutyTitle,
-    duty_date: pass.dutyDate,
-    shift_timing: pass.dutyTime,
-    assigned_location: pass.dutyLocation,
-    qr_code: qrOnlineUrl, // <img src="{{qr_code}}">
-
-    // Additional aliases for safety
+    volunteerName: pass.volunteerName,
     to_name: pass.volunteerName,
+    toName: pass.volunteerName,
     name: pass.volunteerName,
+    user_name: pass.volunteerName,
+    userName: pass.volunteerName,
+    recipient_name: pass.volunteerName,
+
+    // Seva / Duty variations
+    seva_title: pass.dutyTitle,
+    sevaTitle: pass.dutyTitle,
+    duty_title: pass.dutyTitle,
+    dutyTitle: pass.dutyTitle,
+    seva: pass.dutyTitle,
+    duty: pass.dutyTitle,
+    title: pass.dutyTitle,
+    seva_name: pass.dutyTitle,
+    sevaName: pass.dutyTitle,
+
+    // Date variations
+    duty_date: pass.dutyDate,
+    dutyDate: pass.dutyDate,
+    date: pass.dutyDate,
+    seva_date: pass.dutyDate,
+    sevaDate: pass.dutyDate,
+
+    // Shift Timing variations
+    shift_timing: pass.dutyTime,
+    shiftTiming: pass.dutyTime,
+    duty_time: pass.dutyTime,
+    dutyTime: pass.dutyTime,
+    timing: pass.dutyTime,
+    time: pass.dutyTime,
+    shift_time: pass.dutyTime,
+    shiftTime: pass.dutyTime,
+
+    // Location variations
+    assigned_location: pass.dutyLocation,
+    assignedLocation: pass.dutyLocation,
+    duty_location: pass.dutyLocation,
+    dutyLocation: pass.dutyLocation,
+    location: pass.dutyLocation,
+    hall: pass.dutyLocation,
+    gate: pass.dutyLocation,
+    location_gate: pass.dutyLocation,
+
+    // QR Code variations
+    qr_code: qrOnlineUrl,
+    qrCode: qrOnlineUrl,
+    qr_image_url: qrOnlineUrl,
+    qrImageUrl: qrOnlineUrl,
+    qr_url: qrOnlineUrl,
+    qrUrl: qrOnlineUrl,
+    qr_img: qrOnlineUrl,
+    qrImg: qrOnlineUrl,
+    qr_image: qrOnlineUrl,
+    qrcode: qrOnlineUrl,
+    pass_code: qrString,
+
+    // Additional info
+    badge_level: pass.badgeLevel,
+    badgeLevel: pass.badgeLevel,
+    badge: pass.badgeLevel,
+    instructions: pass.instructions || '',
+    message: pass.instructions || '',
+    notes: pass.instructions || '',
+
+    // Recipient & sender email
     to_email: pass.volunteerEmail,
+    toEmail: pass.volunteerEmail,
     recipient_email: pass.volunteerEmail,
     user_email: pass.volunteerEmail,
     email: pass.volunteerEmail,
     reply_to: 'harshapatilhp1@gmail.com',
     from_name: 'Volunteer Seva Team - Mathaji Ulsooramma Mutt',
-
-    duty_title: pass.dutyTitle,
-    duty_time: pass.dutyTime,
-    duty_location: pass.dutyLocation,
-    badge_level: pass.badgeLevel,
-    instructions: pass.instructions || '',
-    message: pass.instructions || '',
-    qr_image_url: qrOnlineUrl,
   };
 
   // 1. Send via EmailJS Browser SDK
