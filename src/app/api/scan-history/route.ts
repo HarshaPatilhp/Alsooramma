@@ -52,3 +52,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    const deleteAll = searchParams.get('all') === 'true';
+
+    if (deleteAll) {
+      const { error } = await supabase.from('scan_history').delete().neq('id', '0');
+      if (error) throw error;
+      return NextResponse.json({ success: true, message: 'All scan records cleared' });
+    }
+
+    if (id) {
+      const { error } = await supabase.from('scan_history').delete().eq('id', id);
+      if (error) throw error;
+      return NextResponse.json({ success: true, message: `Record ${id} deleted` });
+    }
+
+    // Support JSON body for bulk deletion
+    const body = await request.json().catch(() => ({}));
+    if (body.ids && Array.isArray(body.ids)) {
+      const { error } = await supabase.from('scan_history').delete().in('id', body.ids);
+      if (error) throw error;
+      return NextResponse.json({ success: true, message: `${body.ids.length} records deleted` });
+    }
+
+    return NextResponse.json({ success: false, message: 'ID or IDs required' }, { status: 400 });
+  } catch (err: any) {
+    console.error('Delete scan history error:', err);
+    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+  }
+}

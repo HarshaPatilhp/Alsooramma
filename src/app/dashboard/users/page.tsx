@@ -86,6 +86,7 @@ export default function UsersPage() {
   const [scannedSearch, setScannedSearch] = useState('');
   const [scannedBadgeFilter, setScannedBadgeFilter] = useState('All');
   const [isLoadingScans, setIsLoadingScans] = useState(false);
+  const [selectedScannedIds, setSelectedScannedIds] = useState<string[]>([]);
   
   // Selection state for sending emails
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
@@ -317,16 +318,103 @@ export default function UsersPage() {
     document.body.removeChild(link);
   };
 
+  const toggleSelectScanned = (id: string) => {
+    setSelectedScannedIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllScanned = () => {
+    if (selectedScannedIds.length === filteredScannedVolunteers.length && filteredScannedVolunteers.length > 0) {
+      setSelectedScannedIds([]);
+    } else {
+      setSelectedScannedIds(filteredScannedVolunteers.map(u => u.id));
+    }
+  };
+
+  const handleDeleteSingleScannedPass = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete the scanned badge record for "${name}"?`)) {
+      return;
+    }
+
+    // 1. Optimistic UI update
+    setScannedVolunteers(prev => prev.filter(item => item.id !== id));
+    setSelectedScannedIds(prev => prev.filter(item => item !== id));
+
+    // 2. Remove from localStorage
+    try {
+      const localList = JSON.parse(localStorage.getItem('alsur_scanned_volunteers') || '[]');
+      const updated = localList.filter((item: any) => String(item.id) !== String(id));
+      localStorage.setItem('alsur_scanned_volunteers', JSON.stringify(updated));
+    } catch (e) {}
+
+    // 3. Delete from API / Supabase
+    try {
+      await fetch(`/api/scan-history?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const { createClient } = await import('@/lib/client');
+      const supabase = createClient();
+      await supabase.from('scan_history').delete().eq('id', id);
+    } catch (err) {
+      console.error('Failed to delete scanned pass:', err);
+    }
+  };
+
+  const handleDeleteSelectedScannedPasses = async () => {
+    if (selectedScannedIds.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedScannedIds.length} selected scanned pass records?`)) {
+      return;
+    }
+
+    const idsToDelete = [...selectedScannedIds];
+    // 1. Optimistic UI update
+    setScannedVolunteers(prev => prev.filter(item => !idsToDelete.includes(item.id)));
+    setSelectedScannedIds([]);
+
+    // 2. Remove from localStorage
+    try {
+      const localList = JSON.parse(localStorage.getItem('alsur_scanned_volunteers') || '[]');
+      const updated = localList.filter((item: any) => !idsToDelete.includes(String(item.id)));
+      localStorage.setItem('alsur_scanned_volunteers', JSON.stringify(updated));
+    } catch (e) {}
+
+    // 3. Delete from API / Supabase
+    try {
+      await fetch('/api/scan-history', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: idsToDelete })
+      });
+      const { createClient } = await import('@/lib/client');
+      const supabase = createClient();
+      await supabase.from('scan_history').delete().in('id', idsToDelete);
+    } catch (err) {
+      console.error('Failed to delete selected scans:', err);
+    }
+  };
+
+  const handleClearAllScannedPasses = async () => {
+    if (scannedVolunteers.length === 0) return;
+    if (!confirm('Are you sure you want to clear ALL scanned volunteer badge records? This cannot be undone.')) {
+      return;
+    }
+
+    setScannedVolunteers([]);
+    setSelectedScannedIds([]);
+
+    try {
+      localStorage.removeItem('alsur_scanned_volunteers');
+      await fetch('/api/scan-history?all=true', { method: 'DELETE' });
+      const { createClient } = await import('@/lib/client');
+      const supabase = createClient();
+      await supabase.from('scan_history').delete().neq('id', '0');
+    } catch (err) {
+      console.error('Failed to clear all scan records:', err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchScannedVolunteers();
-
-    // Auto-refresh scanned list every 4 seconds
-    const interval = setInterval(() => {
-      fetchScannedVolunteers();
-    }, 4000);
-
-    return () => clearInterval(interval);
   }, [currentUser]);
 
   // Combined recipient list (from table selection + manually entered Gmails)
@@ -944,7 +1032,29 @@ export default function UsersPage() {
 
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
           {activeTab === 'scanned_badges' ? (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedScannedIds.length > 0 && (
+                <button
+                  onClick={handleDeleteSelectedScannedPasses}
+                  className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition-all cursor-pointer animate-fade-in"
+                  title="Delete selected scanned pass records"
+                >
+                  <Trash2 size={13} />
+                  <span>Delete Selected ({selectedScannedIds.length})</span>
+                </button>
+              )}
+
+              {scannedVolunteers.length > 0 && (
+                <button
+                  onClick={handleClearAllScannedPasses}
+                  className="flex items-center gap-1 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                  title="Clear all scanned records"
+                >
+                  <Trash2 size={13} />
+                  <span>Clear All</span>
+                </button>
+              )}
+
               <button
                 onClick={handleExportScannedCSV}
                 className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition-all cursor-pointer"
@@ -955,6 +1065,7 @@ export default function UsersPage() {
                   {filteredScannedVolunteers.length}
                 </span>
               </button>
+
               <button
                 onClick={fetchScannedVolunteers}
                 className="p-2 rounded-xl border border-gray-200 dark:border-slate-700 text-gray-500 hover:text-orange-600 cursor-pointer"
@@ -1053,7 +1164,7 @@ export default function UsersPage() {
               <Filter className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
               <select
                 value={scannedBadgeFilter}
                 onChange={e => setScannedBadgeFilter(e.target.value)}
@@ -1105,61 +1216,100 @@ export default function UsersPage() {
                 <table className="w-full text-left border-collapse min-w-[750px]">
                   <thead>
                     <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-semibold border-b border-gray-100 dark:border-slate-700/50">
+                      <th className="px-4 py-4 w-12 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedScannedIds.length === filteredScannedVolunteers.length && filteredScannedVolunteers.length > 0}
+                          onChange={selectAllScanned}
+                          className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer"
+                          title="Select all scanned passes"
+                        />
+                      </th>
                       <th className="px-6 py-4">Volunteer / Swayamsevak</th>
                       <th className="px-6 py-4">Assigned Seva Duty</th>
                       <th className="px-6 py-4">Awarded Badge Tier</th>
                       <th className="px-6 py-4">Scan Date & Time</th>
                       <th className="px-6 py-4">Verified By</th>
-                      <th className="px-6 py-4 text-right">Attendance Status</th>
+                      <th className="px-6 py-4 text-center">Attendance</th>
+                      <th className="px-4 py-4 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50 text-xs">
-                    {filteredScannedVolunteers.map(item => (
-                      <tr key={item.id} className="hover:bg-amber-50/40 dark:hover:bg-slate-700/30 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-extrabold flex items-center justify-center shadow-sm">
-                              {item.volunteerName.charAt(0).toUpperCase()}
+                    {filteredScannedVolunteers.map(item => {
+                      const isChecked = selectedScannedIds.includes(item.id);
+                      return (
+                        <tr 
+                          key={item.id} 
+                          className={`transition-colors ${
+                            isChecked 
+                              ? 'bg-red-50/50 dark:bg-red-950/20' 
+                              : 'hover:bg-amber-50/40 dark:hover:bg-slate-700/30'
+                          }`}
+                        >
+                          <td className="px-4 py-4 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleSelectScanned(item.id)}
+                              className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer"
+                            />
+                          </td>
+
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-extrabold flex items-center justify-center shadow-sm">
+                                {item.volunteerName.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-extrabold text-gray-900 dark:text-white text-sm">
+                                  {item.volunteerName}
+                                </p>
+                                <span className="text-[10px] font-mono text-gray-400">Pass: {item.booking_id || 'VOL-PASS'}</span>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-extrabold text-gray-900 dark:text-white text-sm">
-                                {item.volunteerName}
-                              </p>
-                              <span className="text-[10px] font-mono text-gray-400">Pass: {item.booking_id || 'VOL-PASS'}</span>
-                            </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        <td className="px-6 py-4">
-                          <p className="font-bold text-gray-800 dark:text-gray-200">{item.sevaDuty}</p>
-                        </td>
+                          <td className="px-6 py-4">
+                            <p className="font-bold text-gray-800 dark:text-gray-200">{item.sevaDuty}</p>
+                          </td>
 
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60 shadow-sm">
-                            <Award size={13} className="text-amber-600 dark:text-amber-400" />
-                            <span>{item.badge}</span>
-                          </span>
-                        </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60 shadow-sm">
+                              <Award size={13} className="text-amber-600 dark:text-amber-400" />
+                              <span>{item.badge}</span>
+                            </span>
+                          </td>
 
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <p className="font-semibold text-gray-800 dark:text-gray-200">{item.scannedDate}</p>
-                          <p className="text-[10px] text-gray-400 font-mono">{item.scannedTime}</p>
-                        </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <p className="font-semibold text-gray-800 dark:text-gray-200">{item.scannedDate}</p>
+                            <p className="text-[10px] text-gray-400 font-mono">{item.scannedTime}</p>
+                          </td>
 
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                          <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-[11px] font-medium">
-                            {item.scannedBy}
-                          </span>
-                        </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
+                            <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-[11px] font-medium">
+                              {item.scannedBy}
+                            </span>
+                          </td>
 
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs border border-emerald-200 dark:border-emerald-800/40">
-                            <CheckCircle2 size={13} />
-                            <span>Present [✓]</span>
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs border border-emerald-200 dark:border-emerald-800/40">
+                              <CheckCircle2 size={13} />
+                              <span>Present [✓]</span>
+                            </span>
+                          </td>
+
+                          <td className="px-4 py-4 whitespace-nowrap text-right">
+                            <button
+                              onClick={() => handleDeleteSingleScannedPass(item.id, item.volunteerName)}
+                              className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors cursor-pointer"
+                              title={`Delete scanned record for ${item.volunteerName}`}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
