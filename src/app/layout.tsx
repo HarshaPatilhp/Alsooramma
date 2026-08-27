@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mathaji Ulsooramma Raghavendra Swamy Mutt - Vidyaranyapura",
+  title: "Mathaji Ulsooramma sri Raghavendra Swamy Mutt - Vidyaranyapura",
   description: "A revered religious organization dedicated to the teachings and service of Sri Raghavendra Swamy, offering daily poojas, sevas, and various religious rituals.",
   keywords: "Raghavendra Swamy, Temple, Bangalore, Vidyaranyapura, Religious Organization, Seva, Pooja",
   robots: "index, follow",

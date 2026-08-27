@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Slokas | Mathaji Ulsooramma Raghavendra Swamy Mutt',
+  title: 'Slokas | Mathaji Ulsooramma Sri Raghavendra Swamy Mutt',
   description: 'Traditional Hindu slokas and prayers for spiritual practice and devotion',
 };
 

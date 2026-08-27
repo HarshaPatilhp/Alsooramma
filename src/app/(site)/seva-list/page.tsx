@@ -49,16 +49,16 @@ export default function SevaList() {
     }
   }, [isAuthenticated, user, router]);
 
-    const [activeTab, setActiveTab] = useState<'seva' | 'hall'>('seva');
-    const [sevaSearch, setSevaSearch] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState<string>('All');
-    const categories = ['All', 'Daily Sevas', 'Weekly Sevas', 'Special Sevas', 'Extended Sevas'];
+  const [activeTab, setActiveTab] = useState<'seva' | 'hall'>('seva');
+  const [sevaSearch, setSevaSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const categories = ['All', 'Daily Sevas', 'Weekly Sevas', 'Special Sevas', 'Extended Sevas'];
 
 
   const sendBookingEmail = async (bookingData: any) => {
     try {
       console.log('🔍 [DEBUG] sendBookingEmail called using EmailJS:', bookingData);
-      
+
       const templateParams = {
         to_name: bookingData.devoteeName,
         to_email: bookingData.email,
@@ -89,17 +89,17 @@ export default function SevaList() {
     } catch (error: any) {
       console.error('🔍 [DEBUG] Email sending error:', error);
       let errorMessage = 'Email sending failed. Please try again or contact the temple office.';
-      
+
       if (error.text) {
         errorMessage = `Email sending failed: ${error.text}`;
       } else if (error.message) {
         errorMessage = `Email sending failed: ${error.message}`;
       }
-      
+
       if (!navigator.onLine) {
         errorMessage = 'No internet connection. Please check your network and try again.';
       }
-      
+
       console.error('🔍 [DEBUG] Final error message:', errorMessage);
       throw new Error(errorMessage);
     }
@@ -499,8 +499,8 @@ export default function SevaList() {
   ];
 
   const filteredSevas = sevas.filter(seva => {
-    const matchesSearch = seva.name.toLowerCase().includes(sevaSearch.toLowerCase()) || 
-                          seva.description.toLowerCase().includes(sevaSearch.toLowerCase());
+    const matchesSearch = seva.name.toLowerCase().includes(sevaSearch.toLowerCase()) ||
+      seva.description.toLowerCase().includes(sevaSearch.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || seva.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -530,20 +530,20 @@ export default function SevaList() {
       alert('Only administrators can submit bookings. Please contact the temple office for booking.');
       return;
     }
-    
+
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
       console.log('🔍 [DEBUG] handleBookingSubmit started');
       console.log('🔍 [DEBUG] selectedSeva:', selectedSeva);
-      
+
       const formData = new FormData(e.currentTarget);
       console.log('🔍 [DEBUG] FormData entries:');
       for (let [key, value] of formData.entries()) {
         console.log(`🔍 [DEBUG]   ${key}: ${value}`);
       }
-      
+
       // Generate booking ID first
       const bookingId = Date.now();
       console.log('🔍 [DEBUG] Generated booking ID:', bookingId);
@@ -698,26 +698,24 @@ export default function SevaList() {
           <p className="text-lg md:text-xl text-center max-w-3xl mx-auto mb-8 px-4">
             Participate in divine service and book halls for events and ceremonies
           </p>
-          
+
           {/* Tab Navigation */}
           <div className="flex justify-center space-x-2 md:space-x-4 px-4">
             <button
               onClick={() => setActiveTab('seva')}
-              className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors text-sm md:text-base ${
-                activeTab === 'seva'
+              className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors text-sm md:text-base ${activeTab === 'seva'
                   ? 'bg-white text-orange-600'
                   : 'bg-orange-700 text-white hover:bg-orange-600'
-              }`}
+                }`}
             >
               Book Seva
             </button>
             <button
               onClick={() => setActiveTab('hall')}
-              className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors text-sm md:text-base ${
-                activeTab === 'hall'
+              className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors text-sm md:text-base ${activeTab === 'hall'
                   ? 'bg-white text-orange-600'
                   : 'bg-orange-700 text-white hover:bg-orange-600'
-              }`}
+                }`}
             >
               Book Hall
             </button>
@@ -741,7 +739,7 @@ export default function SevaList() {
                   <h3 className="text-base md:text-lg font-medium text-yellow-800">Admin Login Required for Booking</h3>
                   <div className="mt-2 text-sm text-yellow-700">
                     <p>
-                      Seva and hall bookings can only be made by authorized administrators. 
+                      Seva and hall bookings can only be made by authorized administrators.
                       Please contact the temple office directly to make your booking.
                     </p>
                     <div className="mt-3 md:mt-4 bg-white rounded-lg p-3 md:p-4 border border-yellow-200">
@@ -749,7 +747,7 @@ export default function SevaList() {
                       <div className="space-y-1 text-xs md:text-sm text-gray-600">
                         <p>Phone: +91-XXXXXXXXXX</p>
                         <p>Email: info@vidyaranyapuramutt.org</p>
-                        <p>Address: Mathaji Ulsooramma Raghavendra Swamy Mutt, Vidyaranyapura, Bangalore</p>
+                        <p>Address: Mathaji Ulsooramma Sri Raghavendra Swamy Mutt, Vidyaranyapura, Bangalore</p>
                       </div>
                     </div>
                   </div>
@@ -770,7 +768,7 @@ export default function SevaList() {
                   <h3 className="text-base md:text-lg font-medium text-red-800">Access Denied</h3>
                   <div className="mt-2 text-sm text-red-700">
                     <p>
-                      Your account does not have administrator privileges for booking. 
+                      Your account does not have administrator privileges for booking.
                       Only administrators can make seva and hall bookings.
                     </p>
                     <div className="mt-3 md:mt-4 bg-white rounded-lg p-3 md:p-4 border border-red-200">
@@ -793,7 +791,7 @@ export default function SevaList() {
               {activeTab === 'seva' ? 'Divine Services' : 'Hall Booking'}
             </h2>
             <p className="text-base md:text-lg text-gray-600 leading-relaxed text-center max-w-4xl mx-auto">
-              {activeTab === 'seva' 
+              {activeTab === 'seva'
                 ? 'Seva (service) is a sacred opportunity to participate in divine activities and earn spiritual merit. Our mutt offers various forms of seva that allow devotees to contribute to the maintenance of religious traditions and receive blessings. All sevas are performed with devotion and precision.'
                 : 'Book our well-equipped halls for your events, ceremonies, and gatherings. We offer various halls with different capacities and facilities to suit your needs. All halls are maintained with traditional values and modern amenities.'
               }
@@ -826,11 +824,10 @@ export default function SevaList() {
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
-                      className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 uppercase tracking-wider text-black ${
-                        selectedCategory === cat
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 uppercase tracking-wider text-black ${selectedCategory === cat
                           ? 'bg-orange-600 shadow-md'
                           : 'bg-gray-100 dark:bg-slate-200 hover:bg-orange-100 dark:hover:bg-orange-200'
-                      }`}
+                        }`}
                     >
                       {cat}
                     </button>
@@ -853,11 +850,10 @@ export default function SevaList() {
                       </div>
                       <button
                         onClick={() => isAdmin ? handleBookSeva(seva) : null}
-                        className={`mt-auto w-full py-3 px-4 rounded-xl font-bold transition-all duration-200 touch-target text-sm md:text-base shadow-md ${
-                          isAdmin 
-                            ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 hover:shadow-lg hover:-translate-y-0.5' 
+                        className={`mt-auto w-full py-3 px-4 rounded-xl font-bold transition-all duration-200 touch-target text-sm md:text-base shadow-md ${isAdmin
+                            ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 hover:shadow-lg hover:-translate-y-0.5'
                             : 'bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                        }`}
+                          }`}
                         disabled={!isAdmin}
                       >
                         {isAdmin ? 'Book Seva' : 'Contact Office to Book'}
@@ -870,7 +866,7 @@ export default function SevaList() {
                   <div className="text-5xl mb-4">🔎</div>
                   <h4 className="text-xl font-bold text-gray-800 dark:text-white">No sevas match your query</h4>
                   <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 max-w-md mx-auto">Try modifying your search keywords or resetting the category filter.</p>
-                  <button 
+                  <button
                     onClick={() => { setSevaSearch(''); setSelectedCategory('All'); }}
                     className="mt-6 px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold transition-all shadow-md text-sm uppercase tracking-wider"
                   >
@@ -905,11 +901,10 @@ export default function SevaList() {
                   </div>
                   <button
                     onClick={() => isAdmin ? handleBookHall(hall) : null}
-                    className={`mt-auto w-full py-3 px-4 rounded-xl font-bold transition-all duration-200 touch-target text-sm md:text-base shadow-md ${
-                      isAdmin 
-                        ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 hover:shadow-lg hover:-translate-y-0.5' 
+                    className={`mt-auto w-full py-3 px-4 rounded-xl font-bold transition-all duration-200 touch-target text-sm md:text-base shadow-md ${isAdmin
+                        ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 hover:shadow-lg hover:-translate-y-0.5'
                         : 'bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                    }`}
+                      }`}
                     disabled={!isAdmin}
                   >
                     {isAdmin ? 'Book Hall' : 'Contact Office to Book'}
@@ -938,11 +933,11 @@ export default function SevaList() {
                 </button>
               </div>
 
-              <form 
+              <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleBookingSubmit(e);
-                }} 
+                }}
                 className="space-y-4"
               >
                 <div>
@@ -1046,7 +1041,7 @@ export default function SevaList() {
                 <div>
                   <label className="block text-sm font-medium text-black mb-1">Hall Location</label>
                   <select name="hall" required className="w-full px-3 py-2 border border-gray-300 text-black rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    <option value=""disabled>Select hall location</option>
+                    <option value="" disabled>Select hall location</option>
                     <option value="Main Prayer Hall">Main Prayer Hall</option>
                     <option value="Abhisheka Hall">Abhisheka Hall</option>
                     <option value="Homa Hall">Homa Hall</option>
@@ -1174,8 +1169,8 @@ export default function SevaList() {
                 </button>
               </div>
 
-              <form 
-                onSubmit={handleBookingSubmit} 
+              <form
+                onSubmit={handleBookingSubmit}
                 className="space-y-4"
               >
                 <div>

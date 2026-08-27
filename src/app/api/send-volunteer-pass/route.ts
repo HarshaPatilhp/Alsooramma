@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
 <tr>
 <td style="padding: 28px 20px 20px;" align="center">
 <h2 style="margin: 0; font-size: 22px; color: #1e293b;">🙏 Welcome to the Volunteer Seva Team! 🙏</h2>
-<p style="margin: 10px 0 0; color: #666; font-size: 14px;">Mathaji Ulsooramma Raghavendra Swamy Mutt</p>
+<p style="margin: 10px 0 0; color: #666; font-size: 14px;">Mathaji Ulsooramma Sri Raghavendra Swamy Mutt</p>
 <p style="margin: 4px 0 0; color: #777; font-size: 13px;">Vidyaranyapura, Bangalore</p>
 </td>
 </tr>
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
 <td style="padding: 10px 30px 25px;">
 <p style="font-size: 14px; line-height: 1.6; color: #555;">Please keep this QR pass safely on your phone. It will be used for <strong>entry and attendance verification</strong>.</p>
 <p style="font-size: 14px; color: #555;">🙏 Thank you for your valuable seva. We look forward to your participation!</p>
-<p style="font-size: 14px; color: #333; margin-bottom: 0;"><strong>Regards,</strong><br>Volunteer Seva Team<br>Mathaji Ulsooramma Raghavendra Swamy Mutt<br>Vidyaranyapura, Bangalore</p>
+<p style="font-size: 14px; color: #333; margin-bottom: 0;"><strong>Regards,</strong><br>Volunteer Seva Team<br>Mathaji Ulsooramma Sri Raghavendra Swamy Mutt<br>Vidyaranyapura, Bangalore</p>
 </td>
 </tr>
 </tbody>
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
     const mailOptions: any = {
       from: process.env.EMAIL_FROM || 'info@vidyaranyapuramutt.org',
       to: pass.volunteerEmail,
-      subject: `🎫 Volunteer QR Duty Pass - ${pass.dutyTitle || 'Mathaji Ulsooramma Raghavendra Swamy Mutt'}`,
+      subject: `🎫 Volunteer QR Duty Pass - ${pass.dutyTitle || 'Mathaji Ulsooramma Sri Raghavendra Swamy Mutt'}`,
       html: emailHtml,
     };
 

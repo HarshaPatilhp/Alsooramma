@@ -57,7 +57,7 @@ export default function Trustees() {
           <div className="bg-white rounded-lg shadow-lg p-8 mb-12">
             <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">Our Guiding Lights</h2>
             <p className="text-lg text-gray-600 leading-relaxed text-center max-w-4xl mx-auto">
-              The trustees of Mathaji Ulsooramma Raghavendra Swamy Mutt are dedicated spiritual leaders and administrators
+              The trustees of Mathaji Ulsooramma Sri Raghavendra Swamy Mutt are dedicated spiritual leaders and administrators
               who work tirelessly to uphold the sacred traditions and serve the community. Under the divine guidance of
               Sri Raghavendra Swami, they ensure that the mutt continues to be a beacon of spiritual wisdom and service.
             </p>

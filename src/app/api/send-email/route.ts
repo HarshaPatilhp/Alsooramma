@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     <div class="container">
         <div class="header">
             <h1>🙏 Seva Booking Confirmation</h1>
-            <p>Sri Mathaji Ulsooramma Raghavendra Swamy Mutt, Vidyaranyapura </p>
+            <p>Sri Mathaji Ulsooramma Sri Raghavendra Swamy Mutt, Vidyaranyapura </p>
         </div>
 
         <div class="content">
