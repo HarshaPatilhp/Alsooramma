@@ -290,35 +290,37 @@ export default function ScannerPage() {
     setIsSavingBadge(true);
 
     try {
+      const numericId = Date.now();
+      const statusStr = `VOLUNTEER_BADGE:${selectedBadgeTier} | ${scanResult.data.name} | ${scanResult.data.duty} | ${volunteerBadgeMark ? 'Badge Awarded' : 'Checked In'}`;
+      
       const scanRecord = {
-        booking_id: `VOL-${scanResult.data.id}`,
-        devotee_name: scanResult.data.name,
-        seva_name: `[Volunteer Badge: ${selectedBadgeTier}] ${scanResult.data.duty}`,
-        status: volunteerBadgeMark ? 'Badge Awarded' : 'Checked In',
-        scanned_at: new Date().toISOString(),
+        id: String(numericId),
+        booking_id: numericId,
+        status: statusStr,
+        scanned_at: new Date().toLocaleString('en-IN'),
         scanned_by: 'Master Admin Scanner',
       };
 
-      // 1. Send to server API
+      // 1. Direct Supabase Database Insert
+      try {
+        const supabase = createClient();
+        const { error: sbErr } = await supabase.from('scan_history').insert([scanRecord]);
+        if (sbErr) console.warn('Supabase direct insert notice:', sbErr);
+      } catch (sbErr) {
+        console.warn('Supabase direct insert error:', sbErr);
+      }
+
+      // 2. Send to server API
       fetch('/api/scan-history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(scanRecord)
       }).catch(() => {});
 
-      // 2. Insert into Supabase
-      try {
-        const supabase = createClient();
-        await supabase.from('scan_history').insert([scanRecord]);
-      } catch (sbErr) {
-        console.warn('Supabase direct insert error:', sbErr);
-      }
-
-      // 3. Persist to localStorage for instantaneous client UI sync
+      // 3. LocalStorage persistence for instant client update
       try {
         const localList = JSON.parse(localStorage.getItem('alsur_scanned_volunteers') || '[]');
-        // remove existing record with same booking_id if any
-        const filtered = localList.filter((item: any) => item.booking_id !== scanRecord.booking_id);
+        const filtered = localList.filter((item: any) => item.id !== scanRecord.id);
         filtered.unshift(scanRecord);
         localStorage.setItem('alsur_scanned_volunteers', JSON.stringify(filtered.slice(0, 100)));
       } catch (lsErr) {}

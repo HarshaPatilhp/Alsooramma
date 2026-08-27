@@ -227,32 +227,57 @@ export default function UsersPage() {
           const bId = String(row.booking_id || '');
           const sName = String(row.seva_name || '');
           const st = String(row.status || '');
-          return bId.startsWith('VOL-') || sName.includes('[Volunteer Badge:') || st.includes('Badge') || sName.toLowerCase().includes('volunteer');
+          return st.includes('VOLUNTEER_BADGE') || bId.startsWith('VOL-') || sName.includes('[Volunteer Badge:') || st.includes('Badge') || sName.toLowerCase().includes('volunteer');
         })
         .map((row: any) => {
           let badge = '🎖️ Active Swayamsevak';
+          let volunteerName = row.devotee_name || row.volunteer_name || 'Swayamsevak';
           let duty = row.seva_name || 'Temple Operations';
+          let statusText = row.status || 'Verified';
 
-          // Extract badge if formatted like [Volunteer Badge: ⭐ Seva & Utsavam Lead]
-          const match = (row.seva_name || '').match(/\[Volunteer Badge:\s*([^\]]+)\]\s*(.*)/i);
-          if (match) {
-            badge = match[1].trim();
-            duty = match[2].trim() || 'Temple Operations & Seva';
+          // 1. Handle VOLUNTEER_BADGE:Badge | Name | Duty | Status format
+          if (row.status && String(row.status).startsWith('VOLUNTEER_BADGE:')) {
+            const raw = String(row.status).replace('VOLUNTEER_BADGE:', '').trim();
+            const parts = raw.split('|').map(s => s.trim());
+            if (parts[0]) badge = parts[0];
+            if (parts[1]) volunteerName = parts[1];
+            if (parts[2]) duty = parts[2];
+            if (parts[3]) statusText = parts[3];
+          } else {
+            // 2. Handle [Volunteer Badge: ⭐ Lead] format
+            const match = (row.seva_name || '').match(/\[Volunteer Badge:\s*([^\]]+)\]\s*(.*)/i);
+            if (match) {
+              badge = match[1].trim();
+              duty = match[2].trim() || 'Temple Operations & Seva';
+            }
           }
 
-          const dt = row.scanned_at ? new Date(row.scanned_at) : new Date();
+          let formattedDate = '';
+          let formattedTime = '';
+          try {
+            if (row.scanned_at && row.scanned_at.includes('/')) {
+              formattedDate = row.scanned_at.split(',')[0] || row.scanned_at;
+              formattedTime = row.scanned_at.split(',')[1] || '';
+            } else {
+              const dt = row.scanned_at ? new Date(row.scanned_at) : (row.created_at ? new Date(row.created_at) : new Date());
+              formattedDate = dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+              formattedTime = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+            }
+          } catch (e) {
+            formattedDate = String(row.scanned_at || '');
+          }
 
           return {
-            id: row.id || `scan-${Math.random()}`,
-            booking_id: row.booking_id || '',
-            volunteerName: row.devotee_name || row.volunteer_name || 'Swayamsevak',
+            id: String(row.id || `scan-${Math.random()}`),
+            booking_id: String(row.booking_id || ''),
+            volunteerName: volunteerName,
             sevaDuty: duty,
             badge: badge,
-            scannedAt: row.scanned_at || new Date().toISOString(),
-            scannedDate: dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-            scannedTime: dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
+            scannedAt: row.scanned_at || row.created_at || new Date().toISOString(),
+            scannedDate: formattedDate,
+            scannedTime: formattedTime,
             scannedBy: row.scanned_by || 'Gate Scanner',
-            status: row.status || 'Verified'
+            status: statusText
           };
         });
 
