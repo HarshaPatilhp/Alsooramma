@@ -100,13 +100,13 @@ export default function Activities() {
 
             <div className="space-y-8">
               <div className="border-l-4 border-orange-500 pl-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">Morning Pooja</h3>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">Daily Pooja</h3>
                 <p className="text-gray-600">Daily morning worship starting at 6:00 AM, including chanting of vedic hymns and offering prayers</p>
               </div>
 
               <div className="border-l-4 border-blue-500 pl-6">
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">Bhajana Mandali</h3>
-                <p className="text-gray-600">Weekly devotional singing sessions every Saturday evening featuring traditional compositions</p>
+                <p className="text-gray-600">Apart from conducting bhajans on all important functions and occasions, the members of the Bhajana mandali regularly perform Dasara Padagalu at our Mutt premises every Thursday.</p>
               </div>
 
               <div className="border-l-4 border-green-500 pl-6">
