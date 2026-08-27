@@ -25,11 +25,11 @@ const slokas: Sloka[] = [
   },
   {
     id: 2,
-    title: 'Om',
-    sanskrit: 'ॐ',
-    english: 'Om',
-    meaning: 'The primordial sound, the essence of ultimate reality, encompassing all existence.',
-    category: 'Sacred Sounds'
+    title: 'Sri Raghavendra Guru Stotra',
+    sanskrit: 'पूज्याय राघवेंद्राय सत्यधर्मरताय च। भजतां कल्पवृक्षाय नमतां कामधेनवे॥',
+    english: 'Pujyaya Raghavendraya Satya Dharma Rataya Cha. Bhajatam Kalpavrikshaya Namatam Kamadhenave.',
+    meaning: 'I bow to Sri Raghavendra Swamy, who is devoted to truth and righteousness, who is like a wish-fulfilling Kalpavriksha tree and Kamadhenu to all who surrender to him.',
+    category: 'Guru Stotras'
   },
   {
     id: 3,
@@ -65,30 +65,6 @@ const slokas: Sloka[] = [
   },
   {
     id: 7,
-    title: 'Shiva Panchakshari',
-    sanskrit: 'नागेन्द्रहाराय त्रिलोचनाय भस्माङ्गरागाय महेश्वराय। नित्याय शुद्धाय दिगम्बराय तस्मै ऽनकाराय नमः शिवाय॥',
-    english: 'Nagendra Haraya Trilochanaaya Bhasmangaragaya Maheshvaraaya. Nityaaya Shuddhaaya Digambaraaya Tasmai "Na" Karaaya Namah Shivaaya.',
-    meaning: 'Salutations to Shiva who wears serpent as garland, three-eyed one, smeared with ash, the great lord, eternal, pure, sky-clad, the letter "Na".',
-    category: 'Shivite Prayers'
-  },
-  {
-    id: 8,
-    title: 'Durga Kavacha Opening',
-    sanskrit: 'ॐ ऐं ह्रीं क्लीं चामुण्डायै विच्चे॥',
-    english: 'Om Aim Hreem Kleem Chamundayai Vichche.',
-    meaning: 'The armor of Goddess Durga protects from all directions and evils.',
-    category: 'Protective Prayers'
-  },
-  {
-    id: 9,
-    title: 'Ram Raksha Stotra Opening',
-    sanskrit: 'श्रीराम रक्षा स्तोत्रम्। चारु माला कदम्बमुकुटम् मणिभूषित किंकिणीकम्। शोभितं दंद शुक तिलकं रघुनंदनम्॥',
-    english: 'Sri Ram Raksha Stotram. Charu Mala Kadamba Mukutam Manibhushita Kinkineekam. Shobhitam Danda Shuk Tilakam Raghu Nandanam.',
-    meaning: 'Sri Rama Raksha Stotra. Adorned with beautiful garland and Kadamba flower crown, decorated with jewels and tinkling bells, adorned with danda and parrot tilaka, the delight of Raghu.',
-    category: 'Protective Prayers'
-  },
-  {
-    id: 10,
     title: 'Ganesh Gayatri',
     sanskrit: 'ॐ एकदंताय विद्महे वक्रतुण्डाय धीमहि तन्नो दन्तिः प्रचोदयात्॥',
     english: 'Om Ekadantaya Vidmahe Vakratundaya Dhimahi Tanno Dantih Prachodayat.',
@@ -96,148 +72,106 @@ const slokas: Sloka[] = [
     category: 'Ganesh Prayers'
   },
   {
-    id: 11,
-    title: 'Saraswati Gayatri',
-    sanskrit: 'ॐ महासरस्वत्यै विद्महे ब्रह्मपुत्र्यै धीमहि तन्नो देवी प्रचोदयात्॥',
-    english: 'Om Mahasaraswatyai Vidmahe Brahmaputryai Dhimahi Tanno Devi Prachodayat.',
-    meaning: 'We meditate on the great Saraswati, daughter of Brahma. May that goddess inspire our intellect.',
-    category: 'Goddess Prayers'
-  },
-  {
-    id: 12,
-    title: 'Aditya Hridayam Opening',
-    sanskrit: 'आदित्य हृदयं पुण्यं सर्व शत्रु विनाशनम्। जयावहं जपेन्नित्यं अक्षयं परमं शिवम्॥',
-    english: 'Aditya Hridayam Punyam Sarva Shatru Vinashanam. Jayavaham Japennityam Akshayam Paramam Shivam.',
-    meaning: 'The sacred Aditya Hridayam destroys all enemies. Chanting it daily brings victory and eternal bliss.',
-    category: 'Solar Prayers'
-  },
-  {
-    id: 13,
-    title: 'Purusha Suktam Opening',
-    sanskrit: 'सहस्रशीर्षा पुरुषः सहस्राक्षः सहस्रपात्। स भूमिं विश्वतो वृत्वा अत्यतिष्ठद्दशाङ्गुलम्॥',
-    english: 'Sahasra Shirsha Purushah Sahasrakshah Sahasrapat. Sa Bhumim Vishvato Vritva Atyatishthad Dashangulam.',
-    meaning: 'The Purusha has thousand heads, thousand eyes, thousand feet. He pervades the earth in all directions and extends ten fingers beyond.',
-    category: 'Vedic Hymns'
-  },
-  {
-    id: 14,
-    title: 'Rudram Opening',
-    sanskrit: 'नमस्ते रुद्रमन्यव उतोत इष्वे नमः। नमस्ते अस्तु धन्वने बाहुभ्यामुत ते नमः॥',
-    english: 'Namaste Rudramanyava Utota Ishave Namah. Namaste Astu Dhanvane Bahubhyamuta Te Namah.',
-    meaning: 'Salutations to the fierce Rudra and to his arrow. Salutations to his bow and to both his arms.',
-    category: 'Rudra Prayers'
-  },
-  {
-    id: 15,
+    id: 8,
     title: 'Mahamrityunjaya Mantra',
     sanskrit: 'ॐ त्र्यम्बकं यजामहे सुगन्धिं पुष्टिवर्धनम्। उर्वारुकमिव बन्धनान्मृत्योर्मुक्षीय मामृतात्॥',
     english: 'Om Tryambakam Yajamahe Sugandhim Pushti Vardhanam. Urvarukamiva Bandhanan Mrityor Mukshiya Mamritat.',
-    meaning: 'We worship the three-eyed one (Shiva) who is fragrant and nourishes all beings. May he liberate us from death as a cucumber is liberated from its stalk.',
+    meaning: 'We worship the three-eyed Lord who is fragrant and nourishes all beings. May he liberate us from mortality into immortality.',
     category: 'Healing Prayers'
   }
 ];
 
 export default function SlokasPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-orange-600 to-orange-800 text-white py-20">
+      <section className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white py-20">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4">Slokas</h1>
-          <p className="text-xl md:text-2xl mb-8">
-            Sacred Verses & Divine Prayers
-          </p>
-          <p className="text-lg text-orange-100 max-w-3xl mx-auto">
-            Discover the profound wisdom and spiritual power of ancient Sanskrit slokas,
-            mantras, and devotional hymns that connect us to the divine.
+          <span className="inline-block px-3.5 py-1 rounded-full bg-white/20 text-orange-100 text-xs font-bold uppercase tracking-wider mb-3 backdrop-blur-md">
+            Vedic Chanting
+          </span>
+          <h1 className="text-4xl md:text-6xl font-black mb-4 tracking-tight">Sacred Slokas & Mantras</h1>
+          <p className="text-lg md:text-xl text-orange-100 max-w-3xl mx-auto leading-relaxed">
+            Discover the profound spiritual power of ancient Sanskrit slokas, Vedic hymns, and daily prayers
           </p>
         </div>
       </section>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-6xl mx-auto">
-          {/* Introduction */}
-          <div className="bg-white rounded-lg shadow-lg p-8 mb-12">
-            <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">Divine Wisdom</h2>
-            <p className="text-lg text-gray-600 leading-relaxed text-center max-w-4xl mx-auto">
-              Slokas are sacred verses that contain profound spiritual wisdom, mantras for protection,
-              and hymns of devotion. Regular chanting of these verses brings peace, prosperity, and
-              spiritual enlightenment to our lives.
-            </p>
-          </div>
-
-          {/* Sloka Categories */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
-            {Array.from(new Set(slokas.map(sloka => sloka.category))).map((category, index) => (
-              <div key={index} className="bg-orange-50 rounded-lg p-4 text-center">
-                <h3 className="font-semibold text-orange-800 text-sm">{category}</h3>
+      <div className="container mx-auto max-w-6xl px-4 py-16 space-y-12">
+        {/* Slokas Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {slokas.map((sloka) => (
+            <div 
+              key={sloka.id} 
+              className="bg-white dark:bg-slate-900 rounded-3xl shadow-md overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-slate-800 flex flex-col group hover:-translate-y-1"
+            >
+              <div className="bg-gradient-to-r from-orange-600 to-amber-600 p-5 text-white flex items-center justify-between">
+                <h3 className="text-lg font-black">{sloka.title}</h3>
+                <span className="text-[10px] font-bold uppercase tracking-widest bg-white/20 px-2.5 py-1 rounded-full backdrop-blur-md">
+                  {sloka.category}
+                </span>
               </div>
-            ))}
-          </div>
-
-          {/* Slokas Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {slokas.map((sloka) => (
-              <div key={sloka.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-4">
-                  <h3 className="text-xl font-bold text-white mb-1">{sloka.title}</h3>
-                  <p className="text-orange-100 text-sm">{sloka.category}</p>
+              
+              <div className="p-6 flex-1 flex flex-col space-y-4">
+                <div className="p-4 rounded-2xl bg-orange-50/70 dark:bg-slate-800/80 border border-orange-100 dark:border-slate-700/60 text-center">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 mb-1.5">
+                    Sanskrit
+                  </h4>
+                  <p className="text-lg sm:text-xl font-serif font-bold text-gray-900 dark:text-amber-200 leading-relaxed">
+                    {sloka.sanskrit}
+                  </p>
                 </div>
-                <div className="p-6">
-                  <div className="mb-4">
-                    <h4 className="text-sm font-semibold text-gray-500 mb-2">SANSKRIT</h4>
-                    <p className="text-lg text-gray-800 font-medium leading-relaxed text-center">
-                      {sloka.sanskrit}
-                    </p>
-                  </div>
 
-                  <div className="mb-4">
-                    <h4 className="text-sm font-semibold text-gray-500 mb-2">TRANSLITERATION</h4>
-                    <p className="text-gray-700 italic text-center">
-                      {sloka.english}
-                    </p>
-                  </div>
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-1">
+                    Transliteration
+                  </h4>
+                  <p className="text-xs text-gray-700 dark:text-gray-300 italic font-mono leading-relaxed">
+                    {sloka.english}
+                  </p>
+                </div>
 
-                  <div className="border-t pt-4">
-                    <h4 className="text-sm font-semibold text-gray-500 mb-2">MEANING</h4>
-                    <p className="text-gray-600 leading-relaxed">
-                      {sloka.meaning}
-                    </p>
-                  </div>
+                <div className="pt-3 border-t border-gray-100 dark:border-slate-800 mt-auto">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-1">
+                    Meaning
+                  </h4>
+                  <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                    {sloka.meaning}
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+        </div>
 
-          {/* Footer Note */}
-          <div className="mt-16 bg-white rounded-lg shadow-lg p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Chanting Guidelines</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-              <div>
-                <h3 className="font-semibold text-gray-800 mb-2">Preparation</h3>
-                <ul className="text-gray-600 space-y-1">
-                  <li>• Clean and sacred environment</li>
-                  <li>• Pure thoughts and intentions</li>
-                  <li>• Early morning or evening time</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-800 mb-2">Practice</h3>
-                <ul className="text-gray-600 space-y-1">
-                  <li>• Clear pronunciation</li>
-                  <li>• Focus on meaning</li>
-                  <li>• Regular daily practice</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-800 mb-2">Benefits</h3>
-                <ul className="text-gray-600 space-y-1">
-                  <li>• Mental peace and clarity</li>
-                  <li>• Spiritual growth</li>
-                  <li>• Divine blessings</li>
-                </ul>
-              </div>
+        {/* Chanting Guidelines */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-lg p-8 border border-gray-100 dark:border-slate-800">
+          <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-6 text-center">Daily Chanting Guidelines</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+            <div className="p-5 rounded-2xl bg-gray-50 dark:bg-slate-850 border border-gray-100 dark:border-slate-800">
+              <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-2">Preparation</h3>
+              <ul className="text-xs text-gray-600 dark:text-gray-300 space-y-1.5 font-medium">
+                <li>• Clean and quiet prayer corner</li>
+                <li>• Pure thoughts and devotion</li>
+                <li>• Best practiced at sunrise (Brahma Muhurta)</li>
+              </ul>
+            </div>
+            <div className="p-5 rounded-2xl bg-gray-50 dark:bg-slate-850 border border-gray-100 dark:border-slate-800">
+              <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-2">Practice</h3>
+              <ul className="text-xs text-gray-600 dark:text-gray-300 space-y-1.5 font-medium">
+                <li>• Clear Sanskrit pronunciation</li>
+                <li>• Contemplate on the inner meaning</li>
+                <li>• Regular daily recitation</li>
+              </ul>
+            </div>
+            <div className="p-5 rounded-2xl bg-gray-50 dark:bg-slate-850 border border-gray-100 dark:border-slate-800">
+              <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-2">Benefits</h3>
+              <ul className="text-xs text-gray-600 dark:text-gray-300 space-y-1.5 font-medium">
+                <li>• Mental serenity and peace</li>
+                <li>• Enhanced memory and focus</li>
+                <li>• Divine grace of Guru Raghavendra</li>
+              </ul>
             </div>
           </div>
         </div>

@@ -14,11 +14,10 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen flex text-gray-900 bg-gray-50/50">
+    <div className="min-h-screen flex text-gray-900 dark:text-white bg-gray-50/50 dark:bg-slate-950 transition-colors">
       {/* Left side: Beautiful branding / imagery */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-orange-600 via-orange-700 to-orange-900 text-white overflow-hidden justify-center items-center">
         {/* Subtle decorative background patterns */}
-        <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-10 mix-blend-overlay"></div>
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-orange-400 rounded-full blur-3xl opacity-30"></div>
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-yellow-500 rounded-full blur-3xl opacity-20"></div>
         
@@ -42,15 +41,15 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
       </div>
 
       {/* Right side: Login form */}
-      <div className="flex-1 flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-20 xl:px-24 bg-white shadow-[-20px_0_40px_-10px_rgba(0,0,0,0.05)] relative z-10 h-screen overflow-y-auto">
+      <div className="flex-1 flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-20 xl:px-24 bg-white dark:bg-slate-900 shadow-[-20px_0_40px_-10px_rgba(0,0,0,0.05)] relative z-10 h-screen overflow-y-auto border-l border-gray-100 dark:border-slate-800">
         
         <div className="mx-auto w-full max-w-md animate-fade-in-up">
           <div className="text-center lg:text-left mb-10">
-            <h2 className="text-4xl font-extrabold tracking-tight text-gray-900 mb-2">Welcome Back</h2>
-            <p className="text-base font-medium text-gray-500">Sign in to access your volunteer dashboard</p>
+            <h2 className="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">Welcome Back</h2>
+            <p className="text-base font-medium text-gray-500 dark:text-gray-400">Sign in to access your volunteer or administrative dashboard</p>
           </div>
 
-          <div className="bg-white">
+          <div className="bg-white dark:bg-slate-900">
             <LoginForm />
           </div>
           

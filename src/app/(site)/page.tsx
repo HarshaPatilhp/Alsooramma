@@ -18,7 +18,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors">
       {/* Hero Section with Parallax Effect and Gradient Overlay */}
       <section className="relative flex items-center justify-center py-32 overflow-hidden bg-slate-900">
         <div className="absolute inset-0 bg-gradient-to-r from-orange-600/90 to-amber-500/80 z-10" />

@@ -1,65 +1,76 @@
 export default function History() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-orange-600 to-orange-800 text-white py-16">
-        <div className="container mx-auto px-4">
-          <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">History</h1>
-          <p className="text-xl text-center max-w-3xl mx-auto">
-            Discover the rich heritage and spiritual legacy of our mutt
+      <section className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white py-16">
+        <div className="container mx-auto px-4 text-center">
+          <span className="inline-block px-3.5 py-1 rounded-full bg-white/20 text-orange-100 text-xs font-bold uppercase tracking-wider mb-3 backdrop-blur-md">
+            Heritage & Lineage
+          </span>
+          <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">Our History & Sacred Heritage</h1>
+          <p className="text-lg md:text-xl text-orange-100 max-w-3xl mx-auto leading-relaxed">
+            Discover the rich spiritual heritage, Dvaita tradition, and divine founding legacy of our Mutt
           </p>
         </div>
       </section>
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-16">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
-            <h2 className="text-3xl font-bold text-gray-800 mb-6">Our Spiritual Heritage</h2>
-            <p className="text-lg text-gray-600 leading-relaxed mb-6">
-              The Mutt is part of the larger Raghavendra Math tradition, which has its origins in the teachings of Madhvacharya.
-              The Vidyaranyapura mutt is associated with Sri Mathaji Ulsooramma, carrying forward the sacred legacy of Sri Raghavendra Swami.
-            </p>
-            <p className="text-lg text-gray-600 leading-relaxed mb-6">
-              Sri Raghavendra Swami, also known as Sri Raghavendra Tirtha, was a renowned saint and philosopher in the Dvaita Vedanta tradition.
-              Born in 1595 CE in Bhuvanagiri (modern Tamil Nadu), he became one of the most revered spiritual figures in Karnataka and beyond.
-            </p>
-            <p className="text-lg text-gray-600 leading-relaxed">
-              Our mutt continues this noble tradition, serving as a center for spiritual learning, devotion, and community service,
-              upholding the timeless values and teachings passed down through generations of enlightened masters.
-            </p>
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-lg p-8 border border-gray-100 dark:border-slate-800">
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-6 text-center">Our Spiritual Heritage</h2>
+            <div className="space-y-5 text-gray-700 dark:text-gray-300 text-base leading-relaxed">
+              <p>
+                The Mutt is an integral center of the revered Raghavendra Math tradition, rooted in the timeless philosophy of Jagadguru Sri Madhvacharya.
+                The Vidyaranyapura branch is blessed with the holy devotion of <strong>Sri Mathaji Ulsooramma</strong>, carrying forward the divine grace of Sri Raghavendra Swamy.
+              </p>
+              <p>
+                Sri Raghavendra Swamy (1595–1671 CE), revered across the world as Rayaru, took Moola Brindavana Pravesha in Mantralaya on the sacred banks of the Tungabhadra River. His boundless compassion and miracles continue to bless and guide millions of devotees today.
+              </p>
+              <p>
+                Our Mutt in Vidyaranyapura continues this noble tradition, serving as a beacon of devotion, daily Vedic rituals, Annadanam, and community welfare, upholding sacred values passed down through generations.
+              </p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">Madhvacharya Tradition</h3>
-              <p className="text-gray-600 leading-relaxed">
-                The foundation of our spiritual lineage rests upon the teachings of Sri Madhvacharya,
-                the great reformer of Vedanta philosophy who established the Dvaita school of thought.
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-md p-6 border border-gray-100 dark:border-slate-800">
+              <div className="w-12 h-12 rounded-2xl bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center font-black text-xl mb-4">
+                01
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Madhvacharya Tradition</h3>
+              <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                The foundation of our spiritual lineage rests upon the teachings of Sri Madhvacharya, the great propounder of Dvaita Vedanta philosophy.
               </p>
             </div>
 
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">Sri Mathaji Ulsooramma</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Our mutt bears the sacred association with Sri Mathaji Ulsooramma,
-                continuing her legacy of devotion and service to Sri Raghavendra Swami.
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-md p-6 border border-gray-100 dark:border-slate-800">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-xl mb-4">
+                02
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Sri Mathaji Ulsooramma</h3>
+              <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                Our Mutt bears the sacred foundation laid by Mathaji Ulsooramma, whose life of pure devotion and service established this spiritual sanctuary.
               </p>
             </div>
 
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">Spiritual Continuity</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Through centuries of unbroken tradition, we maintain the sacred rituals,
-                teachings, and practices that connect devotees with the divine grace of our gurus.
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-md p-6 border border-gray-100 dark:border-slate-800">
+              <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-xl mb-4">
+                03
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Spiritual Continuity</h3>
+              <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                Maintaining authentic pooja traditions, Panchamrutha Abhisheka, Stotra chanting, and Rathotsavams connecting devotees to the divine.
               </p>
             </div>
 
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">Community Service</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Beyond spiritual guidance, our mutt actively engages in community welfare,
-                education, and charitable activities as part of our sacred duty.
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-md p-6 border border-gray-100 dark:border-slate-800">
+              <div className="w-12 h-12 rounded-2xl bg-green-100 dark:bg-green-950/60 text-green-600 dark:text-green-400 flex items-center justify-center font-black text-xl mb-4">
+                04
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Community & Annadanam</h3>
+              <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                Beyond spiritual guidance, our Mutt actively organizes daily Prasadam, Annadanam sevas, and welfare initiatives for the wider society.
               </p>
             </div>
           </div>
