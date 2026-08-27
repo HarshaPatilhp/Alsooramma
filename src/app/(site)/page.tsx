@@ -22,7 +22,7 @@ export default function Home() {
       {/* Hero Section with Parallax Effect and Gradient Overlay */}
       <section className="relative flex items-center justify-center py-32 overflow-hidden bg-slate-900">
         <div className="absolute inset-0 bg-gradient-to-r from-orange-600/90 to-amber-500/80 z-10" />
-        <div 
+        <div
           className="absolute inset-0 bg-[url('/hero-bg.png')] bg-cover bg-center opacity-50 z-0"
         />
         <div className="container relative z-20 mx-auto px-4 text-center animate-slide-up">
@@ -30,12 +30,13 @@ export default function Home() {
             A Sacred Journey
           </div>
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white mb-6 drop-shadow-lg leading-tight">
-           Hari Sarvothama! 
-           <br />
-           <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-400">Vayu Jeevothama !!</span>
+            Hari Sarvothama!
+            <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-400">Vayu Jeevothama !!</span>
           </h1>
           <h2 className="text-lg md:text-2xl lg:text-3xl text-orange-50 font-medium mb-12 drop-shadow-md max-w-4xl mx-auto">
-            Mathaji Ulsooramma Raghavendra Swamy Mutt, Vidyaranyapura, Bangalore
+            <span className="block">Mathaji Ulsooramma Sri Raghavendra Swamy Mutt</span>
+            <span className="block">Vidyaranyapura, Bangalore 97</span>
           </h2>
           <div className="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 md:space-x-6">
             <Link
@@ -52,7 +53,7 @@ export default function Home() {
             </Link>
           </div>
         </div>
-        
+
         {/* Decorative divider */}
         <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-20">
           <svg className="relative block w-full h-[50px] md:h-[100px]" viewBox="0 0 1200 120" preserveAspectRatio="none">
@@ -63,7 +64,7 @@ export default function Home() {
 
       {/* Main Content Sections */}
       <div className="container mx-auto px-4 py-20 relative z-10 dark:bg-slate-900">
-        
+
         {/* About Section */}
         <section className="mb-24 flex flex-col lg:flex-row items-center gap-12 animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <div className="lg:w-1/2">
@@ -73,7 +74,7 @@ export default function Home() {
             </h2>
             <div className="space-y-6 text-lg text-gray-600 dark:text-slate-300">
               <p>
-                Mathaji Ulsooramma Raghavendra Swamy Mutt is a revered religious organization
+                Mathaji Ulsooramma Sri Raghavendra Swamy Mutt is a revered religious organization
                 dedicated to the teachings and service of Sri Raghavendra Swamy, a saint known for his unwavering devotion
                 and miracles.
               </p>
@@ -170,11 +171,10 @@ export default function Home() {
                 <button
                   type="submit"
                   disabled={subscribing || subscribed}
-                  className={`px-8 py-4 rounded-xl font-bold transition-all shadow-md whitespace-nowrap ${
-                    subscribed 
-                      ? 'bg-green-500 text-white' 
-                      : 'bg-orange-600 text-white hover:bg-orange-700'
-                  }`}
+                  className={`px-8 py-4 rounded-xl font-bold transition-all shadow-md whitespace-nowrap ${subscribed
+                    ? 'bg-green-500 text-white'
+                    : 'bg-orange-600 text-white hover:bg-orange-700'
+                    }`}
                 >
                   {subscribing ? 'Subscribing...' : subscribed ? '✓ Subscribed' : 'Subscribe'}
                 </button>
