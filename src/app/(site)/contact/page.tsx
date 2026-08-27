@@ -69,8 +69,8 @@ export default function Contact() {
               <button
                 onClick={() => setActiveTab('contact')}
                 className={`flex items-center gap-2 px-8 py-4 rounded-xl font-bold transition-all duration-300 ${activeTab === 'contact'
-                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md transform scale-100'
-                    : 'text-gray-500 hover:text-orange-600 hover:bg-orange-50'
+                  ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md transform scale-100'
+                  : 'text-gray-500 hover:text-orange-600 hover:bg-orange-50'
                   }`}
               >
                 <Mail className="w-5 h-5" />
@@ -79,8 +79,8 @@ export default function Contact() {
               <button
                 onClick={() => setActiveTab('donate')}
                 className={`flex items-center gap-2 px-8 py-4 rounded-xl font-bold transition-all duration-300 ${activeTab === 'donate'
-                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md transform scale-100'
-                    : 'text-gray-500 hover:text-orange-600 hover:bg-orange-50'
+                  ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md transform scale-100'
+                  : 'text-gray-500 hover:text-orange-600 hover:bg-orange-50'
                   }`}
               >
                 <Heart className="w-5 h-5" />
@@ -229,7 +229,7 @@ export default function Contact() {
                         <div>
                           <h4 className="font-bold text-gray-900 mb-1">Phone Numbers</h4>
                           <div className="text-gray-600 font-medium space-y-1">
-                            <p>+91 9823260156</p>
+
                             <p>080 4972 3252</p>
                             <p>9538320752</p>
                             <p>6366133799</p>
@@ -374,8 +374,8 @@ export default function Contact() {
                             type="button"
                             onClick={() => setDonationAmount(amount.toString())}
                             className={`py-3 px-4 rounded-xl font-bold transition-all duration-300 border ${donationAmount === amount.toString()
-                                ? 'bg-orange-600 border-orange-600 text-white shadow-md'
-                                : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600'
+                              ? 'bg-orange-600 border-orange-600 text-white shadow-md'
+                              : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600'
                               }`}
                           >
                             ₹{amount.toLocaleString('en-IN')}
