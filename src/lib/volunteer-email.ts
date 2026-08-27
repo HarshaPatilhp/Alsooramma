@@ -15,9 +15,10 @@ export interface VolunteerPassPayload {
   instructions?: string;
 }
 
-const DEFAULT_EMAILJS_SERVICE_ID = 'service_a5uozgh';
-const DEFAULT_EMAILJS_TEMPLATE_ID = 'template_1r36hlv';
-const DEFAULT_EMAILJS_PUBLIC_KEY = 'JIIK8s48HT1F6ccfl';
+// Strictly Volunteer EmailJS Account 2
+const VOLUNTEER_EMAILJS_SERVICE_ID = process.env.NEXT_PUBLIC_EMAILJS_VOLUNTEER_SERVICE_ID || 'service_a5uozgh';
+const VOLUNTEER_EMAILJS_TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_VOLUNTEER_TEMPLATE_ID || 'template_1r36hlv';
+const VOLUNTEER_EMAILJS_PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_VOLUNTEER_PUBLIC_KEY || 'JIIK8s48HT1F6ccfl';
 
 /**
  * Encodes volunteer pass information into a structured QR code string.
@@ -63,111 +64,93 @@ export function generateOnlineQRImageUrl(pass: VolunteerPassPayload): string {
 }
 
 /**
- * Sends a Volunteer Duty & Badge QR Pass email via EmailJS (template_1r36hlv).
+ * Sends a Volunteer Duty & Badge QR Pass email via Volunteer EmailJS (template_1r36hlv & service_a5uozgh).
  */
 export async function sendVolunteerPassEmail(pass: VolunteerPassPayload): Promise<{ success: boolean; message: string; mode: 'emailjs' | 'smtp' | 'fallback' }> {
-  const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || DEFAULT_EMAILJS_SERVICE_ID;
-  const templateId = process.env.NEXT_PUBLIC_EMAILJS_VOLUNTEER_TEMPLATE_ID || process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || DEFAULT_EMAILJS_TEMPLATE_ID;
-  const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || DEFAULT_EMAILJS_PUBLIC_KEY;
+  const serviceId = VOLUNTEER_EMAILJS_SERVICE_ID;
+  const templateId = VOLUNTEER_EMAILJS_TEMPLATE_ID;
+  const publicKey = VOLUNTEER_EMAILJS_PUBLIC_KEY;
 
   const qrDataURL = await generateVolunteerQRCodeDataURL(pass);
   const qrString = generateVolunteerPassCode(pass);
   const qrOnlineUrl = generateOnlineQRImageUrl(pass);
 
-  // Complete parameter matrix supporting every single placeholder permutation
+  // Complete parameter matrix supporting every single placeholder permutation in template_1r36hlv
   const templateParams: Record<string, any> = {
-    // Volunteer Name variations
+    // Volunteer Name
     volunteer_name: pass.volunteerName,
     volunteerName: pass.volunteerName,
     to_name: pass.volunteerName,
-    toName: pass.volunteerName,
     name: pass.volunteerName,
     user_name: pass.volunteerName,
-    userName: pass.volunteerName,
-    recipient_name: pass.volunteerName,
 
-    // Seva / Duty variations
+    // Seva / Duty
     seva_title: pass.dutyTitle,
     sevaTitle: pass.dutyTitle,
     duty_title: pass.dutyTitle,
     dutyTitle: pass.dutyTitle,
-    seva: pass.dutyTitle,
     duty: pass.dutyTitle,
+    seva: pass.dutyTitle,
     title: pass.dutyTitle,
-    seva_name: pass.dutyTitle,
-    sevaName: pass.dutyTitle,
 
-    // Date variations
+    // Date
     duty_date: pass.dutyDate,
     dutyDate: pass.dutyDate,
     date: pass.dutyDate,
-    seva_date: pass.dutyDate,
-    sevaDate: pass.dutyDate,
 
-    // Shift Timing variations
+    // Shift Timing
     shift_timing: pass.dutyTime,
     shiftTiming: pass.dutyTime,
     duty_time: pass.dutyTime,
     dutyTime: pass.dutyTime,
-    timing: pass.dutyTime,
     time: pass.dutyTime,
-    shift_time: pass.dutyTime,
-    shiftTime: pass.dutyTime,
 
-    // Location variations
+    // Location / Gate
     assigned_location: pass.dutyLocation,
     assignedLocation: pass.dutyLocation,
     duty_location: pass.dutyLocation,
-    dutyLocation: pass.dutyLocation,
     location: pass.dutyLocation,
-    hall: pass.dutyLocation,
     gate: pass.dutyLocation,
-    location_gate: pass.dutyLocation,
 
-    // QR Code variations
+    // QR Code Image
     qr_code: qrOnlineUrl,
     qrCode: qrOnlineUrl,
     qr_image_url: qrOnlineUrl,
-    qrImageUrl: qrOnlineUrl,
     qr_url: qrOnlineUrl,
-    qrUrl: qrOnlineUrl,
-    qr_img: qrOnlineUrl,
-    qrImg: qrOnlineUrl,
-    qr_image: qrOnlineUrl,
-    qrcode: qrOnlineUrl,
     pass_code: qrString,
 
     // Additional info
     badge_level: pass.badgeLevel,
-    badgeLevel: pass.badgeLevel,
-    badge: pass.badgeLevel,
     instructions: pass.instructions || '',
     message: pass.instructions || '',
-    notes: pass.instructions || '',
 
     // Recipient & sender email
-    to_email: pass.volunteerEmail,
-    toEmail: pass.volunteerEmail,
-    recipient_email: pass.volunteerEmail,
-    user_email: pass.volunteerEmail,
     email: pass.volunteerEmail,
+    to_email: pass.volunteerEmail,
+    recipient_email: pass.volunteerEmail,
     reply_to: 'vidyaranyapuramutt@gmail.com',
     from_name: 'Volunteer Seva Team - Mathaji Ulsooramma Mutt',
   };
 
-  // 1. Send via EmailJS Browser SDK
+  // 1. Send via EmailJS Browser SDK using Volunteer Public Key (JIIK8s48HT1F6ccfl)
   try {
     emailjs.init({ publicKey });
 
-    console.log('Sending EmailJS with template:', templateId, 'to:', pass.volunteerEmail, templateParams);
+    console.log('Sending Volunteer Pass via EmailJS Account 2:', {
+      service: serviceId,
+      template: templateId,
+      publicKey: publicKey,
+      recipient: pass.volunteerEmail
+    });
+
     const response = await emailjs.send(serviceId, templateId, templateParams, { publicKey });
 
     if (response.status === 200) {
-      console.log('EmailJS response success:', response);
-      return { success: true, message: 'Email sent via EmailJS successfully!', mode: 'emailjs' };
+      console.log('Volunteer EmailJS dispatch success:', response);
+      return { success: true, message: 'Email sent via Volunteer EmailJS successfully!', mode: 'emailjs' };
     }
   } catch (emailjsErr: any) {
-    console.warn('Client EmailJS SDK attempt encountered issue, attempting server dispatch route:', emailjsErr?.text || emailjsErr?.message || emailjsErr);
+    console.warn('Volunteer EmailJS attempt error:', emailjsErr?.text || emailjsErr?.message || emailjsErr);
   }
 
   // 2. Server-side Route Fallback

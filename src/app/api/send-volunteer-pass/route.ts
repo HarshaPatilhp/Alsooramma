@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import QRCode from 'qrcode';
 
-const EMAILJS_SERVICE_ID = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || 'service_a5uozgh';
+// Strictly Account 2 (Volunteer Account)
+const EMAILJS_SERVICE_ID = process.env.NEXT_PUBLIC_EMAILJS_VOLUNTEER_SERVICE_ID || 'service_a5uozgh';
 const EMAILJS_TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_VOLUNTEER_TEMPLATE_ID || 'template_1r36hlv';
-const EMAILJS_PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || 'JIIK8s48HT1F6ccfl';
-const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY || 'cqXbdIMW85jCxqRIiQkWA';
+const EMAILJS_PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_VOLUNTEER_PUBLIC_KEY || 'JIIK8s48HT1F6ccfl';
+const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_VOLUNTEER_PRIVATE_KEY || 'cqXbdIMW85jCxqRIiQkWA';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 1. Try sending via EmailJS REST API using the Private Key (Access Token)
+    // 1. Try sending via EmailJS REST API using the Volunteer Private Key (Access Token)
     try {
       const emailJsPayload = {
         service_id: EMAILJS_SERVICE_ID,
@@ -38,7 +39,6 @@ export async function POST(request: NextRequest) {
         user_id: EMAILJS_PUBLIC_KEY,
         accessToken: EMAILJS_PRIVATE_KEY,
         template_params: {
-          // Exact template parameters
           volunteer_name: pass.volunteerName,
           seva_title: pass.dutyTitle,
           duty_date: pass.dutyDate,
@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
           assigned_location: pass.dutyLocation,
           qr_code: finalQrOnlineUrl,
 
-          // Aliases
           to_name: pass.volunteerName,
           name: pass.volunteerName,
           to_email: pass.volunteerEmail,
