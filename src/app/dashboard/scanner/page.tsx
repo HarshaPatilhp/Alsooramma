@@ -324,13 +324,23 @@ export default function ScannerPage() {
             </div>
           </div>
 
-          <button 
-            onClick={fetchTodayLunch}
-            className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 text-gray-500 hover:text-orange-600 cursor-pointer"
-            title="Refresh counts"
-          >
-            <RefreshCw size={13} />
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href="/dashboard/users"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300/60 dark:border-amber-700/60 text-amber-800 dark:text-amber-300 text-xs font-bold hover:bg-amber-100 transition-colors"
+              title="View scanned volunteers list and export CSV"
+            >
+              <Award size={13} />
+              <span>Scanned Volunteers & Badges</span>
+            </a>
+            <button 
+              onClick={fetchTodayLunch}
+              className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 text-gray-500 hover:text-orange-600 cursor-pointer"
+              title="Refresh counts"
+            >
+              <RefreshCw size={13} />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">

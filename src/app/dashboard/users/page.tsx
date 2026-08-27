@@ -69,7 +69,23 @@ export default function UsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'volunteers' | 'admins'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'volunteers' | 'admins' | 'scanned_badges'>('all');
+  const [scannedVolunteers, setScannedVolunteers] = useState<Array<{
+    id: string;
+    booking_id: string;
+    volunteerName: string;
+    email?: string;
+    sevaDuty: string;
+    badge: string;
+    scannedAt: string;
+    scannedDate: string;
+    scannedTime: string;
+    scannedBy: string;
+    status: string;
+  }>>([]);
+  const [scannedSearch, setScannedSearch] = useState('');
+  const [scannedBadgeFilter, setScannedBadgeFilter] = useState('All');
+  const [isLoadingScans, setIsLoadingScans] = useState(false);
   
   // Selection state for sending emails
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
@@ -155,8 +171,91 @@ export default function UsersPage() {
     }
   };
 
+  const fetchScannedVolunteers = async () => {
+    setIsLoadingScans(true);
+    try {
+      const { createClient } = await import('@/lib/client');
+      const supabase = createClient();
+      const { data: scanRows, error } = await supabase
+        .from('scan_history')
+        .select('*')
+        .order('scanned_at', { ascending: false });
+
+      if (!error && Array.isArray(scanRows)) {
+        const parsedList = scanRows
+          .filter((row: any) => {
+            const bId = String(row.booking_id || '');
+            const sName = String(row.seva_name || '');
+            const st = String(row.status || '');
+            return bId.startsWith('VOL-') || sName.includes('[Volunteer Badge:') || st.includes('Badge') || sName.toLowerCase().includes('volunteer');
+          })
+          .map((row: any) => {
+            let badge = '🎖️ Active Swayamsevak';
+            let duty = row.seva_name || 'Temple Operations';
+
+            // Extract badge if formatted like [Volunteer Badge: ⭐ Seva & Utsavam Lead]
+            const match = (row.seva_name || '').match(/\[Volunteer Badge:\s*([^\]]+)\]\s*(.*)/i);
+            if (match) {
+              badge = match[1].trim();
+              duty = match[2].trim() || 'Temple Operations & Seva';
+            }
+
+            const dt = row.scanned_at ? new Date(row.scanned_at) : new Date();
+
+            return {
+              id: row.id || `scan-${Math.random()}`,
+              booking_id: row.booking_id || '',
+              volunteerName: row.devotee_name || 'Swayamsevak',
+              sevaDuty: duty,
+              badge: badge,
+              scannedAt: row.scanned_at || new Date().toISOString(),
+              scannedDate: dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+              scannedTime: dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
+              scannedBy: row.scanned_by || 'Gate Scanner',
+              status: row.status || 'Verified'
+            };
+          });
+
+        setScannedVolunteers(parsedList);
+      }
+    } catch (e) {
+      console.error('Failed to fetch scanned volunteers:', e);
+    } finally {
+      setIsLoadingScans(false);
+    }
+  };
+
+  const handleExportScannedCSV = () => {
+    const listToExport = filteredScannedVolunteers;
+    if (listToExport.length === 0) {
+      alert('No scanned volunteer passes found to export.');
+      return;
+    }
+
+    const headers = ['Volunteer Name', 'Assigned Seva Duty', 'Awarded Badge Tier', 'Scan Date', 'Scan Time', 'Verified By', 'Attendance Status'];
+    const rows = listToExport.map(item => [
+      `"${item.volunteerName.replace(/"/g, '""')}"`,
+      `"${item.sevaDuty.replace(/"/g, '""')}"`,
+      `"${item.badge.replace(/"/g, '""')}"`,
+      `"${item.scannedDate}"`,
+      `"${item.scannedTime}"`,
+      `"${item.scannedBy.replace(/"/g, '""')}"`,
+      `"${item.status.replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\r\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `verified_volunteers_badges_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchScannedVolunteers();
   }, [currentUser]);
 
   // Combined recipient list (from table selection + manually entered Gmails)
@@ -191,6 +290,19 @@ export default function UsersPage() {
     if (activeTab === 'volunteers') return u.role === 'volunteer';
     if (activeTab === 'admins') return u.role === 'admin' || u.role === 'super_admin';
     return true;
+  });
+
+  const filteredScannedVolunteers = scannedVolunteers.filter(item => {
+    const searchLower = scannedSearch.toLowerCase();
+    const matchesSearch = 
+      item.volunteerName.toLowerCase().includes(searchLower) ||
+      item.sevaDuty.toLowerCase().includes(searchLower) ||
+      item.badge.toLowerCase().includes(searchLower) ||
+      item.scannedDate.toLowerCase().includes(searchLower) ||
+      item.scannedBy.toLowerCase().includes(searchLower);
+
+    const matchesBadge = scannedBadgeFilter === 'All' || item.badge.includes(scannedBadgeFilter);
+    return matchesSearch && matchesBadge;
   });
 
   const toggleSelectUser = (id: string) => {
@@ -708,10 +820,9 @@ export default function UsersPage() {
           )}
         </div>
       </div>
-
       {/* Filter Tabs & Selection Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-800/60 p-4 rounded-2xl border border-gray-100 dark:border-slate-700/60">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-white dark:bg-slate-800/60 p-4 rounded-2xl border border-gray-100 dark:border-slate-700/60">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setActiveTab('all')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -744,201 +855,418 @@ export default function UsersPage() {
             <Shield size={14} />
             <span>Admins ({users.filter(u => u.role === 'admin' || u.role === 'super_admin').length})</span>
           </button>
+          <button
+            onClick={() => {
+              setActiveTab('scanned_badges');
+              fetchScannedVolunteers();
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'scanned_badges'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-sm shadow-amber-500/30 font-black'
+                : 'text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-amber-300/50'
+            }`}
+          >
+            <Award size={14} />
+            <span>Scanned Badges ({scannedVolunteers.length})</span>
+          </button>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-          <button
-            onClick={selectAllFiltered}
-            className="flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            {selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0 ? (
-              <>
-                <CheckSquare size={16} className="text-orange-600" />
-                <span>Deselect All</span>
-              </>
-            ) : (
-              <>
-                <Square size={16} className="text-gray-400" />
-                <span>Select All ({filteredUsers.length})</span>
-              </>
-            )}
-          </button>
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
+          {activeTab === 'scanned_badges' ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportScannedCSV}
+                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition-all cursor-pointer"
+                title="Download CSV report of all scanned volunteers and awarded badges"
+              >
+                <span>📥 Export CSV / Excel</span>
+                <span className="bg-emerald-800 text-[10px] px-1.5 py-0.5 rounded-full font-mono">
+                  {filteredScannedVolunteers.length}
+                </span>
+              </button>
+              <button
+                onClick={fetchScannedVolunteers}
+                className="p-2 rounded-xl border border-gray-200 dark:border-slate-700 text-gray-500 hover:text-orange-600 cursor-pointer"
+                title="Refresh scanned volunteers list"
+              >
+                <RefreshCw size={14} className={isLoadingScans ? 'animate-spin' : ''} />
+              </button>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={selectAllFiltered}
+                className="flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                {selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0 ? (
+                  <>
+                    <CheckSquare size={16} className="text-orange-600" />
+                    <span>Deselect All</span>
+                  </>
+                ) : (
+                  <>
+                    <Square size={16} className="text-gray-400" />
+                    <span>Select All ({filteredUsers.length})</span>
+                  </>
+                )}
+              </button>
 
-          {allTargetRecipients.length > 0 && (
-            <span className="text-xs font-extrabold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-950/60 px-3 py-1.5 rounded-lg border border-orange-200 dark:border-orange-800/40">
-              {allTargetRecipients.length} Target{allTargetRecipients.length === 1 ? '' : 's'} Ready
-            </span>
+              {allTargetRecipients.length > 0 && (
+                <span className="text-xs font-extrabold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-950/60 px-3 py-1.5 rounded-lg border border-orange-200 dark:border-orange-800/40">
+                  {allTargetRecipients.length} Target{allTargetRecipients.length === 1 ? '' : 's'} Ready
+                </span>
+              )}
+            </>
           )}
         </div>
       </div>
 
-      {/* Main Personnel Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700/50 overflow-hidden">
-        {isLoading ? (
-          <div className="py-20 flex flex-col items-center justify-center text-gray-400 gap-3">
-            <div className="w-8 h-8 border-3 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-sm font-medium">Loading personnel and volunteer roster...</span>
+      {/* ========================================================================= */}
+      {/* 🎖️ SCANNED VOLUNTEERS WITH BADGE DETAILS TAB VIEW                         */}
+      {/* ========================================================================= */}
+      {activeTab === 'scanned_badges' ? (
+        <div className="space-y-4 animate-fade-in">
+          {/* Summary Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-amber-200/80 dark:border-slate-700 flex items-center gap-3.5 shadow-sm">
+              <div className="w-11 h-11 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center font-bold">
+                <Award size={22} />
+              </div>
+              <div>
+                <span className="text-[10px] font-extrabold text-amber-700 dark:text-amber-400 uppercase tracking-wider block">
+                  Total Passes Scanned
+                </span>
+                <p className="text-2xl font-black text-gray-900 dark:text-white mt-0.5">{scannedVolunteers.length}</p>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-emerald-200/80 dark:border-slate-700 flex items-center gap-3.5 shadow-sm">
+              <div className="w-11 h-11 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center font-bold">
+                <CheckCircle2 size={22} />
+              </div>
+              <div>
+                <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
+                  Attendance Confirmed
+                </span>
+                <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                  {scannedVolunteers.filter(v => v.status.includes('Badge') || v.status.includes('Checked') || v.status.includes('Verified')).length}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-blue-200/80 dark:border-slate-700 flex items-center gap-3.5 shadow-sm">
+              <div className="w-11 h-11 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center font-bold">
+                <Sparkles size={22} />
+              </div>
+              <div>
+                <span className="text-[10px] font-extrabold text-blue-700 dark:text-blue-400 uppercase tracking-wider block">
+                  Badge Tiers Active
+                </span>
+                <p className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-0.5">
+                  {new Set(scannedVolunteers.map(v => v.badge)).size} Types
+                </p>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[750px]">
-               <thead>
-                 <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-semibold border-b border-gray-100 dark:border-slate-700/50">
-                    <th className="px-6 py-4 w-12 text-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0}
-                        onChange={selectAllFiltered}
-                        className="rounded text-orange-600 focus:ring-orange-500 w-4 h-4 cursor-pointer"
-                        title="Select/Deselect all"
-                      />
-                    </th>
-                    <th className="px-6 py-4">Personnel / Volunteer</th>
-                    <th className="px-6 py-4">Email & Phone</th>
-                    <th className="px-6 py-4">Assigned Role</th>
-                    <th className="px-6 py-4">Module Permissions</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
-                 </tr>
-               </thead>
-               <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50">
-                 {filteredUsers.length === 0 ? (
-                   <tr>
-                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                       <p className="text-sm font-semibold">No records found in this category.</p>
-                       <p className="text-xs text-gray-400 mt-1">Try changing your filter tab or invite new volunteers.</p>
-                     </td>
-                   </tr>
-                 ) : (
-                   filteredUsers.map(u => {
-                     const isRowSuperAdmin = u.role === 'super_admin' || u.email === 'admin@temple.com';
-                     const isSelected = selectedUserIds.includes(u.id);
-                     const activePermCount = u.permissions ? Object.values(u.permissions).filter(Boolean).length : 0;
 
-                     return (
-                       <tr 
-                         key={u.id || Math.random()} 
-                         className={`transition-colors ${
-                           isSelected 
-                             ? 'bg-orange-50/60 dark:bg-orange-950/20' 
-                             : 'hover:bg-gray-50/50 dark:hover:bg-slate-800/50'
-                         }`}
-                       >
-                          {/* Selection Checkbox */}
-                          <td className="px-6 py-4 text-center">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleSelectUser(u.id)}
-                              className="rounded text-orange-600 focus:ring-orange-500 w-4 h-4 cursor-pointer"
-                            />
-                          </td>
+          {/* Search & Filter Bar */}
+          <div className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="relative w-full sm:w-80">
+              <input
+                type="text"
+                placeholder="Search by volunteer name, duty, or badge..."
+                value={scannedSearch}
+                onChange={e => setScannedSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500"
+              />
+              <Filter className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+            </div>
 
-                          {/* Personnel Info */}
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-3">
-                               <div className={`w-10 h-10 flex items-center justify-center rounded-2xl text-white font-bold text-lg shadow-sm ${
-                                 isRowSuperAdmin ? 'bg-gradient-to-tr from-purple-600 to-indigo-600' :
-                                 u.role === 'admin' ? 'bg-blue-600' : 'bg-gradient-to-tr from-orange-600 to-amber-600'
-                               }`}>
-                                  {(u.name || 'User').charAt(0)}
-                               </div>
-                              <div>
-                                <span className="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-sm">
-                                  {u.name}
-                                  {isRowSuperAdmin && <span title="Protected Super Admin"><Lock size={13} className="text-purple-500 inline" /></span>}
-                                </span>
-                                <span className="text-xs text-gray-400 block sm:hidden">{u.email}</span>
-                              </div>
-                           </div>
-                         </td>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <select
+                value={scannedBadgeFilter}
+                onChange={e => setScannedBadgeFilter(e.target.value)}
+                className="px-3 py-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs text-gray-700 dark:text-gray-300 outline-none font-semibold cursor-pointer"
+              >
+                <option value="All">All Badge Tiers</option>
+                <option value="Active Swayamsevak">Active Swayamsevak</option>
+                <option value="Lead">Seva & Utsavam Lead</option>
+                <option value="Annadanam">Annadanam & Kitchen Sevak</option>
+                <option value="Coordinator">Security & Crowd Coordinator</option>
+                <option value="Operations">Operations Lead</option>
+              </select>
 
-                         {/* Contact */}
-                         <td className="px-6 py-4 whitespace-nowrap">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{u.email}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{u.phone || '—'}</p>
-                         </td>
+              <button
+                onClick={handleExportScannedCSV}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>📥 Export CSV</span>
+              </button>
+            </div>
+          </div>
 
-                         {/* Role */}
-                         <td className="px-6 py-4 whitespace-nowrap">
-                            {isRowSuperAdmin ? (
-                               <span className="bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-purple-200 dark:border-purple-800/60 inline-flex items-center gap-1.5">
-                                 <Shield size={12} /> Super Admin
-                               </span>
-                            ) : u.role === 'admin' ? (
-                               <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-blue-200 dark:border-blue-800/60 inline-flex items-center gap-1.5">
-                                 <CheckSquare size={12} /> Administrator
-                               </span>
-                            ) : (
-                               <span className="bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-orange-200 dark:border-orange-800/60 inline-flex items-center gap-1.5">
-                                 <QrCode size={12} /> Volunteer / Sevak
-                               </span>
-                            )}
-                         </td>
-
-                         {/* Permissions */}
-                         <td className="px-6 py-4 whitespace-nowrap">
-                            {isRowSuperAdmin ? (
-                              <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-lg border border-purple-100 dark:border-purple-900/30">
-                                All Modules (Unrestricted)
-                              </span>
-                            ) : (
-                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700/60 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-slate-600">
-                                {activePermCount} Allowed
-                              </span>
-                            )}
-                         </td>
-
-                         {/* Action Buttons */}
-                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                            <div className="flex items-center justify-end gap-2">
-                              {/* Single Send QR Pass Button */}
-                              <button
-                                onClick={() => {
-                                  setSelectedUserIds([u.id]);
-                                  setDispatchResults([]);
-                                  setShowEmailDispatchModal(true);
-                                }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-orange-50 dark:bg-orange-950/50 hover:bg-orange-100 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 rounded-lg text-xs font-bold transition-colors border border-orange-200/60 dark:border-orange-800/50 cursor-pointer"
-                                title="Send QR Duty Pass to this user"
-                              >
-                                <Mail size={13} />
-                                <span className="hidden sm:inline">Send Pass</span>
-                              </button>
-
-                              {!isRowSuperAdmin && isSuperAdmin && (
-                                <button 
-                                  onClick={() => openManagePermissionsModal(u)} 
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold transition-colors border border-blue-200/60 dark:border-blue-800/50 cursor-pointer" 
-                                  title="Manage Permissions and Role Access"
-                                >
-                                  <Edit size={13} />
-                                  <span className="hidden sm:inline">Access</span>
-                                </button>
-                              )}
-
-                              {!isRowSuperAdmin && isSuperAdmin && (
-                                <button 
-                                  onClick={() => deleteUser(u.id, u.role)} 
-                                  className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer" 
-                                  title="Revoke Access"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
-                              )}
+          {/* Scanned Volunteers Table */}
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700/50 overflow-hidden">
+            {isLoadingScans ? (
+              <div className="py-20 flex flex-col items-center justify-center text-gray-400 gap-3">
+                <div className="w-8 h-8 border-3 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm font-medium">Loading scanned volunteer passes...</span>
+              </div>
+            ) : filteredScannedVolunteers.length === 0 ? (
+              <div className="py-16 text-center text-gray-500 dark:text-gray-400 p-6 space-y-3">
+                <div className="w-14 h-14 bg-amber-100 dark:bg-amber-950/50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
+                  <Award size={28} />
+                </div>
+                <h3 className="text-base font-extrabold text-gray-900 dark:text-white">No Scanned Volunteer Passes Found</h3>
+                <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                  When gate admins scan volunteer QR passes with the Gate Scanner, the verified volunteers and their awarded badges will appear here automatically.
+                </p>
+                <a
+                  href="/dashboard/scanner"
+                  className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors mt-2"
+                >
+                  <QrCode size={15} />
+                  <span>Open Gate Scanner</span>
+                </a>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[750px]">
+                  <thead>
+                    <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-semibold border-b border-gray-100 dark:border-slate-700/50">
+                      <th className="px-6 py-4">Volunteer / Swayamsevak</th>
+                      <th className="px-6 py-4">Assigned Seva Duty</th>
+                      <th className="px-6 py-4">Awarded Badge Tier</th>
+                      <th className="px-6 py-4">Scan Date & Time</th>
+                      <th className="px-6 py-4">Verified By</th>
+                      <th className="px-6 py-4 text-right">Attendance Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50 text-xs">
+                    {filteredScannedVolunteers.map(item => (
+                      <tr key={item.id} className="hover:bg-amber-50/40 dark:hover:bg-slate-700/30 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-extrabold flex items-center justify-center shadow-sm">
+                              {item.volunteerName.charAt(0).toUpperCase()}
                             </div>
-                         </td>
-                       </tr>
-                     );
-                   }))}
-               </tbody>
-            </table>
+                            <div>
+                              <p className="font-extrabold text-gray-900 dark:text-white text-sm">
+                                {item.volunteerName}
+                              </p>
+                              <span className="text-[10px] font-mono text-gray-400">Pass: {item.booking_id || 'VOL-PASS'}</span>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-gray-800 dark:text-gray-200">{item.sevaDuty}</p>
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60 shadow-sm">
+                            <Award size={13} className="text-amber-600 dark:text-amber-400" />
+                            <span>{item.badge}</span>
+                          </span>
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <p className="font-semibold text-gray-800 dark:text-gray-200">{item.scannedDate}</p>
+                          <p className="text-[10px] text-gray-400 font-mono">{item.scannedTime}</p>
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
+                          <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-[11px] font-medium">
+                            {item.scannedBy}
+                          </span>
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs border border-emerald-200 dark:border-emerald-800/40">
+                            <CheckCircle2 size={13} />
+                            <span>Present [✓]</span>
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        /* Main Personnel Table */
+        <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700/50 overflow-hidden">
+          {isLoading ? (
+            <div className="py-20 flex flex-col items-center justify-center text-gray-400 gap-3">
+              <div className="w-8 h-8 border-3 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-sm font-medium">Loading personnel and volunteer roster...</span>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[750px]">
+                 <thead>
+                   <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-semibold border-b border-gray-100 dark:border-slate-700/50">
+                      <th className="px-6 py-4 w-12 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0}
+                          onChange={selectAllFiltered}
+                          className="rounded text-orange-600 focus:ring-orange-500 w-4 h-4 cursor-pointer"
+                          title="Select/Deselect all"
+                        />
+                      </th>
+                      <th className="px-6 py-4">Personnel / Volunteer</th>
+                      <th className="px-6 py-4">Email & Phone</th>
+                      <th className="px-6 py-4">Assigned Role</th>
+                      <th className="px-6 py-4">Module Permissions</th>
+                      <th className="px-6 py-4 text-right">Actions</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50">
+                   {filteredUsers.length === 0 ? (
+                     <tr>
+                       <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                         <p className="text-sm font-semibold">No records found in this category.</p>
+                         <p className="text-xs text-gray-400 mt-1">Try changing your filter tab or invite new volunteers.</p>
+                       </td>
+                     </tr>
+                   ) : (
+                     filteredUsers.map(u => {
+                       const isRowSuperAdmin = u.role === 'super_admin' || u.email === 'admin@temple.com';
+                       const isSelected = selectedUserIds.includes(u.id);
+                       const activePermCount = u.permissions ? Object.values(u.permissions).filter(Boolean).length : 0;
+
+                       return (
+                         <tr 
+                           key={u.id || Math.random()} 
+                           className={`transition-colors ${
+                             isSelected 
+                               ? 'bg-orange-50/70 dark:bg-orange-950/20' 
+                               : 'hover:bg-gray-50/80 dark:hover:bg-slate-700/40'
+                           }`}
+                         >
+                           {/* Checkbox */}
+                           <td className="px-6 py-4 text-center">
+                             <input
+                               type="checkbox"
+                               checked={isSelected}
+                               onChange={() => toggleSelectUser(u.id)}
+                               className="rounded text-orange-600 focus:ring-orange-500 w-4 h-4 cursor-pointer"
+                             />
+                           </td>
+
+                           {/* User Profile */}
+                           <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center gap-3">
+                                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm text-white shadow-sm ${
+                                   u.role === 'super_admin' ? 'bg-gradient-to-tr from-amber-500 to-red-500' :
+                                   u.role === 'admin' ? 'bg-gradient-to-tr from-blue-600 to-indigo-600' :
+                                   'bg-gradient-to-tr from-orange-500 to-amber-500'
+                                 }`}>
+                                    {u.name?.charAt(0)?.toUpperCase() || 'U'}
+                                 </div>
+                                 <div>
+                                    <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                                      <span>{u.name}</span>
+                                      {isRowSuperAdmin && (
+                                        <span className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 font-extrabold px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700">
+                                          Super Admin
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-gray-400 font-mono">ID: {u.id?.slice(0, 10) || 'N/A'}</div>
+                                 </div>
+                              </div>
+                           </td>
+
+                           {/* Contact info */}
+                           <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-xs text-gray-700 dark:text-gray-300 font-medium">{u.email}</div>
+                              <div className="text-xs text-gray-400 font-mono">{u.phone || 'No phone'}</div>
+                           </td>
+
+                           {/* Role */}
+                           <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                                u.role === 'super_admin' 
+                                  ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800' :
+                                u.role === 'admin' 
+                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800' :
+                                  'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 border border-orange-200 dark:border-orange-800'
+                              }`}>
+                                 <Shield size={12} />
+                                 <span className="capitalize">{u.role?.replace('_', ' ')}</span>
+                              </span>
+                           </td>
+
+                           {/* Permissions count & pills */}
+                           <td className="px-6 py-4">
+                              {u.role === 'super_admin' ? (
+                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800/40">
+                                  Full System Access
+                                </span>
+                              ) : (
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700/60 px-2.5 py-1 rounded-lg">
+                                    {activePermCount} Enabled
+                                  </span>
+                                </div>
+                              )}
+                           </td>
+
+                           {/* Action Buttons */}
+                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                              <div className="flex items-center justify-end gap-2">
+                                {/* Single Send QR Pass Button */}
+                                <button
+                                  onClick={() => {
+                                    setSelectedUserIds([u.id]);
+                                    setDispatchResults([]);
+                                    setShowEmailDispatchModal(true);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-orange-50 dark:bg-orange-950/50 hover:bg-orange-100 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 rounded-lg text-xs font-bold transition-colors border border-orange-200/60 dark:border-orange-800/50 cursor-pointer"
+                                  title="Send QR Duty Pass to this user"
+                                >
+                                  <Mail size={13} />
+                                  <span className="hidden sm:inline">Send Pass</span>
+                                </button>
+
+                                {!isRowSuperAdmin && isSuperAdmin && (
+                                  <button 
+                                    onClick={() => openManagePermissionsModal(u)} 
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold transition-colors border border-blue-200/60 dark:border-blue-800/50 cursor-pointer" 
+                                    title="Manage Permissions and Role Access"
+                                  >
+                                    <Edit size={13} />
+                                    <span className="hidden sm:inline">Access</span>
+                                  </button>
+                                )}
+
+                                {!isRowSuperAdmin && isSuperAdmin && (
+                                  <button 
+                                    onClick={() => deleteUser(u.id, u.role)} 
+                                    className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer" 
+                                    title="Revoke Access"
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                )}
+                              </div>
+                           </td>
+                         </tr>
+                       );
+                     }))}
+                 </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 📧 VOLUNTEER EMAIL & QR BADGE DISPATCH MODAL (EMAILJS & MANUAL GMAIL)       */}
-      {/* ========================================================================= */}
       {showEmailDispatchModal && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden animate-fade-in my-8 border border-orange-200/80 dark:border-slate-700">
