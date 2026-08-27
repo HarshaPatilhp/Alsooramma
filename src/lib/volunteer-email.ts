@@ -55,9 +55,17 @@ export async function generateVolunteerQRCodeDataURL(pass: VolunteerPassPayload)
 }
 
 /**
+ * Generates an online public QR image URL that renders directly inside EmailJS templates
+ */
+export function generateOnlineQRImageUrl(pass: VolunteerPassPayload): string {
+  const qrString = generateVolunteerPassCode(pass);
+  return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(qrString)}`;
+}
+
+/**
  * Sends a Volunteer Duty & Badge QR Pass email.
  * First attempts to send using client-side EmailJS with template_1r36hlv & JIIK8s48HT1F6ccfl.
- * If client sending fails, automatically dispatches via backend API with server-side EmailJS (private key) & SMTP.
+ * If client sending fails, automatically dispatches via backend API.
  */
 export async function sendVolunteerPassEmail(pass: VolunteerPassPayload): Promise<{ success: boolean; message: string; mode: 'emailjs' | 'smtp' | 'fallback' }> {
   const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || DEFAULT_EMAILJS_SERVICE_ID;
@@ -66,41 +74,71 @@ export async function sendVolunteerPassEmail(pass: VolunteerPassPayload): Promis
 
   const qrDataURL = await generateVolunteerQRCodeDataURL(pass);
   const qrString = generateVolunteerPassCode(pass);
+  const qrOnlineUrl = generateOnlineQRImageUrl(pass);
 
-  // 1. Try sending via EmailJS SDK on the client
+  // 1. Send via EmailJS SDK on the client with full parameter mapping
   try {
+    emailjs.init({ publicKey });
+
     const templateParams: Record<string, any> = {
+      // Recipient identifiers
       to_name: pass.volunteerName,
+      user_name: pass.volunteerName,
+      name: pass.volunteerName,
+      volunteer_name: pass.volunteerName,
       to_email: pass.volunteerEmail,
       recipient_email: pass.volunteerEmail,
       user_email: pass.volunteerEmail,
+      email_to: pass.volunteerEmail,
       email: pass.volunteerEmail,
-      name: pass.volunteerName,
+      reply_to: 'harshapatilhp1@gmail.com',
+      from_name: 'Sri Raghavendra Swamy Mutt, Vidyaranyapura',
+      
+      // Duty schedule & location details
       duty_title: pass.dutyTitle,
+      duty: pass.dutyTitle,
+      title: pass.dutyTitle,
+      seva_name: pass.dutyTitle,
       duty_date: pass.dutyDate,
+      date: pass.dutyDate,
       duty_time: pass.dutyTime,
+      time: pass.dutyTime,
       duty_location: pass.dutyLocation,
+      location: pass.dutyLocation,
+      hall: pass.dutyLocation,
       badge_level: pass.badgeLevel,
+      badge: pass.badgeLevel,
+      
+      // Notes & Instructions
       instructions: pass.instructions || 'Please arrive 15 minutes before your shift and present this QR pass at the entrance.',
+      message: pass.instructions || 'Thank you for your dedicated seva at Sri Raghavendra Swamy Mutt.',
+      
+      // QR Code parameters (both token string and image URLs)
       qr_code: qrString,
-      qr_image_url: qrDataURL,
-      message: pass.instructions || 'Thank you for your dedicated service at Sri Raghavendra Swamy Mutt.'
+      pass_code: qrString,
+      qr_image_url: qrOnlineUrl,
+      qr_url: qrOnlineUrl,
+      qr_image: qrOnlineUrl,
+      qr_img: qrOnlineUrl,
     };
 
-    const response = await emailjs.send(serviceId, templateId, templateParams, publicKey);
+    console.log('Dispatching via EmailJS with template:', templateId, 'to:', pass.volunteerEmail);
+    const response = await emailjs.send(serviceId, templateId, templateParams, { publicKey });
+
     if (response.status === 200) {
-      return { success: true, message: 'Email sent via EmailJS successfully!', mode: 'emailjs' };
+      console.log('EmailJS dispatch success:', response);
+      return { success: true, message: 'Email sent via EmailJS template_1r36hlv successfully!', mode: 'emailjs' };
     }
-  } catch (emailjsErr) {
-    console.warn('Client EmailJS SDK attempt failed, calling server dispatch route:', emailjsErr);
+  } catch (emailjsErr: any) {
+    console.warn('Client EmailJS SDK attempt encountered issue, attempting server dispatch route:', emailjsErr?.text || emailjsErr?.message || emailjsErr);
   }
 
-  // 2. Server-side EmailJS REST API (with Private Key) / SMTP Fallback
+  // 2. Server-side Dispatch Route Fallback
   try {
     const res = await fetch('/api/send-volunteer-pass', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pass, qrDataURL, qrString }),
+      body: JSON.stringify({ pass, qrDataURL, qrString, qrOnlineUrl }),
     });
 
     const data = await res.json();
