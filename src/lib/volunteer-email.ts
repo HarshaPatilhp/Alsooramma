@@ -15,7 +15,7 @@ export interface VolunteerPassPayload {
   instructions?: string;
 }
 
-const DEFAULT_EMAILJS_SERVICE_ID = 'service_7cfhrr5';
+const DEFAULT_EMAILJS_SERVICE_ID = 'service_a5uozgh';
 const DEFAULT_EMAILJS_TEMPLATE_ID = 'template_1r36hlv';
 const DEFAULT_EMAILJS_PUBLIC_KEY = 'JIIK8s48HT1F6ccfl';
 
