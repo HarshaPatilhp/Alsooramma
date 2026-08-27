@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import VolunteerCard from '@/components/VolunteerCard';
 import {
   Clock,
   ArrowRight,
@@ -15,22 +14,21 @@ import {
   Flame,
   Calendar,
   Utensils,
-  ShieldCheck
+  ShieldCheck,
+  Search,
+  Filter,
+  Award
 } from 'lucide-react';
 
-interface VolunteerItem {
+export interface VolunteerMember {
+  id: string;
   name: string;
   role: string;
-  description: string;
-  imageSrc: string;
-  alt: string;
-  phone: string;
-  instagram: string;
-  linkedin: string;
   category: string;
-  skills: string[];
+  phone?: string;
+  email?: string;
   status: string;
-  shiftsServed: number;
+  badge?: string;
 }
 
 const categories = [
@@ -42,90 +40,61 @@ const categories = [
   { name: 'Security & Crowd', icon: ShieldCheck },
 ];
 
-const volunteersData: VolunteerItem[] = [
+// Initial placeholder list — ready to be populated with the user's list
+export const initialVolunteersList: VolunteerMember[] = [
   {
-    name: "Gururaj Patil",
-    role: "Temple Operations Head",
-    description: "Overseeing daily temple operations, seva logistics, and infrastructure maintenance.",
-    imageSrc: "/images/2.jpg",
-    alt: "Gururaj Patil",
-    phone: "+91 98765 43210",
-    instagram: "https://instagram.com/gururajpatil",
-    linkedin: "https://linkedin.com/in/gururajpatil",
-    category: "Temple Operations",
-    skills: ["Operations", "Facility Management", "Seva Logistics"],
-    status: "Active Lead",
-    shiftsServed: 58
+    id: 'VOL-001',
+    name: 'Gururaj Patil',
+    role: 'Temple Operations Lead',
+    category: 'Temple Operations',
+    phone: '+91 98765 43210',
+    status: 'Active Lead',
+    badge: '⭐ Operations Lead'
   },
   {
-    name: "Vivek",
-    role: "Festival & Event Lead",
-    description: "Organizing grand Aradhana utsavams, cultural events, and special pooja gatherings.",
-    imageSrc: "/images/4.JPEG",
-    alt: "Vivek",
-    phone: "+91 98765 43211",
-    instagram: "https://instagram.com/vivek",
-    linkedin: "https://linkedin.com/in/vivek",
-    category: "Event Management",
-    skills: ["Utsavam Planning", "Sound & Stage", "Crowd Coordination"],
-    status: "Senior Coordinator",
-    shiftsServed: 49
+    id: 'VOL-002',
+    name: 'Vivek',
+    role: 'Festival & Event Coordinator',
+    category: 'Event Management',
+    phone: '+91 98765 43211',
+    status: 'Senior Coordinator',
+    badge: '⭐ Seva & Utsavam Lead'
   },
   {
-    name: "Harsha Patil",
-    role: "Pooja Rituals Coordinator",
-    description: "Assisting Acharyas during daily Nirmalya Visarjana, Panchamrutha Abhisheka, and Rathotsava.",
-    imageSrc: "/images/1..jpg",
-    alt: "Harsha Patil",
-    phone: "+91 9738624467",
-    instagram: "https://www.instagram.com/harsha._._.patil/",
-    linkedin: "https://www.linkedin.com/in/harsha-patil-28059327b",
-    category: "Pooja Rituals",
-    skills: ["Sanskrit Stotras", "Alankara", "Pooja Samagri"],
-    status: "Daily Sevak",
-    shiftsServed: 74
+    id: 'VOL-003',
+    name: 'Harsha Patil',
+    role: 'Pooja Rituals Coordinator',
+    category: 'Pooja Rituals',
+    phone: '+91 97386 24467',
+    status: 'Daily Sevak',
+    badge: '🎖️ Active Swayamsevak'
   },
   {
-    name: "Ramesh Kumar",
-    role: "Security & Crowd Lead",
-    description: "Ensuring queue discipline, safety protocols, and orderly darshan during peak festival hours.",
-    imageSrc: "/images/ramesh-kumar.jpg",
-    alt: "Ramesh Kumar",
-    phone: "+91 98765 43213",
-    instagram: "https://instagram.com/rameshkumar",
-    linkedin: "https://linkedin.com/in/rameshkumar",
-    category: "Security & Crowd",
-    skills: ["Crowd Control", "Emergency Response", "Devotee Care"],
-    status: "Team Lead",
-    shiftsServed: 63
+    id: 'VOL-004',
+    name: 'Ramesh Kumar',
+    role: 'Security & Crowd Management',
+    category: 'Security & Crowd',
+    phone: '+91 98765 43213',
+    status: 'Active Sevak',
+    badge: '🛡️ Security Coordinator'
   },
   {
-    name: "Karthik Nair",
-    role: "Kitchen & Annadanam Lead",
-    description: "Managing sacred prasadam preparation, distribution hygiene, and Maha Annadanam seva.",
-    imageSrc: "/images/karthik-nair.jpg",
-    alt: "Karthik Nair",
-    phone: "+91 98765 43214",
-    instagram: "https://instagram.com/karthiknair",
-    linkedin: "https://linkedin.com/in/karthiknair",
-    category: "Kitchen & Annadanam",
-    skills: ["Annadanam Seva", "Prasada Distribution", "Hygiene Standard"],
-    status: "Active Sevak",
-    shiftsServed: 41
+    id: 'VOL-005',
+    name: 'Karthik Nair',
+    role: 'Kitchen & Annadanam Seva',
+    category: 'Kitchen & Annadanam',
+    phone: '+91 98765 43214',
+    status: 'Active Sevak',
+    badge: '🍲 Annadanam & Kitchen'
   },
   {
-    name: "Deepa Joshi",
-    role: "Administrative & Seva Desk",
-    description: "Devotee registration, seva booking coordination, and Mutt digital communication.",
-    imageSrc: "/images/deepa-joshi.jpg",
-    alt: "Deepa Joshi",
-    phone: "+91 98765 43215",
-    instagram: "https://instagram.com/deepajoshi",
-    linkedin: "https://linkedin.com/in/deepajoshi",
-    category: "Temple Operations",
-    skills: ["Seva Bookings", "Accounts", "Devotee Support"],
-    status: "Support Lead",
-    shiftsServed: 36
+    id: 'VOL-006',
+    name: 'Deepa Joshi',
+    role: 'Devotee Seva Desk Support',
+    category: 'Temple Operations',
+    phone: '+91 98765 43215',
+    status: 'Active Sevak',
+    badge: '🎖️ Active Swayamsevak'
   }
 ];
 
@@ -148,7 +117,9 @@ const shiftsByDay: Record<string, Array<{ title: string; location: string; urgen
 };
 
 export default function Volunteers() {
+  const [volunteers, setVolunteers] = useState<VolunteerMember[]>(initialVolunteersList);
   const [selectedCategory, setSelectedCategory] = useState<string>('All Domains');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedShiftDay, setSelectedShiftDay] = useState<string>('Today');
   const [showApplyModal, setShowApplyModal] = useState<boolean>(false);
   const [applicantName, setApplicantName] = useState<string>('');
@@ -157,9 +128,16 @@ export default function Volunteers() {
   const [applicantAvailability, setApplicantAvailability] = useState<string>('Weekends');
   const [applicationSubmitted, setApplicationSubmitted] = useState<boolean>(false);
 
-  const filteredVolunteers = selectedCategory === 'All Domains'
-    ? volunteersData
-    : volunteersData.filter(v => v.category === selectedCategory);
+  const filteredVolunteers = volunteers.filter(v => {
+    const matchesCategory = selectedCategory === 'All Domains' || v.category === selectedCategory;
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = 
+      v.name.toLowerCase().includes(q) ||
+      v.role.toLowerCase().includes(q) ||
+      v.category.toLowerCase().includes(q) ||
+      (v.badge && v.badge.toLowerCase().includes(q));
+    return matchesCategory && matchesSearch;
+  });
 
   const openShifts = shiftsByDay[selectedShiftDay] || shiftsByDay['Today'];
 
@@ -175,7 +153,7 @@ export default function Volunteers() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white py-16">
         <div className="container mx-auto px-4 text-center">
@@ -208,64 +186,140 @@ export default function Volunteers() {
         </div>
       </div>
 
-      {/* Main Interactive Swayamsevak Explorer */}
+      {/* Main Swayamsevakar Sangha Table View */}
       <div className="container mx-auto max-w-7xl px-4 pb-16 space-y-16">
-        {/* Category Filter Tabs */}
-        <div>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 dark:border-slate-800">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-                Meet Our Swayamsevaks
+                Swayamsevakar Roster
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Filtering by service domain and active volunteer coordinators
+                Directory of active volunteers and seva coordinators
               </p>
             </div>
 
-            <span className="text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider bg-orange-100 dark:bg-orange-950/50 px-3 py-1.5 rounded-full border border-orange-200 dark:border-orange-800/40 w-fit">
-              {filteredVolunteers.length} Volunteers Available
-            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => setShowApplyModal(true)}
+                className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer"
+              >
+                <UserPlus size={15} />
+                <span>Join Swayamsevak Sangha</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-none">
-            {categories.map((cat) => {
-              const Icon = cat.icon;
-              const isActive = selectedCategory === cat.name;
-              return (
-                <button
-                  key={cat.name}
-                  onClick={() => setSelectedCategory(cat.name)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-extrabold uppercase tracking-wider whitespace-nowrap transition-all duration-300 shadow-xs cursor-pointer ${isActive
-                    ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md shadow-orange-600/20 scale-105'
-                    : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700'
-                    }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{cat.name}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Volunteer Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-            {filteredVolunteers.map((vol, idx) => (
-              <VolunteerCard
-                key={idx}
-                name={vol.name}
-                role={vol.role}
-                description={vol.description}
-                imageSrc={vol.imageSrc}
-                alt={vol.alt}
-                phone={vol.phone}
-                instagram={vol.instagram}
-                linkedin={vol.linkedin}
-                category={vol.category}
-                skills={vol.skills}
-                status={vol.status}
-                shiftsServed={vol.shiftsServed}
+          {/* Search & Domain Filter Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-6">
+            <div className="relative w-full sm:w-80">
+              <input
+                type="text"
+                placeholder="Search by name, seva, or domain..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500"
               />
-            ))}
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0 scrollbar-none">
+              {categories.map((cat) => {
+                const isActive = selectedCategory === cat.name;
+                return (
+                  <button
+                    key={cat.name}
+                    onClick={() => setSelectedCategory(cat.name)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-orange-600 text-white shadow-sm'
+                        : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700'
+                    }`}
+                  >
+                    <span>{cat.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Roster Table */}
+          <div className="overflow-x-auto rounded-2xl border border-gray-100 dark:border-slate-800">
+            <table className="w-full text-left border-collapse min-w-[700px]">
+              <thead>
+                <tr className="bg-orange-50/70 dark:bg-slate-800/80 text-orange-950 dark:text-orange-200 text-xs uppercase tracking-wider font-extrabold border-b border-orange-100 dark:border-slate-700">
+                  <th className="px-6 py-4 w-16 text-center">#</th>
+                  <th className="px-6 py-4">Swayamsevak Name</th>
+                  <th className="px-6 py-4">Seva Domain</th>
+                  <th className="px-6 py-4">Role & Seva Assignment</th>
+                  <th className="px-6 py-4">Badge / Recognition</th>
+                  <th className="px-6 py-4 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-xs">
+                {filteredVolunteers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                      <p className="text-sm font-semibold">No volunteers match the current query.</p>
+                      <p className="text-xs text-gray-400 mt-1">Try modifying your search or domain filter.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredVolunteers.map((vol, idx) => (
+                    <tr 
+                      key={vol.id || idx}
+                      className="hover:bg-amber-50/40 dark:hover:bg-slate-800/50 transition-colors"
+                    >
+                      <td className="px-6 py-4 font-mono font-bold text-gray-400 text-center">
+                        {String(idx + 1).padStart(2, '0')}
+                      </td>
+                      
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-black flex items-center justify-center shadow-xs">
+                            {vol.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-extrabold text-gray-900 dark:text-white text-sm">
+                              {vol.name}
+                            </p>
+                            <span className="text-[10px] font-mono text-gray-400">{vol.id}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="inline-block px-2.5 py-1 rounded-lg bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 font-bold text-xs">
+                          {vol.category}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-gray-800 dark:text-gray-200">{vol.role}</p>
+                      </td>
+
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {vol.badge ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60 shadow-xs">
+                            <Award size={13} className="text-amber-600 dark:text-amber-400" />
+                            <span>{vol.badge}</span>
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">—</span>
+                        )}
+                      </td>
+
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs border border-emerald-200 dark:border-emerald-800/40">
+                          <CheckCircle2 size={13} />
+                          <span>{vol.status || 'Active Sevak'}</span>
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -285,8 +339,9 @@ export default function Volunteers() {
                 <button
                   key={day}
                   onClick={() => setSelectedShiftDay(day)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${selectedShiftDay === day ? 'bg-orange-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-                    }`}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                    selectedShiftDay === day ? 'bg-orange-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                  }`}
                 >
                   {day}
                 </button>
@@ -302,8 +357,9 @@ export default function Volunteers() {
                     <span className="text-[10px] uppercase font-extrabold px-2.5 py-1 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
                       {shift.location}
                     </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${shift.urgency === 'Urgent' ? 'bg-red-500/20 text-red-300 animate-pulse' : 'bg-emerald-500/20 text-emerald-300'
-                      }`}>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                      shift.urgency === 'Urgent' ? 'bg-red-500/20 text-red-300 animate-pulse' : 'bg-emerald-500/20 text-emerald-300'
+                    }`}>
                       {shift.slots} Slots Left
                     </span>
                   </div>
@@ -371,7 +427,6 @@ export default function Volunteers() {
             </div>
           </div>
         </div>
-
       </div>
 
       {/* Swayamsevak Application Modal */}
