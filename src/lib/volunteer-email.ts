@@ -67,7 +67,7 @@ export function generateOnlineQRImageUrl(pass: VolunteerPassPayload): string {
  */
 export async function sendVolunteerPassEmail(pass: VolunteerPassPayload): Promise<{ success: boolean; message: string; mode: 'emailjs' | 'smtp' | 'fallback' }> {
   const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || DEFAULT_EMAILJS_SERVICE_ID;
-  const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || DEFAULT_EMAILJS_TEMPLATE_ID;
+  const templateId = process.env.NEXT_PUBLIC_EMAILJS_VOLUNTEER_TEMPLATE_ID || process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || DEFAULT_EMAILJS_TEMPLATE_ID;
   const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || DEFAULT_EMAILJS_PUBLIC_KEY;
 
   const qrDataURL = await generateVolunteerQRCodeDataURL(pass);
@@ -151,7 +151,7 @@ export async function sendVolunteerPassEmail(pass: VolunteerPassPayload): Promis
     recipient_email: pass.volunteerEmail,
     user_email: pass.volunteerEmail,
     email: pass.volunteerEmail,
-    reply_to: 'harshapatilhp1@gmail.com',
+    reply_to: 'vidyaranyapuramutt@gmail.com',
     from_name: 'Volunteer Seva Team - Mathaji Ulsooramma Mutt',
   };
 
@@ -159,7 +159,7 @@ export async function sendVolunteerPassEmail(pass: VolunteerPassPayload): Promis
   try {
     emailjs.init({ publicKey });
 
-    console.log('Sending EmailJS with template_1r36hlv to:', pass.volunteerEmail, templateParams);
+    console.log('Sending EmailJS with template:', templateId, 'to:', pass.volunteerEmail, templateParams);
     const response = await emailjs.send(serviceId, templateId, templateParams, { publicKey });
 
     if (response.status === 200) {

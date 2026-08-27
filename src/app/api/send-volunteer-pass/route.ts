@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 import QRCode from 'qrcode';
 
 const EMAILJS_SERVICE_ID = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || 'service_7cfhrr5';
-const EMAILJS_TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || 'template_1r36hlv';
+const EMAILJS_TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_VOLUNTEER_TEMPLATE_ID || 'template_1r36hlv';
 const EMAILJS_PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || 'JIIK8s48HT1F6ccfl';
 const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY || 'cqXbdIMW85jCxqRIiQkWA';
 
@@ -53,6 +53,8 @@ export async function POST(request: NextRequest) {
           recipient_email: pass.volunteerEmail,
           user_email: pass.volunteerEmail,
           email: pass.volunteerEmail,
+          reply_to: 'vidyaranyapuramutt@gmail.com',
+          from_name: 'Volunteer Seva Team - Mathaji Ulsooramma Mutt',
           duty_title: pass.dutyTitle,
           duty_time: pass.dutyTime,
           duty_location: pass.dutyLocation,
@@ -148,7 +150,7 @@ export async function POST(request: NextRequest) {
 <h3 style="margin: 0 0 8px; font-size: 18px; color: #333;">🎫 Your QR Duty Pass</h3>
 <p style="margin: 0 0 18px; font-size: 13px; color: #777;">Please present this QR code at the designated entry point.</p>
 <div style="background: #ffffff; padding: 15px; display: inline-block; border: 1px solid #eeeeee; border-radius: 10px;">
-  <img style="display: block; width: 250px; height: 250px;" src="cid:volunteer-qrcode" alt="Volunteer QR Code" width="250" height="250" />
+  <img style="display: block; width: 250px; height: 250px;" src="${finalQrOnlineUrl}" alt="Volunteer QR Code" width="250" height="250" />
 </div>
 <p style="margin: 15px 0 0; font-size: 13px; color: #777;">Scan for Entry &amp; Attendance Verification</p>
 </td>
@@ -173,14 +175,6 @@ export async function POST(request: NextRequest) {
       to: pass.volunteerEmail,
       subject: `🎫 Volunteer QR Duty Pass - ${pass.dutyTitle || 'Mathaji Ulsooramma Raghavendra Swamy Mutt'}`,
       html: emailHtml,
-      attachments: [
-        {
-          filename: `volunteer-pass-${pass.volunteerId}.png`,
-          content: finalQrDataUrl.split('base64,')[1],
-          encoding: 'base64',
-          cid: 'volunteer-qrcode',
-        },
-      ],
     };
 
     const info = await transporter.sendMail(mailOptions);
