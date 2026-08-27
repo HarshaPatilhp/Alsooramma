@@ -2,14 +2,14 @@
 
 import { useState } from 'react';
 import VolunteerCard from '@/components/VolunteerCard';
-import { 
-  Clock, 
-  ArrowRight, 
-  BookOpen, 
-  Users, 
-  CheckCircle2, 
-  X, 
-  UserPlus, 
+import {
+  Clock,
+  ArrowRight,
+  BookOpen,
+  Users,
+  CheckCircle2,
+  X,
+  UserPlus,
   Send,
   Sparkles,
   Flame,
@@ -235,11 +235,10 @@ export default function Volunteers() {
                 <button
                   key={cat.name}
                   onClick={() => setSelectedCategory(cat.name)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-extrabold uppercase tracking-wider whitespace-nowrap transition-all duration-300 shadow-xs cursor-pointer ${
-                    isActive
-                      ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md shadow-orange-600/20 scale-105'
-                      : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700'
-                  }`}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-extrabold uppercase tracking-wider whitespace-nowrap transition-all duration-300 shadow-xs cursor-pointer ${isActive
+                    ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md shadow-orange-600/20 scale-105'
+                    : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700'
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{cat.name}</span>
@@ -286,9 +285,8 @@ export default function Volunteers() {
                 <button
                   key={day}
                   onClick={() => setSelectedShiftDay(day)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                    selectedShiftDay === day ? 'bg-orange-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-                  }`}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${selectedShiftDay === day ? 'bg-orange-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                    }`}
                 >
                   {day}
                 </button>
@@ -304,9 +302,8 @@ export default function Volunteers() {
                     <span className="text-[10px] uppercase font-extrabold px-2.5 py-1 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
                       {shift.location}
                     </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                      shift.urgency === 'Urgent' ? 'bg-red-500/20 text-red-300 animate-pulse' : 'bg-emerald-500/20 text-emerald-300'
-                    }`}>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${shift.urgency === 'Urgent' ? 'bg-red-500/20 text-red-300 animate-pulse' : 'bg-emerald-500/20 text-emerald-300'
+                      }`}>
                       {shift.slots} Slots Left
                     </span>
                   </div>
@@ -321,7 +318,7 @@ export default function Volunteers() {
                   </p>
                 </div>
 
-                <button 
+                <button
                   onClick={() => {
                     setApplicantRole(shift.title);
                     setShowApplyModal(true);
@@ -381,7 +378,7 @@ export default function Volunteers() {
       {showApplyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 dark:border-slate-800 relative animate-slide-up">
-            <button 
+            <button
               onClick={() => setShowApplyModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-white p-1 rounded-full cursor-pointer"
             >
