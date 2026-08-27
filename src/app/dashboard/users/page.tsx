@@ -30,7 +30,9 @@ import {
   CheckCircle2,
   RefreshCw,
   Eye,
-  Info
+  Info,
+  Plus,
+  AtSign
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AVAILABLE_PERMISSIONS, PermissionKey, RBACUser } from '@/lib/rbac';
@@ -50,6 +52,15 @@ interface Volunteer extends RBACUser {
   permissions?: Record<string, boolean>;
 }
 
+interface ManualRecipient {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role?: string;
+  isManual?: boolean;
+}
+
 const VOLUNTEER_ALLOWED_PERMS: PermissionKey[] = ['qr_checkin', 'devotees', 'activity_log'];
 
 export default function UsersPage() {
@@ -62,7 +73,13 @@ export default function UsersPage() {
   
   // Selection state for sending emails
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [customRecipients, setCustomRecipients] = useState<ManualRecipient[]>([]);
   const [showEmailDispatchModal, setShowEmailDispatchModal] = useState(false);
+  
+  // Manual Gmail inputs inside modal
+  const [manualEmailInput, setManualEmailInput] = useState('');
+  const [manualNameInput, setManualNameInput] = useState('');
+  const [manualPhoneInput, setManualPhoneInput] = useState('');
   
   // Email dispatch form
   const [dispatchDutyTitle, setDispatchDutyTitle] = useState('Maha Aradhana Utsavam & Annadanam Seva');
@@ -142,16 +159,22 @@ export default function UsersPage() {
     fetchUsers();
   }, [currentUser]);
 
+  // Combined recipient list (from table selection + manually entered Gmails)
+  const allTargetRecipients: ManualRecipient[] = [
+    ...users.filter(u => selectedUserIds.includes(u.id)).map(u => ({ ...u, isManual: false })),
+    ...customRecipients
+  ];
+
   // Update live QR preview when preview modal is opened or form fields change
   useEffect(() => {
-    if (showEmailDispatchModal && selectedUserIds.length > 0) {
-      const firstSelected = users.find(u => u.id === selectedUserIds[0]) || users[0];
+    if (showEmailDispatchModal && allTargetRecipients.length > 0) {
+      const firstSelected = allTargetRecipients[0];
       if (firstSelected) {
         const samplePass: VolunteerPassPayload = {
           volunteerId: firstSelected.id,
           volunteerName: firstSelected.name,
           volunteerEmail: firstSelected.email,
-          role: firstSelected.role,
+          role: firstSelected.role || 'volunteer',
           dutyTitle: dispatchDutyTitle,
           dutyDate: dispatchDutyDate,
           dutyTime: dispatchDutyTime,
@@ -162,7 +185,7 @@ export default function UsersPage() {
         generateVolunteerQRCodeDataURL(samplePass).then(url => setPreviewQrUrl(url)).catch(() => {});
       }
     }
-  }, [showEmailDispatchModal, selectedUserIds, dispatchDutyTitle, dispatchDutyDate, dispatchDutyTime, dispatchDutyLocation, dispatchBadgeLevel, dispatchInstructions, users]);
+  }, [showEmailDispatchModal, selectedUserIds, customRecipients, dispatchDutyTitle, dispatchDutyDate, dispatchDutyTime, dispatchDutyLocation, dispatchBadgeLevel, dispatchInstructions]);
 
   const filteredUsers = users.filter(u => {
     if (activeTab === 'volunteers') return u.role === 'volunteer';
@@ -185,8 +208,7 @@ export default function UsersPage() {
   };
 
   const handleOpenDispatchModal = () => {
-    if (selectedUserIds.length === 0) {
-      // If none selected, default to all volunteers
+    if (selectedUserIds.length === 0 && customRecipients.length === 0) {
       const volunteerIds = users.filter(u => u.role === 'volunteer').map(u => u.id);
       if (volunteerIds.length > 0) {
         setSelectedUserIds(volunteerIds);
@@ -199,33 +221,76 @@ export default function UsersPage() {
     setShowEmailDispatchModal(true);
   };
 
+  const handleAddManualGmail = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!manualEmailInput.trim()) return;
+
+    // Support comma/space/newline separated emails
+    const rawEmails = manualEmailInput.split(/[\n,; ]+/).map(em => em.trim()).filter(Boolean);
+    const newItems: ManualRecipient[] = [];
+
+    rawEmails.forEach((emailStr, idx) => {
+      const cleanEmail = emailStr.trim();
+      if (cleanEmail.includes('@')) {
+        const derivedName = manualNameInput.trim() 
+          ? (rawEmails.length === 1 ? manualNameInput.trim() : `${manualNameInput.trim()} (${idx + 1})`)
+          : cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        
+        newItems.push({
+          id: `manual-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
+          name: derivedName,
+          email: cleanEmail,
+          phone: manualPhoneInput.trim(),
+          role: 'volunteer',
+          isManual: true
+        });
+      }
+    });
+
+    if (newItems.length > 0) {
+      setCustomRecipients(prev => [...prev, ...newItems]);
+      setManualEmailInput('');
+      setManualNameInput('');
+      setManualPhoneInput('');
+    } else {
+      alert('Please enter a valid email address (e.g. name@gmail.com)');
+    }
+  };
+
+  const handleRemoveRecipient = (recipient: ManualRecipient) => {
+    if (recipient.isManual) {
+      setCustomRecipients(prev => prev.filter(r => r.id !== recipient.id));
+    } else {
+      setSelectedUserIds(prev => prev.filter(id => id !== recipient.id));
+    }
+  };
+
   const handleDispatchEmails = async () => {
-    const selectedRecipients = users.filter(u => selectedUserIds.includes(u.id));
-    if (selectedRecipients.length === 0) {
-      alert('Please select at least one volunteer recipient.');
+    if (allTargetRecipients.length === 0) {
+      alert('Please select or add at least one volunteer email recipient.');
       return;
     }
 
     setIsDispatching(true);
     setDispatchResults([]);
-    setDispatchProgress({ current: 0, total: selectedRecipients.length, activeName: '' });
+    setDispatchProgress({ current: 0, total: allTargetRecipients.length, activeName: '' });
 
     const results: Array<{ name: string; email: string; success: boolean; message: string; mode: string }> = [];
 
-    for (let i = 0; i < selectedRecipients.length; i++) {
-      const recipient = selectedRecipients[i];
+    for (let i = 0; i < allTargetRecipients.length; i++) {
+      const recipient = allTargetRecipients[i];
       setDispatchProgress({
         current: i + 1,
-        total: selectedRecipients.length,
+        total: allTargetRecipients.length,
         activeName: recipient.name,
       });
 
       const passPayload: VolunteerPassPayload = {
-        volunteerId: recipient.id || String(Date.now() + i),
+        volunteerId: recipient.id || `VOL-${Date.now()}-${i}`,
         volunteerName: recipient.name,
         volunteerEmail: recipient.email,
         volunteerPhone: recipient.phone,
-        role: recipient.role,
+        role: recipient.role || 'volunteer',
         dutyTitle: dispatchDutyTitle,
         dutyDate: dispatchDutyDate,
         dutyTime: dispatchDutyTime,
@@ -621,9 +686,9 @@ export default function UsersPage() {
           >
             <Mail size={17} />
             <span>Send QR Pass via EmailJS</span>
-            {selectedUserIds.length > 0 && (
+            {allTargetRecipients.length > 0 && (
               <span className="bg-white text-orange-700 text-xs px-2 py-0.5 rounded-full font-black">
-                {selectedUserIds.length}
+                {allTargetRecipients.length}
               </span>
             )}
           </button>
@@ -699,9 +764,9 @@ export default function UsersPage() {
             )}
           </button>
 
-          {selectedUserIds.length > 0 && (
+          {allTargetRecipients.length > 0 && (
             <span className="text-xs font-extrabold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-950/60 px-3 py-1.5 rounded-lg border border-orange-200 dark:border-orange-800/40">
-              {selectedUserIds.length} Selected
+              {allTargetRecipients.length} Target{allTargetRecipients.length === 1 ? '' : 's'} Ready
             </span>
           )}
         </div>
@@ -872,7 +937,7 @@ export default function UsersPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 📧 VOLUNTEER EMAIL & QR BADGE DISPATCH MODAL (EMAILJS & SMTP)              */}
+      {/* 📧 VOLUNTEER EMAIL & QR BADGE DISPATCH MODAL (EMAILJS & MANUAL GMAIL)       */}
       {/* ========================================================================= */}
       {showEmailDispatchModal && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
@@ -888,7 +953,7 @@ export default function UsersPage() {
                     Volunteer QR Duty Pass Dispatch
                   </h3>
                   <p className="text-xs text-orange-100 mt-0.5">
-                    Send high-resolution QR entry passes to {selectedUserIds.length} volunteer{selectedUserIds.length === 1 ? '' : 's'} via EmailJS & SMTP
+                    Send high-resolution QR entry passes to {allTargetRecipients.length} volunteer{allTargetRecipients.length === 1 ? '' : 's'} via EmailJS & SMTP
                   </p>
                 </div>
               </div>
@@ -901,31 +966,108 @@ export default function UsersPage() {
             </div>
 
             <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto text-left">
-              {/* Selected Recipients Preview */}
+              
+              {/* 🌟 1. MANUAL GMAIL / EMAIL INPUT SECTION */}
+              <div className="p-4 rounded-2xl bg-orange-50/80 dark:bg-slate-800/80 border border-orange-200 dark:border-slate-700 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase text-orange-700 dark:text-orange-400 tracking-wider flex items-center gap-1.5">
+                    <AtSign size={14} /> Add Volunteer Gmail / Email Address
+                  </span>
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                    Paste one or multiple Gmails
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                  <div className="sm:col-span-5">
+                    <input
+                      type="text"
+                      value={manualEmailInput}
+                      onChange={e => setManualEmailInput(e.target.value)}
+                      placeholder="e.g. volunteer@gmail.com, volunteer2@gmail.com"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none text-xs font-medium"
+                    />
+                  </div>
+                  <div className="sm:col-span-4">
+                    <input
+                      type="text"
+                      value={manualNameInput}
+                      onChange={e => setManualNameInput(e.target.value)}
+                      placeholder="Volunteer Name (optional)"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none text-xs font-medium"
+                    />
+                  </div>
+                  <div className="sm:col-span-3">
+                    <button
+                      type="button"
+                      onClick={handleAddManualGmail}
+                      className="w-full py-2.5 px-3 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus size={15} />
+                      <span>Add Gmail</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 🌟 2. TARGET RECIPIENTS PILLS (SELECTED ROSTER + MANUAL GMAIL) */}
               <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-2">
-                  Target Recipients ({selectedUserIds.length})
-                </label>
-                <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto p-3 bg-gray-50 dark:bg-slate-800/80 rounded-2xl border border-gray-200 dark:border-slate-700">
-                  {users
-                    .filter(u => selectedUserIds.includes(u.id))
-                    .map(u => (
-                      <span
-                        key={u.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-slate-700 rounded-full text-xs font-semibold text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-slate-600 shadow-xs"
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                    Target Recipients ({allTargetRecipients.length})
+                  </label>
+                  {allTargetRecipients.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedUserIds([]);
+                        setCustomRecipients([]);
+                      }}
+                      className="text-[11px] font-bold text-gray-400 hover:text-red-500 cursor-pointer"
+                    >
+                      Clear All
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-3 bg-gray-50 dark:bg-slate-800/80 rounded-2xl border border-gray-200 dark:border-slate-700">
+                  {allTargetRecipients.map((recipient) => (
+                    <span
+                      key={recipient.id}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border shadow-xs transition-all ${
+                        recipient.isManual
+                          ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800'
+                          : 'bg-white text-gray-900 dark:bg-slate-700 dark:text-gray-100 border-gray-200 dark:border-slate-600'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${recipient.isManual ? 'bg-emerald-500' : 'bg-orange-500'}`}></span>
+                      <strong>{recipient.name}</strong>
+                      <span className="opacity-70 text-[11px]">({recipient.email})</span>
+                      {recipient.isManual && (
+                        <span className="bg-emerald-200 dark:bg-emerald-800 text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full">
+                          Gmail
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRecipient(recipient)}
+                        className="ml-1 text-gray-400 hover:text-red-500 p-0.5 rounded-full hover:bg-black/10 cursor-pointer"
+                        title="Remove recipient"
                       >
-                        <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                        <strong>{u.name}</strong>
-                        <span className="text-gray-400 text-[11px]">({u.email})</span>
-                      </span>
-                    ))}
-                  {selectedUserIds.length === 0 && (
-                    <span className="text-xs text-red-500 font-medium">No volunteers selected. Please select recipients.</span>
+                        <X size={13} />
+                      </button>
+                    </span>
+                  ))}
+
+                  {allTargetRecipients.length === 0 && (
+                    <span className="text-xs text-amber-600 dark:text-amber-400 font-medium py-1">
+                      No recipients selected yet. Type a Gmail address above or select volunteers from the table.
+                    </span>
                   )}
                 </div>
               </div>
 
-              {/* Duty & Schedule Configuration */}
+              {/* 🌟 3. DUTY & SCHEDULE CONFIGURATION */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
@@ -1012,7 +1154,7 @@ export default function UsersPage() {
                 </div>
               </div>
 
-              {/* Live QR Code Preview Card */}
+              {/* 🌟 4. LIVE QR PREVIEW CARD */}
               <div className="p-4 rounded-2xl bg-orange-50/70 dark:bg-slate-800/80 border border-orange-200 dark:border-slate-700 flex flex-col sm:flex-row items-center gap-4">
                 <div className="w-28 h-28 bg-white p-2 rounded-2xl shadow-md border border-orange-100 flex items-center justify-center shrink-0">
                   {previewQrUrl ? (
@@ -1036,7 +1178,7 @@ export default function UsersPage() {
                 </div>
               </div>
 
-              {/* Dispatch Progress & Results */}
+              {/* 🌟 5. DISPATCH PROGRESS */}
               {dispatchProgress && (
                 <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 space-y-2">
                   <div className="flex justify-between text-xs font-bold text-blue-900 dark:text-blue-200">
@@ -1056,7 +1198,7 @@ export default function UsersPage() {
                 </div>
               )}
 
-              {/* Result Summary */}
+              {/* 🌟 6. RESULT SUMMARY */}
               {dispatchResults.length > 0 && (
                 <div className="space-y-2">
                   <label className="block text-xs font-extrabold uppercase tracking-wider text-gray-700 dark:text-gray-300">
@@ -1086,7 +1228,7 @@ export default function UsersPage() {
                 </div>
               )}
 
-              {/* Modal Buttons */}
+              {/* Modal Action Buttons */}
               <div className="pt-4 border-t border-gray-100 dark:border-slate-700 flex gap-3">
                 <button
                   type="button"
@@ -1098,7 +1240,7 @@ export default function UsersPage() {
                 <button
                   type="button"
                   onClick={handleDispatchEmails}
-                  disabled={isDispatching || selectedUserIds.length === 0}
+                  disabled={isDispatching || allTargetRecipients.length === 0}
                   className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 hover:from-orange-700 hover:to-amber-700 text-white rounded-xl font-bold transition-all shadow-md shadow-orange-600/30 disabled:opacity-50 text-sm flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isDispatching ? (
@@ -1109,7 +1251,7 @@ export default function UsersPage() {
                   ) : (
                     <>
                       <Send size={16} />
-                      <span>Send to {selectedUserIds.length} Recipient{selectedUserIds.length === 1 ? '' : 's'}</span>
+                      <span>Send to {allTargetRecipients.length} Recipient{allTargetRecipients.length === 1 ? '' : 's'}</span>
                     </>
                   )}
                 </button>
