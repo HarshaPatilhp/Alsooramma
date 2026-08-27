@@ -188,6 +188,29 @@ export default function ScannerPage() {
           issuedAt: volunteerPass.issuedAt || new Date().toISOString()
         }
       });
+
+      // Automatically pre-log into localStorage & API
+      try {
+        const tempRecord = {
+          booking_id: `VOL-${volunteerPass.id || Date.now()}`,
+          devotee_name: volunteerPass.name || volunteerPass.volunteer_name || 'Swayamsevak',
+          seva_name: `[Volunteer Badge: ${badge}] ${volunteerPass.duty || volunteerPass.seva_title || 'Temple Operations'}`,
+          status: 'Scanned Pass',
+          scanned_at: new Date().toISOString(),
+          scanned_by: 'Gate Mobile Scanner'
+        };
+
+        fetch('/api/scan-history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(tempRecord)
+        }).catch(() => {});
+
+        const localList = JSON.parse(localStorage.getItem('alsur_scanned_volunteers') || '[]');
+        localList.unshift(tempRecord);
+        localStorage.setItem('alsur_scanned_volunteers', JSON.stringify(localList.slice(0, 100)));
+      } catch (e) {}
+
       return;
     }
 
@@ -226,7 +249,7 @@ export default function ScannerPage() {
         body: JSON.stringify({ id: cleanId, status: 'completed' })
       }).catch(() => {});
 
-      // Record Scan in scan_history
+      // Record Scan in scan_history & API
       try {
         const newScan = {
           booking_id: cleanId,
@@ -237,6 +260,11 @@ export default function ScannerPage() {
           scanned_by: 'Gate Mobile Scanner'
         };
         await supabase.from('scan_history').insert([newScan]);
+        fetch('/api/scan-history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newScan)
+        }).catch(() => {});
       } catch (scanErr) {
         console.warn('Could not insert scan history row:', scanErr);
       }
@@ -262,7 +290,6 @@ export default function ScannerPage() {
     setIsSavingBadge(true);
 
     try {
-      const supabase = createClient();
       const scanRecord = {
         booking_id: `VOL-${scanResult.data.id}`,
         devotee_name: scanResult.data.name,
@@ -272,7 +299,29 @@ export default function ScannerPage() {
         scanned_by: 'Master Admin Scanner',
       };
 
-      await supabase.from('scan_history').insert([scanRecord]);
+      // 1. Send to server API
+      fetch('/api/scan-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scanRecord)
+      }).catch(() => {});
+
+      // 2. Insert into Supabase
+      try {
+        const supabase = createClient();
+        await supabase.from('scan_history').insert([scanRecord]);
+      } catch (sbErr) {
+        console.warn('Supabase direct insert error:', sbErr);
+      }
+
+      // 3. Persist to localStorage for instantaneous client UI sync
+      try {
+        const localList = JSON.parse(localStorage.getItem('alsur_scanned_volunteers') || '[]');
+        // remove existing record with same booking_id if any
+        const filtered = localList.filter((item: any) => item.booking_id !== scanRecord.booking_id);
+        filtered.unshift(scanRecord);
+        localStorage.setItem('alsur_scanned_volunteers', JSON.stringify(filtered.slice(0, 100)));
+      } catch (lsErr) {}
 
       setScanResult({
         status: 'volunteer_confirmed',

@@ -174,50 +174,89 @@ export default function UsersPage() {
   const fetchScannedVolunteers = async () => {
     setIsLoadingScans(true);
     try {
-      const { createClient } = await import('@/lib/client');
-      const supabase = createClient();
-      const { data: scanRows, error } = await supabase
-        .from('scan_history')
-        .select('*')
-        .order('scanned_at', { ascending: false });
+      let combinedRows: any[] = [];
 
-      if (!error && Array.isArray(scanRows)) {
-        const parsedList = scanRows
-          .filter((row: any) => {
-            const bId = String(row.booking_id || '');
-            const sName = String(row.seva_name || '');
-            const st = String(row.status || '');
-            return bId.startsWith('VOL-') || sName.includes('[Volunteer Badge:') || st.includes('Badge') || sName.toLowerCase().includes('volunteer');
-          })
-          .map((row: any) => {
-            let badge = '🎖️ Active Swayamsevak';
-            let duty = row.seva_name || 'Temple Operations';
-
-            // Extract badge if formatted like [Volunteer Badge: ⭐ Seva & Utsavam Lead]
-            const match = (row.seva_name || '').match(/\[Volunteer Badge:\s*([^\]]+)\]\s*(.*)/i);
-            if (match) {
-              badge = match[1].trim();
-              duty = match[2].trim() || 'Temple Operations & Seva';
-            }
-
-            const dt = row.scanned_at ? new Date(row.scanned_at) : new Date();
-
-            return {
-              id: row.id || `scan-${Math.random()}`,
-              booking_id: row.booking_id || '',
-              volunteerName: row.devotee_name || 'Swayamsevak',
-              sevaDuty: duty,
-              badge: badge,
-              scannedAt: row.scanned_at || new Date().toISOString(),
-              scannedDate: dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-              scannedTime: dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
-              scannedBy: row.scanned_by || 'Gate Scanner',
-              status: row.status || 'Verified'
-            };
-          });
-
-        setScannedVolunteers(parsedList);
+      // 1. Try fetching from server API route
+      try {
+        const res = await fetch('/api/scan-history');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.scans)) {
+          combinedRows = [...data.scans];
+        }
+      } catch (apiErr) {
+        console.warn('API scan-history fetch error:', apiErr);
       }
+
+      // 2. Direct Supabase query
+      try {
+        const { createClient } = await import('@/lib/client');
+        const supabase = createClient();
+        const { data: dbRows, error } = await supabase
+          .from('scan_history')
+          .select('*')
+          .order('scanned_at', { ascending: false });
+
+        if (!error && Array.isArray(dbRows)) {
+          dbRows.forEach(dbItem => {
+            if (!combinedRows.some(r => r.id === dbItem.id || (r.booking_id === dbItem.booking_id && r.scanned_at === dbItem.scanned_at))) {
+              combinedRows.push(dbItem);
+            }
+          });
+        }
+      } catch (sbErr) {
+        console.warn('Supabase scan_history fetch fallback:', sbErr);
+      }
+
+      // 3. LocalStorage persistence merge
+      try {
+        if (typeof window !== 'undefined') {
+          const localList = JSON.parse(localStorage.getItem('alsur_scanned_volunteers') || '[]');
+          if (Array.isArray(localList)) {
+            localList.forEach(locItem => {
+              if (!combinedRows.some(r => (r.booking_id && r.booking_id === locItem.booking_id) || r.id === locItem.id)) {
+                combinedRows.push(locItem);
+              }
+            });
+          }
+        }
+      } catch (lsErr) {}
+
+      // Parse and format volunteer badge records
+      const parsedList = combinedRows
+        .filter((row: any) => {
+          const bId = String(row.booking_id || '');
+          const sName = String(row.seva_name || '');
+          const st = String(row.status || '');
+          return bId.startsWith('VOL-') || sName.includes('[Volunteer Badge:') || st.includes('Badge') || sName.toLowerCase().includes('volunteer');
+        })
+        .map((row: any) => {
+          let badge = '🎖️ Active Swayamsevak';
+          let duty = row.seva_name || 'Temple Operations';
+
+          // Extract badge if formatted like [Volunteer Badge: ⭐ Seva & Utsavam Lead]
+          const match = (row.seva_name || '').match(/\[Volunteer Badge:\s*([^\]]+)\]\s*(.*)/i);
+          if (match) {
+            badge = match[1].trim();
+            duty = match[2].trim() || 'Temple Operations & Seva';
+          }
+
+          const dt = row.scanned_at ? new Date(row.scanned_at) : new Date();
+
+          return {
+            id: row.id || `scan-${Math.random()}`,
+            booking_id: row.booking_id || '',
+            volunteerName: row.devotee_name || row.volunteer_name || 'Swayamsevak',
+            sevaDuty: duty,
+            badge: badge,
+            scannedAt: row.scanned_at || new Date().toISOString(),
+            scannedDate: dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+            scannedTime: dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
+            scannedBy: row.scanned_by || 'Gate Scanner',
+            status: row.status || 'Verified'
+          };
+        });
+
+      setScannedVolunteers(parsedList);
     } catch (e) {
       console.error('Failed to fetch scanned volunteers:', e);
     } finally {
@@ -256,6 +295,13 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers();
     fetchScannedVolunteers();
+
+    // Auto-refresh scanned list every 4 seconds
+    const interval = setInterval(() => {
+      fetchScannedVolunteers();
+    }, 4000);
+
+    return () => clearInterval(interval);
   }, [currentUser]);
 
   // Combined recipient list (from table selection + manually entered Gmails)
