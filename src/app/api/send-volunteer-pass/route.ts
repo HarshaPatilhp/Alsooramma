@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import QRCode from 'qrcode';
 
+const EMAILJS_SERVICE_ID = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || 'service_7cfhrr5';
+const EMAILJS_TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || 'template_1r36hlv';
+const EMAILJS_PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || 'JIIK8s48HT1F6ccfl';
+const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY || 'cqXbdIMW85jCxqRIiQkWA';
+
 export async function POST(request: NextRequest) {
   try {
     const { pass, qrDataURL, qrString } = await request.json();
@@ -23,7 +28,55 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Configure Nodemailer
+    // 1. Try sending via EmailJS REST API using the Private Key (Access Token)
+    try {
+      const emailJsPayload = {
+        service_id: EMAILJS_SERVICE_ID,
+        template_id: EMAILJS_TEMPLATE_ID,
+        user_id: EMAILJS_PUBLIC_KEY,
+        accessToken: EMAILJS_PRIVATE_KEY,
+        template_params: {
+          to_name: pass.volunteerName,
+          to_email: pass.volunteerEmail,
+          recipient_email: pass.volunteerEmail,
+          user_email: pass.volunteerEmail,
+          email: pass.volunteerEmail,
+          name: pass.volunteerName,
+          duty_title: pass.dutyTitle,
+          duty_date: pass.dutyDate,
+          duty_time: pass.dutyTime,
+          duty_location: pass.dutyLocation,
+          badge_level: pass.badgeLevel,
+          instructions: pass.instructions || 'Please arrive 15 minutes before your shift and present this QR pass at the entrance.',
+          qr_code: qrString || `VOLUNTEER_PASS:${JSON.stringify(pass)}`,
+          qr_image_url: finalQrDataUrl,
+          message: pass.instructions || 'Thank you for your dedicated service at Sri Raghavendra Swamy Mutt.'
+        }
+      };
+
+      const emailJsRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailJsPayload)
+      });
+
+      if (emailJsRes.ok) {
+        const text = await emailJsRes.text();
+        console.log('Volunteer pass sent via EmailJS REST API:', text);
+        return NextResponse.json({
+          success: true,
+          message: 'Volunteer pass sent via EmailJS API',
+          mode: 'emailjs'
+        });
+      } else {
+        const errorText = await emailJsRes.text();
+        console.warn('EmailJS REST API responded with error, falling back to Nodemailer SMTP:', errorText);
+      }
+    } catch (eJsErr) {
+      console.warn('EmailJS REST API call failed, falling back to Nodemailer SMTP:', eJsErr);
+    }
+
+    // 2. Nodemailer SMTP Fallback
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.EMAIL_PORT || '587'),
@@ -54,10 +107,6 @@ export async function POST(request: NextRequest) {
     .greeting { font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 0; }
     .card { background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 12px; padding: 18px; margin: 20px 0; }
     .card-title { font-size: 14px; font-weight: 800; color: #9a3412; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px; }
-    .detail-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #fdba74; font-size: 13px; }
-    .detail-row:last-child { border-bottom: none; }
-    .detail-label { font-weight: 600; color: #7c2d12; }
-    .detail-value { font-weight: 700; color: #1e293b; text-align: right; }
     .qr-section { text-align: center; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 16px; padding: 24px; margin: 24px 0; }
     .qr-img { width: 220px; height: 220px; border-radius: 12px; border: 4px solid #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     .qr-caption { font-size: 12px; font-weight: 600; color: #64748b; margin-top: 10px; }
@@ -153,12 +202,13 @@ export async function POST(request: NextRequest) {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('Volunteer pass email sent via SMTP:', info.messageId);
+    console.log('Volunteer pass email sent via SMTP fallback:', info.messageId);
 
     return NextResponse.json({
       success: true,
-      message: 'Volunteer pass sent successfully via SMTP',
+      message: 'Volunteer pass sent successfully via SMTP fallback',
       messageId: info.messageId,
+      mode: 'smtp'
     });
   } catch (error: any) {
     console.error('Failed to send volunteer pass email:', error);
