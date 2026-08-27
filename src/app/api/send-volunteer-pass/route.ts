@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import QRCode from 'qrcode';
 
-const EMAILJS_SERVICE_ID = 'service_7cfhrr5';
-const EMAILJS_TEMPLATE_ID = 'template_1r36hlv';
-const EMAILJS_PUBLIC_KEY = 'JIIK8s48HT1F6ccfl';
+const EMAILJS_SERVICE_ID = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || 'service_7cfhrr5';
+const EMAILJS_TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_VOLUNTEER_TEMPLATE_ID || 'template_1r36hlv';
+const EMAILJS_PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || 'JIIK8s48HT1F6ccfl';
 const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY || 'cqXbdIMW85jCxqRIiQkWA';
 
 export async function POST(request: NextRequest) {
@@ -38,46 +38,30 @@ export async function POST(request: NextRequest) {
         user_id: EMAILJS_PUBLIC_KEY,
         accessToken: EMAILJS_PRIVATE_KEY,
         template_params: {
-          email: pass.volunteerEmail,
+          // Exact template parameters
+          volunteer_name: pass.volunteerName,
+          seva_title: pass.dutyTitle,
+          duty_date: pass.dutyDate,
+          shift_timing: pass.dutyTime,
+          assigned_location: pass.dutyLocation,
+          qr_code: finalQrOnlineUrl,
+
+          // Aliases
+          to_name: pass.volunteerName,
+          name: pass.volunteerName,
           to_email: pass.volunteerEmail,
           recipient_email: pass.volunteerEmail,
           user_email: pass.volunteerEmail,
+          email: pass.volunteerEmail,
           reply_to: 'vidyaranyapuramutt@gmail.com',
           from_name: 'Volunteer Seva Team - Mathaji Ulsooramma Mutt',
-
-          volunteer_name: pass.volunteerName,
-          volunteerName: pass.volunteerName,
-          to_name: pass.volunteerName,
-          name: pass.volunteerName,
-
-          seva_title: pass.dutyTitle,
-          sevaTitle: pass.dutyTitle,
           duty_title: pass.dutyTitle,
-          duty: pass.dutyTitle,
-          seva: pass.dutyTitle,
-
-          duty_date: pass.dutyDate,
-          dutyDate: pass.dutyDate,
-          date: pass.dutyDate,
-
-          shift_timing: pass.dutyTime,
-          shiftTiming: pass.dutyTime,
           duty_time: pass.dutyTime,
-          timing: pass.dutyTime,
-          time: pass.dutyTime,
-
-          assigned_location: pass.dutyLocation,
-          assignedLocation: pass.dutyLocation,
           duty_location: pass.dutyLocation,
-          location: pass.dutyLocation,
-          gate: pass.dutyLocation,
-
-          qr_code: finalQrOnlineUrl,
-          qrCode: finalQrOnlineUrl,
-          qr_image_url: finalQrOnlineUrl,
           badge_level: pass.badgeLevel,
           instructions: pass.instructions || '',
           message: pass.instructions || '',
+          qr_image_url: finalQrOnlineUrl,
         }
       };
 
