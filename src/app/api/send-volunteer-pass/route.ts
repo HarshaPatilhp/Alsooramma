@@ -9,11 +9,13 @@ const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY || 'cqXbdIMW85jCxqRI
 
 export async function POST(request: NextRequest) {
   try {
-    const { pass, qrDataURL, qrString } = await request.json();
+    const { pass, qrDataURL, qrString, qrOnlineUrl } = await request.json();
 
     if (!pass || !pass.volunteerEmail) {
       return NextResponse.json({ success: false, message: 'Volunteer email is required' }, { status: 400 });
     }
+
+    const finalQrOnlineUrl = qrOnlineUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=10&data=${encodeURIComponent(qrString || `VOLUNTEER_PASS:${JSON.stringify(pass)}`)}`;
 
     let finalQrDataUrl = qrDataURL;
     if (!finalQrDataUrl) {
@@ -36,21 +38,28 @@ export async function POST(request: NextRequest) {
         user_id: EMAILJS_PUBLIC_KEY,
         accessToken: EMAILJS_PRIVATE_KEY,
         template_params: {
+          // Exact template parameters
+          volunteer_name: pass.volunteerName,
+          seva_title: pass.dutyTitle,
+          duty_date: pass.dutyDate,
+          shift_timing: pass.dutyTime,
+          assigned_location: pass.dutyLocation,
+          qr_code: finalQrOnlineUrl,
+
+          // Aliases
           to_name: pass.volunteerName,
+          name: pass.volunteerName,
           to_email: pass.volunteerEmail,
           recipient_email: pass.volunteerEmail,
           user_email: pass.volunteerEmail,
           email: pass.volunteerEmail,
-          name: pass.volunteerName,
           duty_title: pass.dutyTitle,
-          duty_date: pass.dutyDate,
           duty_time: pass.dutyTime,
           duty_location: pass.dutyLocation,
           badge_level: pass.badgeLevel,
-          instructions: pass.instructions || 'Please arrive 15 minutes before your shift and present this QR pass at the entrance.',
-          qr_code: qrString || `VOLUNTEER_PASS:${JSON.stringify(pass)}`,
-          qr_image_url: finalQrDataUrl,
-          message: pass.instructions || 'Thank you for your dedicated service at Sri Raghavendra Swamy Mutt.'
+          instructions: pass.instructions || '',
+          message: pass.instructions || '',
+          qr_image_url: finalQrOnlineUrl,
         }
       };
 
@@ -70,17 +79,17 @@ export async function POST(request: NextRequest) {
         });
       } else {
         const errorText = await emailJsRes.text();
-        console.warn('EmailJS REST API responded with error, falling back to Nodemailer SMTP:', errorText);
+        console.warn('EmailJS REST API response:', errorText);
       }
     } catch (eJsErr) {
-      console.warn('EmailJS REST API call failed, falling back to Nodemailer SMTP:', eJsErr);
+      console.warn('EmailJS REST API call failed:', eJsErr);
     }
 
     // 2. Nodemailer SMTP Fallback
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.EMAIL_PORT || '587'),
-      secure: false, // Use TLS
+      secure: false,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -91,105 +100,78 @@ export async function POST(request: NextRequest) {
     });
 
     const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Swayamsevak Duty Pass & QR Badge</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; margin: 0; padding: 0; background: #f8fafc; }
-    .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; }
-    .header { background: linear-gradient(135deg, #ea580c 0%, #f59e0b 100%); color: white; padding: 28px 24px; text-align: center; }
-    .header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
-    .header p { margin: 6px 0 0 0; font-size: 13px; opacity: 0.95; font-weight: 500; }
-    .badge-tag { display: inline-block; background: rgba(255,255,255,0.25); color: #fff; padding: 4px 14px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; border: 1px solid rgba(255,255,255,0.4); }
-    .content { padding: 28px 24px; }
-    .greeting { font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 0; }
-    .card { background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 12px; padding: 18px; margin: 20px 0; }
-    .card-title { font-size: 14px; font-weight: 800; color: #9a3412; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px; }
-    .qr-section { text-align: center; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 16px; padding: 24px; margin: 24px 0; }
-    .qr-img { width: 220px; height: 220px; border-radius: 12px; border: 4px solid #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    .qr-caption { font-size: 12px; font-weight: 600; color: #64748b; margin-top: 10px; }
-    .instructions { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin: 20px 0; font-size: 13px; color: #166534; }
-    .instructions h4 { margin: 0 0 6px 0; font-size: 13px; font-weight: 800; text-transform: uppercase; color: #15803d; }
-    .footer { text-align: center; padding: 20px; background: #f1f5f9; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>🙏 Swayamsevak Duty Pass</h1>
-      <p>Sri Mathaji Ulsooramma Raghavendra Swamy Mutt, Vidyaranyapura</p>
-      <div class="badge-tag">🎖️ ${pass.badgeLevel || 'Active Swayamsevak'}</div>
-    </div>
-
-    <div class="content">
-      <h2 class="greeting">Hare Srinivasa, ${pass.volunteerName}!</h2>
-      <p style="font-size: 14px; color: #475569; line-height: 1.5;">
-        Thank you for offering your sacred service for the Mutt. Please find your official volunteer entry pass and QR code verification ticket below.
-      </p>
-
-      <div class="card">
-        <div class="card-title">📋 Assigned Seva & Duty Schedule</div>
-        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-          <tr>
-            <td style="padding: 6px 0; font-weight: 600; color: #7c2d12; width: 40%;">Duty Assignment:</td>
-            <td style="padding: 6px 0; font-weight: 700; color: #1e293b;">${pass.dutyTitle || 'Temple Operations'}</td>
-          </tr>
-          <tr>
-            <td style="padding: 6px 0; font-weight: 600; color: #7c2d12;">Duty Date:</td>
-            <td style="padding: 6px 0; font-weight: 700; color: #1e293b;">${pass.dutyDate || 'Scheduled Day'}</td>
-          </tr>
-          <tr>
-            <td style="padding: 6px 0; font-weight: 600; color: #7c2d12;">Shift Timing:</td>
-            <td style="padding: 6px 0; font-weight: 700; color: #1e293b;">${pass.dutyTime || 'As scheduled'}</td>
-          </tr>
-          <tr>
-            <td style="padding: 6px 0; font-weight: 600; color: #7c2d12;">Reporting Gate/Hall:</td>
-            <td style="padding: 6px 0; font-weight: 700; color: #1e293b;">${pass.dutyLocation || 'Main Temple Entrance'}</td>
-          </tr>
-          <tr>
-            <td style="padding: 6px 0; font-weight: 600; color: #7c2d12;">Badge Level:</td>
-            <td style="padding: 6px 0; font-weight: 700; color: #ea580c;">${pass.badgeLevel || 'Standard Sevak'}</td>
-          </tr>
-        </table>
-      </div>
-
-      <div class="qr-section">
-        <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 800; color: #0f172a;">📱 Your Volunteer QR Pass</h3>
-        <p style="font-size: 12px; color: #64748b; margin: 0 0 16px 0;">Present this QR code to the Admin/Scanner at the gate to claim your Seva Badge & check-in.</p>
-        <img src="cid:volunteer-qrcode" class="qr-img" alt="Volunteer QR Code" />
-        <div class="qr-caption">Pass ID: ${pass.volunteerId}</div>
-      </div>
-
-      <div class="instructions">
-        <h4>⏰ Important Instructions:</h4>
-        <ul style="margin: 0; padding-left: 18px; line-height: 1.6;">
-          <li>Please arrive at the temple 15 minutes before your shift starts.</li>
-          <li>Wear traditional attire suitable for temple seva service.</li>
-          <li>The Admin will scan this QR at the gate to award your Duty Badge and confirm attendance.</li>
-          ${pass.instructions ? `<li><strong>Notes:</strong> ${pass.instructions}</li>` : ''}
-        </ul>
-      </div>
-
-      <p style="font-size: 13px; color: #64748b; text-align: center; margin-top: 24px;">
-        May Sri Moola Rama, Sri Raghavendra Gurugalu shower their supreme blessings upon you and your family.
-      </p>
-    </div>
-
-    <div class="footer">
-      <p style="margin: 0 0 4px 0; font-weight: 700;">Sri Mathaji Ulsooramma Raghavendra Swamy Mutt</p>
-      <p style="margin: 0;">Vidyaranyapura, Bangalore • Swayamsevak Sangha Portal</p>
-    </div>
-  </div>
-</body>
-</html>
+<table style="background: #f5f5f5; padding: 30px 10px;" width="100%" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td align="center">
+<table style="max-width: 600px; width: 100%; background: #ffffff; border-radius: 14px; overflow: hidden;" width="600" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td style="padding: 28px 20px 20px;" align="center">
+<h2 style="margin: 0; font-size: 22px; color: #1e293b;">🙏 Welcome to the Volunteer Seva Team! 🙏</h2>
+<p style="margin: 10px 0 0; color: #666; font-size: 14px;">Mathaji Ulsooramma Raghavendra Swamy Mutt</p>
+<p style="margin: 4px 0 0; color: #777; font-size: 13px;">Vidyaranyapura, Bangalore</p>
+</td>
+</tr>
+<tr>
+<td style="padding: 10px 30px;">
+<p style="font-size: 16px; color: #333;">Dear <strong>${pass.volunteerName}</strong>,</p>
+<p style="font-size: 14px; line-height: 1.6; color: #555;">We are pleased to welcome you to the <strong>Volunteer Seva Team</strong>. Your QR Duty Pass has been generated for your seva.</p>
+</td>
+</tr>
+<tr>
+<td style="padding: 10px 30px;">
+<table style="background: #fafafa; border-radius: 10px; height: 200px;" width="100%" cellspacing="0" cellpadding="10">
+<tbody>
+<tr style="height: 40px;">
+<td style="font-size: 14px; color: #666;">📌 <strong>Seva</strong></td>
+<td style="font-size: 14px; color: #333; font-weight: bold;">${pass.dutyTitle}</td>
+</tr>
+<tr style="height: 40px;">
+<td style="font-size: 14px; color: #666;">📅 <strong>Date</strong></td>
+<td style="font-size: 14px; color: #333; font-weight: bold;">${pass.dutyDate}</td>
+</tr>
+<tr style="height: 40px;">
+<td style="font-size: 14px; color: #666;">⏰ <strong>Timing</strong></td>
+<td style="font-size: 14px; color: #333; font-weight: bold;">${pass.dutyTime}</td>
+</tr>
+<tr style="height: 40px;">
+<td style="font-size: 14px; color: #666;">📍 <strong>Location/Gate</strong></td>
+<td style="font-size: 14px; color: #333; font-weight: bold;">${pass.dutyLocation}</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<tr>
+<td style="padding: 25px 30px;" align="center">
+<h3 style="margin: 0 0 8px; font-size: 18px; color: #333;">🎫 Your QR Duty Pass</h3>
+<p style="margin: 0 0 18px; font-size: 13px; color: #777;">Please present this QR code at the designated entry point.</p>
+<div style="background: #ffffff; padding: 15px; display: inline-block; border: 1px solid #eeeeee; border-radius: 10px;">
+  <img style="display: block; width: 250px; height: 250px;" src="cid:volunteer-qrcode" alt="Volunteer QR Code" width="250" height="250" />
+</div>
+<p style="margin: 15px 0 0; font-size: 13px; color: #777;">Scan for Entry &amp; Attendance Verification</p>
+</td>
+</tr>
+<tr>
+<td style="padding: 10px 30px 25px;">
+<p style="font-size: 14px; line-height: 1.6; color: #555;">Please keep this QR pass safely on your phone. It will be used for <strong>entry and attendance verification</strong>.</p>
+<p style="font-size: 14px; color: #555;">🙏 Thank you for your valuable seva. We look forward to your participation!</p>
+<p style="font-size: 14px; color: #333; margin-bottom: 0;"><strong>Regards,</strong><br>Volunteer Seva Team<br>Mathaji Ulsooramma Raghavendra Swamy Mutt<br>Vidyaranyapura, Bangalore</p>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
     `;
 
     const mailOptions: any = {
       from: process.env.EMAIL_FROM || 'info@vidyaranyapuramutt.org',
       to: pass.volunteerEmail,
-      subject: `🎖️ Swayamsevak Duty Pass & QR Badge - ${pass.dutyTitle || 'Sri Raghavendra Swamy Mutt'}`,
+      subject: `🎫 Volunteer QR Duty Pass - ${pass.dutyTitle || 'Mathaji Ulsooramma Raghavendra Swamy Mutt'}`,
       html: emailHtml,
       attachments: [
         {
