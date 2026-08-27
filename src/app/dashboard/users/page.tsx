@@ -22,10 +22,24 @@ import {
   Lock,
   AlertCircle,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Mail,
+  Send,
+  Award,
+  Filter,
+  CheckCircle2,
+  RefreshCw,
+  Eye,
+  Info
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AVAILABLE_PERMISSIONS, PermissionKey, RBACUser } from '@/lib/rbac';
+import { 
+  sendVolunteerPassEmail, 
+  generateVolunteerQRCodeDataURL, 
+  generateVolunteerPassCode,
+  VolunteerPassPayload 
+} from '@/lib/volunteer-email';
 
 interface Volunteer extends RBACUser {
   id: string;
@@ -44,7 +58,26 @@ export default function UsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'volunteers' | 'admins'>('all');
   
+  // Selection state for sending emails
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [showEmailDispatchModal, setShowEmailDispatchModal] = useState(false);
+  
+  // Email dispatch form
+  const [dispatchDutyTitle, setDispatchDutyTitle] = useState('Maha Aradhana Utsavam & Annadanam Seva');
+  const [dispatchDutyDate, setDispatchDutyDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [dispatchDutyTime, setDispatchDutyTime] = useState('08:00 AM - 02:00 PM');
+  const [dispatchDutyLocation, setDispatchDutyLocation] = useState('Main Sanctum & Annapurna Dining Hall');
+  const [dispatchBadgeLevel, setDispatchBadgeLevel] = useState('🎖️ Active Swayamsevak');
+  const [dispatchInstructions, setDispatchInstructions] = useState('Please arrive 15 minutes before your shift and present this QR pass at the entrance scanner for badge verification.');
+  
+  // Dispatch execution state
+  const [isDispatching, setIsDispatching] = useState(false);
+  const [dispatchProgress, setDispatchProgress] = useState<{ current: number; total: number; activeName: string } | null>(null);
+  const [dispatchResults, setDispatchResults] = useState<Array<{ name: string; email: string; success: boolean; message: string; mode: string }>>([]);
+  const [previewQrUrl, setPreviewQrUrl] = useState<string>('');
+
   // Invite modal states
   const [newUserData, setNewUserData] = useState({ 
     name: '', 
@@ -108,6 +141,122 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers();
   }, [currentUser]);
+
+  // Update live QR preview when preview modal is opened or form fields change
+  useEffect(() => {
+    if (showEmailDispatchModal && selectedUserIds.length > 0) {
+      const firstSelected = users.find(u => u.id === selectedUserIds[0]) || users[0];
+      if (firstSelected) {
+        const samplePass: VolunteerPassPayload = {
+          volunteerId: firstSelected.id,
+          volunteerName: firstSelected.name,
+          volunteerEmail: firstSelected.email,
+          role: firstSelected.role,
+          dutyTitle: dispatchDutyTitle,
+          dutyDate: dispatchDutyDate,
+          dutyTime: dispatchDutyTime,
+          dutyLocation: dispatchDutyLocation,
+          badgeLevel: dispatchBadgeLevel,
+          instructions: dispatchInstructions
+        };
+        generateVolunteerQRCodeDataURL(samplePass).then(url => setPreviewQrUrl(url)).catch(() => {});
+      }
+    }
+  }, [showEmailDispatchModal, selectedUserIds, dispatchDutyTitle, dispatchDutyDate, dispatchDutyTime, dispatchDutyLocation, dispatchBadgeLevel, dispatchInstructions, users]);
+
+  const filteredUsers = users.filter(u => {
+    if (activeTab === 'volunteers') return u.role === 'volunteer';
+    if (activeTab === 'admins') return u.role === 'admin' || u.role === 'super_admin';
+    return true;
+  });
+
+  const toggleSelectUser = (id: string) => {
+    setSelectedUserIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllFiltered = () => {
+    if (selectedUserIds.length === filteredUsers.length) {
+      setSelectedUserIds([]);
+    } else {
+      setSelectedUserIds(filteredUsers.map(u => u.id));
+    }
+  };
+
+  const handleOpenDispatchModal = () => {
+    if (selectedUserIds.length === 0) {
+      // If none selected, default to all volunteers
+      const volunteerIds = users.filter(u => u.role === 'volunteer').map(u => u.id);
+      if (volunteerIds.length > 0) {
+        setSelectedUserIds(volunteerIds);
+      } else if (users.length > 0) {
+        setSelectedUserIds([users[0].id]);
+      }
+    }
+    setDispatchResults([]);
+    setDispatchProgress(null);
+    setShowEmailDispatchModal(true);
+  };
+
+  const handleDispatchEmails = async () => {
+    const selectedRecipients = users.filter(u => selectedUserIds.includes(u.id));
+    if (selectedRecipients.length === 0) {
+      alert('Please select at least one volunteer recipient.');
+      return;
+    }
+
+    setIsDispatching(true);
+    setDispatchResults([]);
+    setDispatchProgress({ current: 0, total: selectedRecipients.length, activeName: '' });
+
+    const results: Array<{ name: string; email: string; success: boolean; message: string; mode: string }> = [];
+
+    for (let i = 0; i < selectedRecipients.length; i++) {
+      const recipient = selectedRecipients[i];
+      setDispatchProgress({
+        current: i + 1,
+        total: selectedRecipients.length,
+        activeName: recipient.name,
+      });
+
+      const passPayload: VolunteerPassPayload = {
+        volunteerId: recipient.id || String(Date.now() + i),
+        volunteerName: recipient.name,
+        volunteerEmail: recipient.email,
+        volunteerPhone: recipient.phone,
+        role: recipient.role,
+        dutyTitle: dispatchDutyTitle,
+        dutyDate: dispatchDutyDate,
+        dutyTime: dispatchDutyTime,
+        dutyLocation: dispatchDutyLocation,
+        badgeLevel: dispatchBadgeLevel,
+        instructions: dispatchInstructions,
+      };
+
+      try {
+        const sendRes = await sendVolunteerPassEmail(passPayload);
+        results.push({
+          name: recipient.name,
+          email: recipient.email,
+          success: sendRes.success,
+          message: sendRes.message,
+          mode: sendRes.mode,
+        });
+      } catch (err: any) {
+        results.push({
+          name: recipient.name,
+          email: recipient.email,
+          success: false,
+          message: err.message || 'Failed to dispatch email',
+          mode: 'error',
+        });
+      }
+    }
+
+    setDispatchResults(results);
+    setIsDispatching(false);
+  };
 
   const handleRoleSwitch = (newRole: 'admin' | 'volunteer') => {
     setToggledRole(newRole);
@@ -446,150 +595,529 @@ export default function UsersPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl text-white shadow-md">
-              <Shield size={22} />
+            <div className="p-2.5 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl text-white shadow-md">
+              <Shield size={24} />
             </div>
-            <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-              Access & Personnel Management
-            </h1>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                Personnel & Volunteer Dispatch
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                Master Admin control for personnel access, volunteer roster, and EmailJS QR Badge dispatch.
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Control administrative boundaries, granular module permissions, and volunteer scanner access.
-          </p>
         </div>
-        {isSuperAdmin && (
-          <button 
-            onClick={() => {
-              setNewUserData({ name: '', email: '', phone: '', password: '', role: 'volunteer' });
-              setInvitePermissions({ qr_checkin: true, devotees: true, activity_log: true });
-              setShowInviteModal(true);
-            }} 
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition-all duration-200 text-sm transform hover:-translate-y-0.5 cursor-pointer"
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* EmailJS QR Pass Dispatch Button */}
+          <button
+            onClick={handleOpenDispatchModal}
+            className="flex items-center gap-2 bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 hover:from-orange-700 hover:to-amber-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-md shadow-orange-600/20 transition-all duration-200 text-sm transform hover:-translate-y-0.5 cursor-pointer"
           >
-            <UserPlus size={18} /> Invite Colleague
+            <Mail size={17} />
+            <span>Send QR Pass via EmailJS</span>
+            {selectedUserIds.length > 0 && (
+              <span className="bg-white text-orange-700 text-xs px-2 py-0.5 rounded-full font-black">
+                {selectedUserIds.length}
+              </span>
+            )}
           </button>
-        )}
+
+          {isSuperAdmin && (
+            <button 
+              onClick={() => {
+                setNewUserData({ name: '', email: '', phone: '', password: '', role: 'volunteer' });
+                setInvitePermissions({ qr_checkin: true, devotees: true, activity_log: true });
+                setShowInviteModal(true);
+              }} 
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition-all duration-200 text-sm transform hover:-translate-y-0.5 cursor-pointer"
+            >
+              <UserPlus size={17} />
+              <span>Invite Colleague</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 overflow-hidden">
+      {/* Filter Tabs & Selection Toolbar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-800/60 p-4 rounded-2xl border border-gray-100 dark:border-slate-700/60">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'all'
+                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+            }`}
+          >
+            All Personnel ({users.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('volunteers')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'volunteers'
+                ? 'bg-orange-600 text-white shadow-sm shadow-orange-600/30'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+            }`}
+          >
+            <QrCode size={14} />
+            <span>Volunteers ({users.filter(u => u.role === 'volunteer').length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('admins')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'admins'
+                ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+            }`}
+          >
+            <Shield size={14} />
+            <span>Admins ({users.filter(u => u.role === 'admin' || u.role === 'super_admin').length})</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+          <button
+            onClick={selectAllFiltered}
+            className="flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          >
+            {selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0 ? (
+              <>
+                <CheckSquare size={16} className="text-orange-600" />
+                <span>Deselect All</span>
+              </>
+            ) : (
+              <>
+                <Square size={16} className="text-gray-400" />
+                <span>Select All ({filteredUsers.length})</span>
+              </>
+            )}
+          </button>
+
+          {selectedUserIds.length > 0 && (
+            <span className="text-xs font-extrabold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-950/60 px-3 py-1.5 rounded-lg border border-orange-200 dark:border-orange-800/40">
+              {selectedUserIds.length} Selected
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Main Personnel Table */}
+      <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700/50 overflow-hidden">
         {isLoading ? (
           <div className="py-20 flex flex-col items-center justify-center text-gray-400 gap-3">
-            <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-sm font-medium">Loading personnel and access control table...</span>
+            <div className="w-8 h-8 border-3 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-medium">Loading personnel and volunteer roster...</span>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[750px]">
                <thead>
                  <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-semibold border-b border-gray-100 dark:border-slate-700/50">
-                    <th className="px-6 py-4">Personnel</th>
-                    <th className="px-6 py-4">Contact & Creds</th>
+                    <th className="px-6 py-4 w-12 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0}
+                        onChange={selectAllFiltered}
+                        className="rounded text-orange-600 focus:ring-orange-500 w-4 h-4 cursor-pointer"
+                        title="Select/Deselect all"
+                      />
+                    </th>
+                    <th className="px-6 py-4">Personnel / Volunteer</th>
+                    <th className="px-6 py-4">Email & Phone</th>
                     <th className="px-6 py-4">Assigned Role</th>
                     <th className="px-6 py-4">Module Permissions</th>
-                    <th className="px-6 py-4 text-right">Settings</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
                  </tr>
                </thead>
                <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50">
-                 {users.length === 0 ? (
+                 {filteredUsers.length === 0 ? (
                    <tr>
-                     <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                       <p className="text-sm font-semibold">No personnel records found.</p>
-                       <p className="text-xs text-gray-400 mt-1">If you just added a user, try refreshing the page or check your database connection.</p>
+                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                       <p className="text-sm font-semibold">No records found in this category.</p>
+                       <p className="text-xs text-gray-400 mt-1">Try changing your filter tab or invite new volunteers.</p>
                      </td>
                    </tr>
                  ) : (
-                   users.map(u => {
+                   filteredUsers.map(u => {
                      const isRowSuperAdmin = u.role === 'super_admin' || u.email === 'admin@temple.com';
+                     const isSelected = selectedUserIds.includes(u.id);
                      const activePermCount = u.permissions ? Object.values(u.permissions).filter(Boolean).length : 0;
 
                      return (
-                       <tr key={u.id || Math.random()} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                       <tr 
+                         key={u.id || Math.random()} 
+                         className={`transition-colors ${
+                           isSelected 
+                             ? 'bg-orange-50/60 dark:bg-orange-950/20' 
+                             : 'hover:bg-gray-50/50 dark:hover:bg-slate-800/50'
+                         }`}
+                       >
+                          {/* Selection Checkbox */}
+                          <td className="px-6 py-4 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelectUser(u.id)}
+                              className="rounded text-orange-600 focus:ring-orange-500 w-4 h-4 cursor-pointer"
+                            />
+                          </td>
+
+                          {/* Personnel Info */}
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center gap-3">
-                               <div className={`w-10 h-10 flex items-center justify-center rounded-full text-white font-bold text-lg shadow-sm ${
+                               <div className={`w-10 h-10 flex items-center justify-center rounded-2xl text-white font-bold text-lg shadow-sm ${
                                  isRowSuperAdmin ? 'bg-gradient-to-tr from-purple-600 to-indigo-600' :
-                                 u.role === 'admin' ? 'bg-blue-600' : 'bg-orange-500'
+                                 u.role === 'admin' ? 'bg-blue-600' : 'bg-gradient-to-tr from-orange-600 to-amber-600'
                                }`}>
                                   {(u.name || 'User').charAt(0)}
                                </div>
-                             <div>
-                               <span className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                 {u.name}
-                                 {isRowSuperAdmin && <span title="Protected Super Admin"><Lock size={13} className="text-purple-500 inline" /></span>}
+                              <div>
+                                <span className="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-sm">
+                                  {u.name}
+                                  {isRowSuperAdmin && <span title="Protected Super Admin"><Lock size={13} className="text-purple-500 inline" /></span>}
+                                </span>
+                                <span className="text-xs text-gray-400 block sm:hidden">{u.email}</span>
+                              </div>
+                           </div>
+                         </td>
+
+                         {/* Contact */}
+                         <td className="px-6 py-4 whitespace-nowrap">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{u.email}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{u.phone || '—'}</p>
+                         </td>
+
+                         {/* Role */}
+                         <td className="px-6 py-4 whitespace-nowrap">
+                            {isRowSuperAdmin ? (
+                               <span className="bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-purple-200 dark:border-purple-800/60 inline-flex items-center gap-1.5">
+                                 <Shield size={12} /> Super Admin
                                </span>
-                               <span className="text-xs text-gray-400 block sm:hidden">{u.email}</span>
-                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                           <p className="text-sm font-medium text-gray-900 dark:text-gray-200">{u.email}</p>
-                           <p className="text-xs text-gray-500 dark:text-gray-400">{u.phone || '—'}</p>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                           {isRowSuperAdmin ? (
-                              <span className="bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-purple-200 dark:border-purple-800/60 inline-flex items-center gap-1.5">
-                                <Shield size={12} /> Super Admin
+                            ) : u.role === 'admin' ? (
+                               <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-blue-200 dark:border-blue-800/60 inline-flex items-center gap-1.5">
+                                 <CheckSquare size={12} /> Administrator
+                               </span>
+                            ) : (
+                               <span className="bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-orange-200 dark:border-orange-800/60 inline-flex items-center gap-1.5">
+                                 <QrCode size={12} /> Volunteer / Sevak
+                               </span>
+                            )}
+                         </td>
+
+                         {/* Permissions */}
+                         <td className="px-6 py-4 whitespace-nowrap">
+                            {isRowSuperAdmin ? (
+                              <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-lg border border-purple-100 dark:border-purple-900/30">
+                                All Modules (Unrestricted)
                               </span>
-                           ) : u.role === 'admin' ? (
-                              <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-blue-200 dark:border-blue-800/60 inline-flex items-center gap-1.5">
-                                <CheckSquare size={12} /> Administrator
+                            ) : (
+                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700/60 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-slate-600">
+                                {activePermCount} Allowed
                               </span>
-                           ) : (
-                              <span className="bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-orange-200 dark:border-orange-800/60 inline-flex items-center gap-1.5">
-                                <QrCode size={12} /> Scanner / Vol
-                              </span>
-                           )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                           {isRowSuperAdmin ? (
-                             <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-lg border border-purple-100 dark:border-purple-900/30">
-                               All Modules (Unrestricted)
-                             </span>
-                           ) : (
-                             <span className="text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700/60 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-slate-600">
-                               {activePermCount} Allowed
-                             </span>
-                           )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                           {isRowSuperAdmin ? (
-                             <span className="text-xs text-gray-400 dark:text-gray-500 font-medium italic">
-                               Protected
-                             </span>
-                           ) : (
-                             <div className="flex items-center justify-end gap-2">
-                               {isSuperAdmin && (
-                                 <button 
-                                   onClick={() => openManagePermissionsModal(u)} 
-                                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold transition-colors border border-blue-200/60 dark:border-blue-800/50 cursor-pointer" 
-                                   title="Manage Permissions and Role Access"
-                                 >
-                                   <Edit size={14} /> Manage Access
-                                 </button>
-                               )}
-                               {isSuperAdmin && (
-                                 <button 
-                                   onClick={() => deleteUser(u.id, u.role)} 
-                                   className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer" 
-                                   title="Revoke Access"
-                                 >
-                                   <Trash2 size={16} />
-                                 </button>
-                               )}
-                             </div>
-                           )}
-                        </td>
-                     </tr>
-                   );
-                 }))}
+                            )}
+                         </td>
+
+                         {/* Action Buttons */}
+                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                            <div className="flex items-center justify-end gap-2">
+                              {/* Single Send QR Pass Button */}
+                              <button
+                                onClick={() => {
+                                  setSelectedUserIds([u.id]);
+                                  setDispatchResults([]);
+                                  setShowEmailDispatchModal(true);
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-orange-50 dark:bg-orange-950/50 hover:bg-orange-100 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 rounded-lg text-xs font-bold transition-colors border border-orange-200/60 dark:border-orange-800/50 cursor-pointer"
+                                title="Send QR Duty Pass to this user"
+                              >
+                                <Mail size={13} />
+                                <span className="hidden sm:inline">Send Pass</span>
+                              </button>
+
+                              {!isRowSuperAdmin && isSuperAdmin && (
+                                <button 
+                                  onClick={() => openManagePermissionsModal(u)} 
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold transition-colors border border-blue-200/60 dark:border-blue-800/50 cursor-pointer" 
+                                  title="Manage Permissions and Role Access"
+                                >
+                                  <Edit size={13} />
+                                  <span className="hidden sm:inline">Access</span>
+                                </button>
+                              )}
+
+                              {!isRowSuperAdmin && isSuperAdmin && (
+                                <button 
+                                  onClick={() => deleteUser(u.id, u.role)} 
+                                  className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer" 
+                                  title="Revoke Access"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              )}
+                            </div>
+                         </td>
+                       </tr>
+                     );
+                   }))}
                </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {/* ========================================================================= */}
+      {/* 📧 VOLUNTEER EMAIL & QR BADGE DISPATCH MODAL (EMAILJS & SMTP)              */}
+      {/* ========================================================================= */}
+      {showEmailDispatchModal && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden animate-fade-in my-8 border border-orange-200/80 dark:border-slate-700">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white p-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl shadow-inner">
+                  <Mail size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black leading-tight">
+                    Volunteer QR Duty Pass Dispatch
+                  </h3>
+                  <p className="text-xs text-orange-100 mt-0.5">
+                    Send high-resolution QR entry passes to {selectedUserIds.length} volunteer{selectedUserIds.length === 1 ? '' : 's'} via EmailJS & SMTP
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEmailDispatchModal(false)}
+                className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/20 transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto text-left">
+              {/* Selected Recipients Preview */}
+              <div>
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-2">
+                  Target Recipients ({selectedUserIds.length})
+                </label>
+                <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto p-3 bg-gray-50 dark:bg-slate-800/80 rounded-2xl border border-gray-200 dark:border-slate-700">
+                  {users
+                    .filter(u => selectedUserIds.includes(u.id))
+                    .map(u => (
+                      <span
+                        key={u.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-slate-700 rounded-full text-xs font-semibold text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-slate-600 shadow-xs"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                        <strong>{u.name}</strong>
+                        <span className="text-gray-400 text-[11px]">({u.email})</span>
+                      </span>
+                    ))}
+                  {selectedUserIds.length === 0 && (
+                    <span className="text-xs text-red-500 font-medium">No volunteers selected. Please select recipients.</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Duty & Schedule Configuration */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
+                    Seva / Duty Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={dispatchDutyTitle}
+                    onChange={e => setDispatchDutyTitle(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none text-sm font-medium"
+                    placeholder="e.g. Maha Aradhana Utsavam Seva"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
+                    Duty Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={dispatchDutyDate}
+                    onChange={e => setDispatchDutyDate(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none text-sm font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
+                    Shift Timing *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={dispatchDutyTime}
+                    onChange={e => setDispatchDutyTime(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none text-sm font-medium"
+                    placeholder="e.g. 08:00 AM - 02:00 PM"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
+                    Assigned Location / Gate
+                  </label>
+                  <input
+                    type="text"
+                    value={dispatchDutyLocation}
+                    onChange={e => setDispatchDutyLocation(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none text-sm font-medium"
+                    placeholder="e.g. Main Sanctum & Annapurna Hall"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
+                    Badge Level / Designation
+                  </label>
+                  <select
+                    value={dispatchBadgeLevel}
+                    onChange={e => setDispatchBadgeLevel(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none text-sm font-semibold"
+                  >
+                    <option value="🎖️ Active Swayamsevak">🎖️ Active Swayamsevak (Standard Duty)</option>
+                    <option value="⭐ Seva & Utsavam Lead">⭐ Seva & Utsavam Lead</option>
+                    <option value="🍽️ Annadanam & Kitchen Sevak">🍽️ Annadanam & Kitchen Sevak</option>
+                    <option value="🛡️ Security & Crowd Coordinator">🛡️ Security & Crowd Coordinator</option>
+                    <option value="🚩 Senior Temple Operations Lead">🚩 Senior Temple Operations Lead</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
+                    Custom Volunteer Instructions / Message
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={dispatchInstructions}
+                    onChange={e => setDispatchInstructions(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none text-sm"
+                    placeholder="Instructions for reporting time, dress code, and scanner gate..."
+                  />
+                </div>
+              </div>
+
+              {/* Live QR Code Preview Card */}
+              <div className="p-4 rounded-2xl bg-orange-50/70 dark:bg-slate-800/80 border border-orange-200 dark:border-slate-700 flex flex-col sm:flex-row items-center gap-4">
+                <div className="w-28 h-28 bg-white p-2 rounded-2xl shadow-md border border-orange-100 flex items-center justify-center shrink-0">
+                  {previewQrUrl ? (
+                    <img src={previewQrUrl} alt="Live QR Preview" className="w-full h-full object-contain" />
+                  ) : (
+                    <QrCode size={40} className="text-orange-500 animate-pulse" />
+                  )}
+                </div>
+                <div className="flex-1 text-xs text-gray-600 dark:text-gray-300 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-gray-900 dark:text-white text-sm">
+                      Live Email & QR Pass Preview
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-orange-200 dark:bg-orange-950 text-orange-800 dark:text-orange-300 font-bold text-[10px]">
+                      {dispatchBadgeLevel}
+                    </span>
+                  </div>
+                  <p>
+                    Every volunteer receives a unique, scannable QR ticket embedded in their email. When scanned at the temple gate, the admin can mark their attendance and issue their digital seva badge.
+                  </p>
+                </div>
+              </div>
+
+              {/* Dispatch Progress & Results */}
+              {dispatchProgress && (
+                <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-blue-900 dark:text-blue-200">
+                    <span>
+                      {isDispatching
+                        ? `Sending email to ${dispatchProgress.activeName}... (${dispatchProgress.current}/${dispatchProgress.total})`
+                        : `Dispatch Complete! (${dispatchProgress.current}/${dispatchProgress.total} Processed)`}
+                    </span>
+                    <span>{Math.round((dispatchProgress.current / dispatchProgress.total) * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-blue-200 dark:bg-blue-900/60 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${(dispatchProgress.current / dispatchProgress.total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Result Summary */}
+              {dispatchResults.length > 0 && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                    Dispatch Log ({dispatchResults.filter(r => r.success).length} Successful, {dispatchResults.filter(r => !r.success).length} Failed)
+                  </label>
+                  <div className="max-h-36 overflow-y-auto space-y-1.5 p-2 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 text-xs">
+                    {dispatchResults.map((res, i) => (
+                      <div
+                        key={i}
+                        className={`flex items-center justify-between p-2 rounded-lg ${
+                          res.success
+                            ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300'
+                            : 'bg-red-50 dark:bg-red-950/30 text-red-800 dark:text-red-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          {res.success ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+                          <span className="font-bold">{res.name}</span>
+                          <span className="text-[11px] opacity-75">({res.email})</span>
+                        </div>
+                        <span className="font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-white/50 dark:bg-slate-900/50">
+                          {res.mode}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Buttons */}
+              <div className="pt-4 border-t border-gray-100 dark:border-slate-700 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEmailDispatchModal(false)}
+                  className="flex-1 px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors text-gray-700 dark:text-gray-300 text-sm cursor-pointer"
+                >
+                  {dispatchResults.length > 0 ? 'Close' : 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDispatchEmails}
+                  disabled={isDispatching || selectedUserIds.length === 0}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 hover:from-orange-700 hover:to-amber-700 text-white rounded-xl font-bold transition-all shadow-md shadow-orange-600/30 disabled:opacity-50 text-sm flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isDispatching ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Sending Emails...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={16} />
+                      <span>Send to {selectedUserIds.length} Recipient{selectedUserIds.length === 1 ? '' : 's'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* INVITE COLLEAGUE MODAL WITH ROLE UI/UX SWITCHING */}
       {showInviteModal && (

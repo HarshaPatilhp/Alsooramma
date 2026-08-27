@@ -266,10 +266,11 @@ export default function DashboardPage() {
   const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
   const quickActions = isAdmin ? [
-    { title: 'Live QR Scanner', href: '/dashboard/scanner', description: 'Instant gate QR verification & hall redirect', icon: QrCode, live: true, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-950/50' },
+    { title: 'Live QR Scanner', href: '/dashboard/scanner', description: 'Instant gate QR verification & badge check-in', icon: QrCode, live: true, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-950/50' },
+    { title: 'Volunteer QR Dispatch', href: '/dashboard/users', description: 'Send duty passes & QR badges via EmailJS', icon: Flame, live: true, color: 'text-rose-600', bg: 'bg-rose-100 dark:bg-rose-950/50' },
     { title: 'Devotee Roster', href: '/dashboard/devotees', description: 'Manage participant list & search gotra', icon: Users, live: false, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-950/50' },
     { title: 'Seva Management', href: '/dashboard/sevas', description: 'Browse and update available pooja slots', icon: BookOpen, live: false, color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-950/50' },
-    { title: 'User Permissions', href: '/dashboard/users', description: 'Configure staff & volunteer access rights', icon: ShieldCheck, live: false, color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-950/50' },
+    { title: 'Personnel & Access', href: '/dashboard/users', description: 'Configure staff & volunteer access rights', icon: ShieldCheck, live: false, color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-950/50' },
   ] : [
     { title: 'Launch QR Scanner', href: '/dashboard/scanner', description: 'Verify incoming devotee tickets & gotras', icon: QrCode, live: true, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-950/50' },
     { title: 'Devotee Directory', href: '/dashboard/devotees', description: 'Search checked-in devotees & seating', icon: Users, live: false, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-950/50' },
@@ -718,7 +719,7 @@ export default function DashboardPage() {
         <h2 className="text-lg font-extrabold text-gray-900 dark:text-white mb-4">
           Quick Operations & Action Hub
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
           {quickActions.map((action) => {
             const Icon = action.icon;
             return (
