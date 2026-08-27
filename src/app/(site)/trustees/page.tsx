@@ -66,18 +66,35 @@ export default function Trustees() {
           {/* Trustees Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {trustees.map((trustee, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                <div className="aspect-square bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center">
-                  <div className="w-24 h-24 bg-orange-500 rounded-full flex items-center justify-center">
-                    <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
+              <div key={index} className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-slate-700 group flex flex-col">
+                <div className="aspect-[4/3] bg-gradient-to-br from-orange-100 to-amber-100 dark:from-slate-700 dark:to-slate-800 relative overflow-hidden flex items-center justify-center">
+                  {trustee.image ? (
+                    <img 
+                      src={trustee.image} 
+                      alt={trustee.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        // If image not found, fallback to placeholder avatar
+                        (e.target as HTMLElement).style.display = 'none';
+                        const parent = (e.target as HTMLElement).parentElement;
+                        if (parent) {
+                          const placeholder = parent.querySelector('.fallback-placeholder');
+                          if (placeholder) placeholder.classList.remove('hidden');
+                        }
+                      }}
+                    />
+                  ) : null}
+                  <div className={`fallback-placeholder ${trustee.image ? 'hidden' : ''} flex flex-col items-center justify-center text-center p-4`}>
+                    <div className="w-20 h-20 bg-gradient-to-tr from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-white shadow-md mb-2">
+                      <span className="text-2xl font-black">{trustee.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</span>
+                    </div>
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Photo Coming Soon</span>
                   </div>
                 </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">{trustee.name}</h3>
-                  <p className="text-orange-600 font-semibold mb-3">{trustee.role}</p>
-                  <p className="text-gray-600 leading-relaxed">{trustee.description}</p>
+                <div className="p-6 flex-1 flex flex-col">
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1.5">{trustee.name}</h3>
+                  <p className="text-orange-600 dark:text-orange-400 text-sm font-semibold mb-3">{trustee.role}</p>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mt-auto">{trustee.description}</p>
                 </div>
               </div>
             ))}
