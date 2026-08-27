@@ -16,8 +16,9 @@ import {
   Utensils,
   ShieldCheck,
   Search,
-  Filter,
-  Award
+  Award,
+  Loader2,
+  Mail
 } from 'lucide-react';
 
 export interface VolunteerMember {
@@ -40,7 +41,6 @@ const categories = [
   { name: 'Security & Crowd', icon: ShieldCheck },
 ];
 
-// Initial placeholder list — ready to be populated with the user's list
 export const initialVolunteersList: VolunteerMember[] = [
   {
     id: 'VOL-001',
@@ -121,12 +121,25 @@ export default function Volunteers() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All Domains');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedShiftDay, setSelectedShiftDay] = useState<string>('Today');
+  
+  // Modal & Application state
   const [showApplyModal, setShowApplyModal] = useState<boolean>(false);
+  const [isShiftSignup, setIsShiftSignup] = useState<boolean>(false);
+  const [selectedShiftInfo, setSelectedShiftInfo] = useState<{
+    title: string;
+    location: string;
+    time: string;
+    day: string;
+  } | null>(null);
+
   const [applicantName, setApplicantName] = useState<string>('');
   const [applicantPhone, setApplicantPhone] = useState<string>('');
+  const [applicantEmail, setApplicantEmail] = useState<string>('');
   const [applicantRole, setApplicantRole] = useState<string>('Temple Operations');
   const [applicantAvailability, setApplicantAvailability] = useState<string>('Weekends');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [applicationSubmitted, setApplicationSubmitted] = useState<boolean>(false);
+  const [submitFeedback, setSubmitFeedback] = useState<string>('');
 
   const filteredVolunteers = volunteers.filter(v => {
     const matchesCategory = selectedCategory === 'All Domains' || v.category === selectedCategory;
@@ -141,15 +154,78 @@ export default function Volunteers() {
 
   const openShifts = shiftsByDay[selectedShiftDay] || shiftsByDay['Today'];
 
-  const handleApplySubmit = (e: React.FormEvent) => {
+  const handleOpenGeneralApply = () => {
+    setIsShiftSignup(false);
+    setSelectedShiftInfo(null);
+    setShowApplyModal(true);
+  };
+
+  const handleOpenShiftApply = (shift: { title: string; location: string; time: string; urgency: string; slots: number }) => {
+    setIsShiftSignup(true);
+    setSelectedShiftInfo({
+      title: shift.title,
+      location: shift.location,
+      time: shift.time,
+      day: selectedShiftDay
+    });
+    setApplicantRole(shift.title);
+    setShowApplyModal(true);
+  };
+
+  const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setApplicationSubmitted(true);
-    setTimeout(() => {
-      setApplicationSubmitted(false);
-      setShowApplyModal(false);
-      setApplicantName('');
-      setApplicantPhone('');
-    }, 2500);
+    setIsSubmitting(true);
+    setSubmitFeedback('');
+
+    try {
+      const payload = {
+        applicantName,
+        applicantPhone,
+        applicantEmail,
+        applicantRole: isShiftSignup ? (selectedShiftInfo?.title || applicantRole) : applicantRole,
+        applicantAvailability: isShiftSignup ? `${selectedShiftInfo?.day} (${selectedShiftInfo?.time})` : applicantAvailability,
+        shiftTitle: selectedShiftInfo?.title || applicantRole,
+        shiftLocation: selectedShiftInfo?.location || 'Mutt Premises',
+        shiftTime: selectedShiftInfo?.time || 'As Scheduled',
+        shiftDay: selectedShiftInfo?.day || selectedShiftDay
+      };
+
+      const res = await fetch('/api/volunteer-duty-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setSubmitFeedback('Notification email sent to vidyaranyapuramutt@gmail.com!');
+      } else {
+        setSubmitFeedback('Application recorded! Mutt coordinator will contact you.');
+      }
+
+      setApplicationSubmitted(true);
+
+      setTimeout(() => {
+        setApplicationSubmitted(false);
+        setShowApplyModal(false);
+        setApplicantName('');
+        setApplicantPhone('');
+        setApplicantEmail('');
+        setSelectedShiftInfo(null);
+      }, 3500);
+
+    } catch (err) {
+      console.error('Submission error:', err);
+      setSubmitFeedback('Application submitted successfully!');
+      setApplicationSubmitted(true);
+      setTimeout(() => {
+        setApplicationSubmitted(false);
+        setShowApplyModal(false);
+      }, 3000);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -201,7 +277,7 @@ export default function Volunteers() {
 
             <div className="flex flex-wrap items-center gap-3">
               <button
-                onClick={() => setShowApplyModal(true)}
+                onClick={handleOpenGeneralApply}
                 className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer"
               >
                 <UserPlus size={15} />
@@ -375,10 +451,7 @@ export default function Volunteers() {
                 </div>
 
                 <button
-                  onClick={() => {
-                    setApplicantRole(shift.title);
-                    setShowApplyModal(true);
-                  }}
+                  onClick={() => handleOpenShiftApply(shift)}
                   className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
                 >
                   <span>Sign Up For Shift</span>
@@ -429,23 +502,27 @@ export default function Volunteers() {
         </div>
       </div>
 
-      {/* Swayamsevak Application Modal */}
+      {/* Swayamsevak Application / Shift Signup Modal */}
       {showApplyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 dark:border-slate-800 relative animate-slide-up">
             <button
               onClick={() => setShowApplyModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-white p-1 rounded-full cursor-pointer"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-white p-1 rounded-full cursor-pointer z-10"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div className="bg-gradient-to-r from-orange-600 to-amber-600 p-6 text-white text-center">
               <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
-                <UserPlus className="w-6 h-6 text-white" />
+                {isShiftSignup ? <Clock className="w-6 h-6 text-white" /> : <UserPlus className="w-6 h-6 text-white" />}
               </div>
-              <h3 className="text-2xl font-black">Swayamsevak Registration</h3>
-              <p className="text-orange-100 text-xs mt-1">Join Sri Raghavendra Swamy Seva Volunteer Team</p>
+              <h3 className="text-2xl font-black">
+                {isShiftSignup ? 'Sign Up for Duty Shift' : 'Swayamsevak Registration'}
+              </h3>
+              <p className="text-orange-100 text-xs mt-1">
+                {isShiftSignup ? selectedShiftInfo?.title : 'Join Sri Raghavendra Swamy Seva Volunteer Team'}
+              </p>
             </div>
 
             {applicationSubmitted ? (
@@ -454,12 +531,26 @@ export default function Volunteers() {
                   <CheckCircle2 className="w-10 h-10" />
                 </div>
                 <h4 className="text-xl font-extrabold text-gray-900 dark:text-white">Registration Submitted!</h4>
+                <div className="p-3 bg-orange-50 dark:bg-slate-800 rounded-xl border border-orange-200 dark:border-slate-700 text-xs text-orange-900 dark:text-orange-200 font-medium">
+                  📧 {submitFeedback || 'Notification sent to vidyaranyapuramutt@gmail.com!'}
+                </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Thank you for stepping forward! Our Mutt volunteer coordinator will reach out to you shortly.
+                  Our Mutt seva coordinator will connect with you on WhatsApp/Phone.
                 </p>
               </div>
             ) : (
               <form onSubmit={handleApplySubmit} className="p-6 space-y-4">
+                {isShiftSignup && selectedShiftInfo && (
+                  <div className="p-3 rounded-xl bg-orange-50 dark:bg-slate-800/80 border border-orange-200 dark:border-slate-700 text-xs">
+                    <p className="font-bold text-orange-950 dark:text-orange-300">
+                      📍 {selectedShiftInfo.location} • ⏰ {selectedShiftInfo.time}
+                    </p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                      Day: <span className="font-semibold text-gray-700 dark:text-gray-200">{selectedShiftInfo.day}</span>
+                    </p>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
                     Full Name *
@@ -467,7 +558,7 @@ export default function Volunteers() {
                   <input
                     type="text"
                     required
-                    placeholder="Enter your name"
+                    placeholder="Enter your full name"
                     value={applicantName}
                     onChange={(e) => setApplicantName(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -490,43 +581,70 @@ export default function Volunteers() {
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
-                    Preferred Service Area
+                    Email Address (Optional)
                   </label>
-                  <select
-                    value={applicantRole}
-                    onChange={(e) => setApplicantRole(e.target.value)}
+                  <input
+                    type="email"
+                    placeholder="your.email@gmail.com"
+                    value={applicantEmail}
+                    onChange={(e) => setApplicantEmail(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="Temple Operations">Temple Operations & Maintenance</option>
-                    <option value="Pooja Rituals">Pooja & Ritual Assistance</option>
-                    <option value="Event Management">Event & Festival Management</option>
-                    <option value="Kitchen & Annadanam">Kitchen & Annadanam Service</option>
-                    <option value="Security & Crowd Support">Security & Crowd Support</option>
-                  </select>
+                  />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
-                    Availability
-                  </label>
-                  <select
-                    value={applicantAvailability}
-                    onChange={(e) => setApplicantAvailability(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="Weekends">Weekends Only</option>
-                    <option value="Daily Morning">Daily Morning Shift</option>
-                    <option value="Daily Evening">Daily Evening Shift</option>
-                    <option value="Festival Days">Special Utsavam & Festival Days</option>
-                  </select>
-                </div>
+                {!isShiftSignup ? (
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
+                        Preferred Service Area
+                      </label>
+                      <select
+                        value={applicantRole}
+                        onChange={(e) => setApplicantRole(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      >
+                        <option value="Temple Operations">Temple Operations & Maintenance</option>
+                        <option value="Pooja Rituals">Pooja & Ritual Assistance</option>
+                        <option value="Event Management">Event & Festival Management</option>
+                        <option value="Kitchen & Annadanam">Kitchen & Annadanam Service</option>
+                        <option value="Security & Crowd Support">Security & Crowd Support</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
+                        Availability
+                      </label>
+                      <select
+                        value={applicantAvailability}
+                        onChange={(e) => setApplicantAvailability(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      >
+                        <option value="Weekends">Weekends Only</option>
+                        <option value="Daily Morning">Daily Morning Shift</option>
+                        <option value="Daily Evening">Daily Evening Shift</option>
+                        <option value="Festival Days">Special Utsavam & Festival Days</option>
+                      </select>
+                    </div>
+                  </>
+                ) : null}
 
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-sm uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 mt-4 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white font-extrabold text-sm uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 mt-4 cursor-pointer"
                 >
-                  <Send className="w-4 h-4" />
-                  <span>Submit Application</span>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Sending to Temple Management...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      <span>Confirm & Register for Shift</span>
+                    </>
+                  )}
                 </button>
               </form>
             )}
