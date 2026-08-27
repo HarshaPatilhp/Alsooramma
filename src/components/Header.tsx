@@ -15,9 +15,9 @@ export default function Header() {
       <div className="container mx-auto px-4">
         {/* Logo Section */}
         <div className="flex flex-col md:flex-row justify-center items-center py-4 md:py-6 space-y-4 md:space-y-0 md:space-x-4">
-          <div className="w-16 h-16 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-black flex-shrink-0">
+          <div className="w-16 h-16 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-white/80 shadow-md flex-shrink-0 bg-white">
             <img
-              src="images/6.jpg"
+              src="/images/6.png"
               alt="Mathaji Ulsooramma Sri Raghavendra Swamy Mutt"
               className="w-full h-full object-cover"
             />
@@ -25,9 +25,9 @@ export default function Header() {
           <Link href="/" className="text-xl md:text-4xl lg:text-5xl font-bold tracking-wider text-center px-4">
             Mathaji Ulsooramma Sri<br className="md:hidden" /> Raghavendra Swamy Mutt
           </Link>
-          <div className="w-16 h-16 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-black flex-shrink-0">
+          <div className="w-16 h-16 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-white/80 shadow-md flex-shrink-0 bg-white">
             <img
-              src="images/7.jpeg"
+              src="/images/7.jpeg"
               alt="Mathaji Ulsooramma Sri Raghavendra Swamy Mutt"
               className="w-full h-full object-cover"
             />
