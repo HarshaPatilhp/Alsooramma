@@ -27,12 +27,17 @@ import {
   ChevronDown,
   Phone,
   Mail,
-  Building
+  Building,
+  Download
 } from 'lucide-react';
 import QrScanner from 'qr-scanner';
 import { createClient } from '@/lib/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function ScannerPage() {
+  const { user } = useAuth();
+  const scannerName = user?.name || (user?.role === 'admin' ? 'Master Admin' : 'Gate Mobile Scanner');
+
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<{ 
     status: 'idle' | 'success' | 'volunteer_success' | 'volunteer_confirmed' | 'error', 
@@ -321,7 +326,7 @@ export default function ScannerPage() {
         body: JSON.stringify({ id: cleanId, status: 'completed' })
       }).catch(() => {});
 
-      // Record Scan in scan_history & API
+      // Record Scan in scan_history & API with actual scanner name
       try {
         const newScan = {
           booking_id: cleanId,
@@ -329,7 +334,7 @@ export default function ScannerPage() {
           seva_name: details.sevaName,
           status: 'Completed',
           scanned_at: new Date().toISOString(),
-          scanned_by: 'Gate Mobile Scanner'
+          scanned_by: scannerName
         };
         await supabase.from('scan_history').insert([newScan]);
         fetch('/api/scan-history', {
@@ -374,7 +379,7 @@ export default function ScannerPage() {
         booking_id: scanResult.data.id || numericId,
         status: statusStr,
         scanned_at: new Date().toLocaleString('en-IN'),
-        scanned_by: 'Master Admin Scanner',
+        scanned_by: scannerName,
       };
 
       // 1. Direct Supabase Database Insert
@@ -420,6 +425,90 @@ export default function ScannerPage() {
     }
   };
 
+  const handleExportScannedCSV = async () => {
+    try {
+      const supabase = createClient();
+      const { data: dbRows } = await supabase.from('scan_history').select('*').order('created_at', { ascending: false });
+      const localRows = JSON.parse(localStorage.getItem('alsur_scanned_volunteers') || '[]');
+      
+      const combined = [...(Array.isArray(dbRows) ? dbRows : []), ...localRows];
+      const seen = new Set();
+      const unique = combined.filter((item: any) => {
+        const key = item.id || item.booking_id || item.created_at;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      if (unique.length === 0) {
+        alert('No scanned records found to export.');
+        return;
+      }
+
+      const headers = [
+        'Volunteer Name',
+        'Scanned By (Scanner Name)',
+        'Scan Date',
+        'Scan Time',
+        'Badge Awarded (Yes/No)',
+        'Awarded Badge Tier',
+        'Assigned Seva Duty',
+        'Attendance Status'
+      ];
+
+      const rows = unique.map((row: any) => {
+        let badge = '🎖️ Active Swayamsevak';
+        let volunteerName = row.devotee_name || row.volunteer_name || 'Swayamsevak';
+        let duty = row.seva_name || 'Temple Operations & Seva';
+        let statusText = row.status || 'Verified';
+
+        if (row.status && String(row.status).startsWith('VOLUNTEER_BADGE:')) {
+          const raw = String(row.status).replace('VOLUNTEER_BADGE:', '').trim();
+          const parts = raw.split('|').map((s: string) => s.trim());
+          if (parts[0]) badge = parts[0];
+          if (parts[1]) volunteerName = parts[1];
+          if (parts[2]) duty = parts[2];
+          if (parts[3]) statusText = parts[3];
+        }
+
+        let formattedDate = '';
+        let formattedTime = '';
+        try {
+          const dt = row.scanned_at ? new Date(row.scanned_at) : (row.created_at ? new Date(row.created_at) : new Date());
+          formattedDate = dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+          formattedTime = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+        } catch (e) {
+          formattedDate = String(row.scanned_at || '');
+        }
+
+        const isBadgeAwarded = badge && !badge.includes('None') && !badge.includes('No Badge') ? 'Yes' : 'No';
+
+        return [
+          `"${volunteerName.replace(/"/g, '""')}"`,
+          `"${(row.scanned_by || 'Gate Scanner').replace(/"/g, '""')}"`,
+          `"${formattedDate}"`,
+          `"${formattedTime}"`,
+          `"${isBadgeAwarded}"`,
+          `"${badge.replace(/"/g, '""')}"`,
+          `"${duty.replace(/"/g, '""')}"`,
+          `"${statusText.replace(/"/g, '""')}"`
+        ];
+      });
+
+      const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\r\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `verified_volunteers_badges_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error('CSV Export Error:', e);
+      alert('Could not export CSV.');
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto pb-16 px-2 sm:px-4 animate-fade-in">
       
@@ -434,7 +523,7 @@ export default function ScannerPage() {
               <span>Gate Scanner & Verification</span>
             </h1>
             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-              Single-use QR validation • Live Tirtha Prasada counter
+              Single-use QR validation • Operator: <strong className="text-orange-600 dark:text-orange-400">{scannerName}</strong>
             </p>
           </div>
         </div>
@@ -460,6 +549,15 @@ export default function ScannerPage() {
             title="Refresh statistics"
           >
             <RotateCw size={18} />
+          </button>
+
+          <button
+            onClick={handleExportScannedCSV}
+            className="flex items-center gap-1.5 p-2.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 rounded-xl border border-emerald-200 dark:border-emerald-800 font-bold text-xs transition-colors cursor-pointer"
+            title="Download CSV report with volunteer name, scanner name, time, and badge status"
+          >
+            <Download size={16} />
+            <span className="hidden sm:inline">Export CSV</span>
           </button>
 
           {!isScanning ? (

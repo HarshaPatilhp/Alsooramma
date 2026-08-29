@@ -297,16 +297,29 @@ export default function UsersPage() {
       return;
     }
 
-    const headers = ['Volunteer Name', 'Assigned Seva Duty', 'Awarded Badge Tier', 'Scan Date', 'Scan Time', 'Verified By', 'Attendance Status'];
-    const rows = listToExport.map(item => [
-      `"${item.volunteerName.replace(/"/g, '""')}"`,
-      `"${item.sevaDuty.replace(/"/g, '""')}"`,
-      `"${item.badge.replace(/"/g, '""')}"`,
-      `"${item.scannedDate}"`,
-      `"${item.scannedTime}"`,
-      `"${item.scannedBy.replace(/"/g, '""')}"`,
-      `"${item.status.replace(/"/g, '""')}"`
-    ]);
+    const headers = [
+      'Volunteer Name',
+      'Scanned By (Scanner Name)',
+      'Scan Date',
+      'Scan Time',
+      'Badge Awarded (Yes/No)',
+      'Awarded Badge Tier',
+      'Assigned Seva Duty',
+      'Attendance Status'
+    ];
+    const rows = listToExport.map(item => {
+      const isBadgeAwarded = item.badge && !item.badge.includes('None') && !item.badge.includes('No Badge') ? 'Yes' : 'No';
+      return [
+        `"${item.volunteerName.replace(/"/g, '""')}"`,
+        `"${(item.scannedBy || 'Gate Mobile Scanner').replace(/"/g, '""')}"`,
+        `"${item.scannedDate}"`,
+        `"${item.scannedTime}"`,
+        `"${isBadgeAwarded}"`,
+        `"${item.badge.replace(/"/g, '""')}"`,
+        `"${item.sevaDuty.replace(/"/g, '""')}"`,
+        `"${item.status.replace(/"/g, '""')}"`
+      ];
+    });
 
     const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\r\n');
     const encodedUri = encodeURI(csvContent);
