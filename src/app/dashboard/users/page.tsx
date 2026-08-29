@@ -232,7 +232,7 @@ export default function UsersPage() {
         })
         .map((row: any) => {
           let badge = '🎖️ Active Swayamsevak';
-          let volunteerName = row.devotee_name || row.volunteer_name || 'Swayamsevak';
+          let volunteerName = row.devotee_name || row.volunteer_name || '';
           let duty = row.seva_name || 'Temple Operations';
           let statusText = row.status || 'Verified';
 
@@ -241,7 +241,9 @@ export default function UsersPage() {
             const raw = String(row.status).replace('VOLUNTEER_BADGE:', '').trim();
             const parts = raw.split('|').map(s => s.trim());
             if (parts[0]) badge = parts[0];
-            if (parts[1]) volunteerName = parts[1];
+            if (parts[1] && parts[1] !== '' && parts[1] !== 'Swayamsevak') {
+              volunteerName = parts[1];
+            }
             if (parts[2]) duty = parts[2];
             if (parts[3]) statusText = parts[3];
           } else {
@@ -250,6 +252,19 @@ export default function UsersPage() {
             if (match) {
               badge = match[1].trim();
               duty = match[2].trim() || 'Temple Operations & Seva';
+            }
+          }
+
+          if (!volunteerName || volunteerName === 'Swayamsevak') {
+            if (row.devotee_name && row.devotee_name !== 'Swayamsevak') {
+              volunteerName = row.devotee_name;
+            } else {
+              const matchedU = users.find(u => u.id === row.booking_id || u.email === row.booking_id);
+              if (matchedU?.name) {
+                volunteerName = matchedU.name;
+              } else {
+                volunteerName = 'Swayamsevak';
+              }
             }
           }
 

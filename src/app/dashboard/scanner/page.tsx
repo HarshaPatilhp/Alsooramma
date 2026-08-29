@@ -171,14 +171,14 @@ export default function ScannerPage() {
     } else if (cleanData.startsWith('{')) {
       try {
         const parsed = JSON.parse(cleanData);
-        if (parsed.type === 'VOLUNTEER_PASS' || parsed.type === 'volunteer_pass' || (parsed.name && parsed.duty)) {
+        if (parsed.type === 'VOLUNTEER_PASS' || parsed.type === 'volunteer_pass' || parsed.volunteerName || parsed.volunteer_name || (parsed.name && parsed.duty)) {
           volunteerPass = parsed;
         }
       } catch (e) {}
     }
 
     if (volunteerPass) {
-      const volPassId = String(volunteerPass.id || '');
+      const volPassId = String(volunteerPass.id || volunteerPass.volunteerId || '');
 
       // Check if this specific pass ID was already scanned in scan_history
       if (volPassId && volPassId.length > 2) {
@@ -200,7 +200,51 @@ export default function ScannerPage() {
         } catch (e) {}
       }
 
-      const badge = volunteerPass.badge || '🎖️ Active Swayamsevak';
+      // Robust extraction of volunteer name
+      let extractedName = 
+        volunteerPass.volunteerName || 
+        volunteerPass.volunteer_name || 
+        volunteerPass.name || 
+        volunteerPass.to_name || 
+        volunteerPass.devotee_name || 
+        volunteerPass.devoteeName || 
+        volunteerPass.userName || 
+        '';
+
+      const volDuty = 
+        volunteerPass.dutyTitle || 
+        volunteerPass.duty_title || 
+        volunteerPass.duty || 
+        volunteerPass.seva_title || 
+        volunteerPass.sevaTitle || 
+        volunteerPass.seva_name || 
+        'Temple Operations & Seva';
+
+      const volEmail = 
+        volunteerPass.volunteerEmail || 
+        volunteerPass.volunteer_email || 
+        volunteerPass.email || 
+        volunteerPass.to_email || 
+        '';
+
+      // If name wasn't explicitly set in JSON, resolve it by email/id
+      if (!extractedName && volEmail) {
+        try {
+          const { data: matchedUser } = await supabase
+            .from('users')
+            .select('name')
+            .eq('email', volEmail)
+            .limit(1)
+            .maybeSingle();
+          if (matchedUser?.name) extractedName = matchedUser.name;
+        } catch (e) {}
+      }
+
+      if (!extractedName) {
+        extractedName = volEmail ? volEmail.split('@')[0] : 'Swayamsevak';
+      }
+
+      const badge = volunteerPass.badgeLevel || volunteerPass.badge_level || volunteerPass.badge || '🎖️ Active Swayamsevak';
       setSelectedBadgeTier(badge);
       setVolunteerBadgeMark(true);
       setVolunteerAttendanceMark(true);
@@ -209,14 +253,14 @@ export default function ScannerPage() {
         status: 'volunteer_success',
         message: 'Swayamsevak Pass Detected!',
         data: {
-          id: volunteerPass.id || 'VOL-' + Date.now().toString().slice(-4),
-          name: volunteerPass.name || volunteerPass.volunteer_name || 'Swayamsevak',
-          email: volunteerPass.email || volunteerPass.to_email || 'volunteer@vidyaranyapuramutt.org',
+          id: volunteerPass.id || volunteerPass.volunteerId || 'VOL-' + Date.now().toString().slice(-4),
+          name: extractedName,
+          email: volEmail || 'volunteer@vidyaranyapuramutt.org',
           role: volunteerPass.role || 'volunteer',
-          duty: volunteerPass.duty || volunteerPass.seva_title || 'Temple Operations & Seva',
-          date: volunteerPass.date || volunteerPass.duty_date || new Date().toLocaleDateString('en-IN'),
-          time: volunteerPass.time || volunteerPass.shift_timing || 'General Shift',
-          location: volunteerPass.location || volunteerPass.assigned_location || 'Main Gate & Sanctum',
+          duty: volDuty,
+          date: volunteerPass.dutyDate || volunteerPass.date || volunteerPass.duty_date || new Date().toLocaleDateString('en-IN'),
+          time: volunteerPass.dutyTime || volunteerPass.time || volunteerPass.shift_timing || 'General Shift',
+          location: volunteerPass.dutyLocation || volunteerPass.location || volunteerPass.assigned_location || 'Main Gate & Sanctum',
           badge: badge,
           issuedAt: volunteerPass.issuedAt || new Date().toISOString()
         }
@@ -298,7 +342,6 @@ export default function ScannerPage() {
           }
         });
 
-        // Refresh live lunch statistics
         fetchTodayLunch();
         return;
       }
@@ -340,13 +383,15 @@ export default function ScannerPage() {
     setIsSavingBadge(true);
 
     try {
-      const volId = scanResult.data.id || String(Date.now());
-      const statusStr = `VOLUNTEER_BADGE:${selectedBadgeTier} | ${scanResult.data.name} | ${scanResult.data.duty} | ${volunteerBadgeMark ? 'Badge Awarded' : 'Checked In'}`;
+      const volId = String(scanResult.data.id || Date.now());
+      const volActualName = scanResult.data.name || 'Swayamsevak';
+      const volDuty = scanResult.data.duty || 'Temple Operations';
+      const statusStr = `VOLUNTEER_BADGE:${selectedBadgeTier} | ${volActualName} | ${volDuty} | ${volunteerBadgeMark ? 'Badge Awarded' : 'Checked In'}`;
       
       const scanRecord = {
         booking_id: volId,
-        devotee_name: scanResult.data.name,
-        seva_name: `[Volunteer Badge: ${selectedBadgeTier}] ${scanResult.data.duty}`,
+        devotee_name: volActualName,
+        seva_name: `[Volunteer Badge: ${selectedBadgeTier}] ${volDuty}`,
         status: statusStr,
         scanned_at: new Date().toISOString(),
         scanned_by: scannerName,
@@ -379,6 +424,7 @@ export default function ScannerPage() {
         message: 'Volunteer Verified & Badge Awarded Successfully!',
         data: {
           ...scanResult.data,
+          name: volActualName,
           confirmedBadge: selectedBadgeTier,
           badgeMarked: volunteerBadgeMark,
           attendanceMarked: volunteerAttendanceMark,
@@ -426,7 +472,7 @@ export default function ScannerPage() {
 
       const rows = unique.map((row: any) => {
         let badge = '🎖️ Active Swayamsevak';
-        let volunteerName = row.devotee_name || row.volunteer_name || 'Swayamsevak';
+        let volunteerName = row.devotee_name || row.volunteer_name || '';
         let duty = row.seva_name || 'Temple Operations & Seva';
         let statusText = row.status || 'Verified';
 
@@ -434,9 +480,19 @@ export default function ScannerPage() {
           const raw = String(row.status).replace('VOLUNTEER_BADGE:', '').trim();
           const parts = raw.split('|').map((s: string) => s.trim());
           if (parts[0]) badge = parts[0];
-          if (parts[1]) volunteerName = parts[1];
+          if (parts[1] && parts[1] !== '') {
+            volunteerName = parts[1];
+          }
           if (parts[2]) duty = parts[2];
           if (parts[3]) statusText = parts[3];
+        }
+
+        if (!volunteerName || volunteerName === 'Swayamsevak') {
+          if (row.devotee_name && row.devotee_name !== 'Swayamsevak') {
+            volunteerName = row.devotee_name;
+          } else {
+            volunteerName = 'Swayamsevak';
+          }
         }
 
         let formattedDate = '';
