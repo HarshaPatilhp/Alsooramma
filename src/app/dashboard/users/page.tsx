@@ -297,7 +297,26 @@ export default function UsersPage() {
           };
         });
 
-      setScannedVolunteers(parsedList);
+      // Deduplicate so each volunteer/pass has only ONE entry (the latest scan)
+      const seen = new Set<string>();
+      const deduplicatedList = parsedList.filter((item: any) => {
+        const normalizedName = item.volunteerName.trim().toLowerCase();
+        const normalizedDuty = item.sevaDuty.trim().toLowerCase();
+        const primaryKey = item.booking_id && item.booking_id.length > 2 ? `bid_${item.booking_id}` : `combo_${normalizedName}_${normalizedDuty}`;
+        
+        if (seen.has(primaryKey)) return false;
+        if (normalizedName && normalizedName !== 'swayamsevak' && seen.has(`vol_${normalizedName}`)) {
+          return false;
+        }
+
+        seen.add(primaryKey);
+        if (normalizedName && normalizedName !== 'swayamsevak') {
+          seen.add(`vol_${normalizedName}`);
+        }
+        return true;
+      });
+
+      setScannedVolunteers(deduplicatedList);
     } catch (e) {
       console.error('Failed to fetch scanned volunteers:', e);
     } finally {

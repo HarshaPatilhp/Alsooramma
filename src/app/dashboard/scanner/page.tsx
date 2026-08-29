@@ -459,10 +459,20 @@ export default function ScannerPage() {
         scanned_by: scannerName,
       };
 
-      // 1. Insert into Supabase
+      // 1. Insert or Update in Supabase
       try {
         const supabase = createClient();
-        await supabase.from('scan_history').insert([scanRecord]);
+        const { data: existingRows } = await supabase
+          .from('scan_history')
+          .select('id')
+          .eq('booking_id', volKey)
+          .limit(1);
+
+        if (existingRows && existingRows.length > 0) {
+          await supabase.from('scan_history').update(scanRecord).eq('booking_id', volKey);
+        } else {
+          await supabase.from('scan_history').insert([scanRecord]);
+        }
       } catch (sbErr) {
         console.warn('Supabase direct insert error:', sbErr);
       }
@@ -474,11 +484,12 @@ export default function ScannerPage() {
         body: JSON.stringify(scanRecord)
       }).catch(() => {});
 
-      // 3. Local storage backup
+      // 3. Local storage backup with deduplication
       try {
         const localList = JSON.parse(localStorage.getItem('alsur_scanned_volunteers') || '[]');
-        localList.unshift(scanRecord);
-        localStorage.setItem('alsur_scanned_volunteers', JSON.stringify(localList.slice(0, 100)));
+        const filtered = localList.filter((item: any) => String(item.booking_id) !== String(volKey) && String(item.id) !== String(volKey));
+        filtered.unshift(scanRecord);
+        localStorage.setItem('alsur_scanned_volunteers', JSON.stringify(filtered.slice(0, 100)));
       } catch (lsErr) {}
 
       setScanResult({
