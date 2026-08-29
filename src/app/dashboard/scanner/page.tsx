@@ -60,6 +60,28 @@ export default function ScannerPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const qrScannerRef = useRef<QrScanner | null>(null);
 
+  // Persistent client-side claim tracker to prevent double-scanning
+  const isLocallyClaimed = (key: string): boolean => {
+    if (!key || key.length < 2) return false;
+    try {
+      const list = JSON.parse(localStorage.getItem('alsur_claimed_qr_codes') || '[]');
+      return Array.isArray(list) && list.includes(key);
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const markLocallyClaimed = (key: string) => {
+    if (!key || key.length < 2) return;
+    try {
+      const list = JSON.parse(localStorage.getItem('alsur_claimed_qr_codes') || '[]');
+      if (!list.includes(key)) {
+        list.push(key);
+        localStorage.setItem('alsur_claimed_qr_codes', JSON.stringify(list.slice(-500)));
+      }
+    } catch (e) {}
+  };
+
   const fetchTodayLunch = async () => {
     try {
       const supabase = createClient();
@@ -178,28 +200,6 @@ export default function ScannerPage() {
     }
 
     if (volunteerPass) {
-      const volPassId = String(volunteerPass.id || volunteerPass.volunteerId || '');
-
-      // Check if this specific pass ID was already scanned in scan_history
-      if (volPassId && volPassId.length > 2) {
-        try {
-          const { data: existingScans } = await supabase
-            .from('scan_history')
-            .select('id, booking_id')
-            .eq('booking_id', volPassId)
-            .limit(1);
-
-          if (existingScans && existingScans.length > 0) {
-            setScanResult({
-              status: 'error',
-              isClaimed: true,
-              message: 'This QR code has already been claimed. Please contact admin for any discrepancies.'
-            });
-            return;
-          }
-        } catch (e) {}
-      }
-
       // Robust extraction of volunteer name
       let extractedName = 
         volunteerPass.volunteerName || 
@@ -227,7 +227,7 @@ export default function ScannerPage() {
         volunteerPass.to_email || 
         '';
 
-      // If name wasn't explicitly set in JSON, resolve it by email/id
+      // If name wasn't explicitly set in JSON, resolve it by email
       if (!extractedName && volEmail) {
         try {
           const { data: matchedUser } = await supabase
@@ -244,6 +244,45 @@ export default function ScannerPage() {
         extractedName = volEmail ? volEmail.split('@')[0] : 'Swayamsevak';
       }
 
+      // Deterministic unique key for this volunteer pass
+      const uniquePassKey = String(
+        volunteerPass.id || 
+        volunteerPass.volunteerId || 
+        (volEmail && volDuty ? `${volEmail}_${volDuty}` : '') ||
+        (extractedName && volEmail ? `${extractedName}_${volEmail}` : '') ||
+        cleanData
+      ).trim();
+
+      // Check 1: Has this volunteer pass already been claimed locally?
+      if (isLocallyClaimed(uniquePassKey) || isLocallyClaimed(cleanData)) {
+        setScanResult({
+          status: 'error',
+          isClaimed: true,
+          message: 'This QR code has already been claimed. Please contact admin for any discrepancies.'
+        });
+        return;
+      }
+
+      // Check 2: Has this specific pass ID or cleanData already been recorded in Supabase scan_history?
+      try {
+        const { data: existingScans } = await supabase
+          .from('scan_history')
+          .select('id, booking_id')
+          .or(`booking_id.eq.${uniquePassKey},booking_id.eq.${cleanData}`)
+          .limit(1);
+
+        if (existingScans && existingScans.length > 0) {
+          markLocallyClaimed(uniquePassKey);
+          markLocallyClaimed(cleanData);
+          setScanResult({
+            status: 'error',
+            isClaimed: true,
+            message: 'This QR code has already been claimed. Please contact admin for any discrepancies.'
+          });
+          return;
+        }
+      } catch (e) {}
+
       const badge = volunteerPass.badgeLevel || volunteerPass.badge_level || volunteerPass.badge || '🎖️ Active Swayamsevak';
       setSelectedBadgeTier(badge);
       setVolunteerBadgeMark(true);
@@ -253,7 +292,9 @@ export default function ScannerPage() {
         status: 'volunteer_success',
         message: 'Swayamsevak Pass Detected!',
         data: {
-          id: volunteerPass.id || volunteerPass.volunteerId || 'VOL-' + Date.now().toString().slice(-4),
+          id: uniquePassKey,
+          uniqueKey: uniquePassKey,
+          rawCode: cleanData,
           name: extractedName,
           email: volEmail || 'volunteer@vidyaranyapuramutt.org',
           role: volunteerPass.role || 'volunteer',
@@ -270,6 +311,16 @@ export default function ScannerPage() {
 
     // 2. Devotee Booking QR Verification
     const cleanId = cleanData;
+
+    // Check 1: Is this booking ID claimed locally?
+    if (isLocallyClaimed(cleanId)) {
+      setScanResult({
+        status: 'error',
+        isClaimed: true,
+        message: 'This QR code has already been claimed. Please contact admin for any discrepancies.'
+      });
+      return;
+    }
 
     try {
       // Find booking by ID or QR code text
@@ -289,6 +340,8 @@ export default function ScannerPage() {
           statusLower === 'used';
 
         if (isAlreadyClaimed) {
+          markLocallyClaimed(String(dbDetails.id));
+          markLocallyClaimed(cleanId);
           setScanResult({ 
             status: 'error', 
             isClaimed: true,
@@ -297,7 +350,10 @@ export default function ScannerPage() {
           return;
         }
 
-        // First time scan: Mark booking as completed
+        // First time scan: Mark booking as completed and claimed locally
+        markLocallyClaimed(String(dbDetails.id));
+        markLocallyClaimed(cleanId);
+
         await supabase.from('bookings').update({ status: 'completed' }).eq('id', dbDetails.id);
         
         fetch('/api/bookings/update', {
@@ -354,6 +410,7 @@ export default function ScannerPage() {
         .limit(1);
 
       if (scanHistoryCheck && scanHistoryCheck.length > 0) {
+        markLocallyClaimed(cleanId);
         setScanResult({
           status: 'error',
           isClaimed: true,
@@ -383,13 +440,18 @@ export default function ScannerPage() {
     setIsSavingBadge(true);
 
     try {
-      const volId = String(scanResult.data.id || Date.now());
+      const volKey = String(scanResult.data.uniqueKey || scanResult.data.id);
+      const rawCode = String(scanResult.data.rawCode || '');
       const volActualName = scanResult.data.name || 'Swayamsevak';
       const volDuty = scanResult.data.duty || 'Temple Operations';
       const statusStr = `VOLUNTEER_BADGE:${selectedBadgeTier} | ${volActualName} | ${volDuty} | ${volunteerBadgeMark ? 'Badge Awarded' : 'Checked In'}`;
       
+      // Mark as claimed immediately so duplicate scan is impossible
+      markLocallyClaimed(volKey);
+      if (rawCode) markLocallyClaimed(rawCode);
+
       const scanRecord = {
-        booking_id: volId,
+        booking_id: volKey,
         devotee_name: volActualName,
         seva_name: `[Volunteer Badge: ${selectedBadgeTier}] ${volDuty}`,
         status: statusStr,
