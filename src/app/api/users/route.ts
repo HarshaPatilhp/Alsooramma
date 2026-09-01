@@ -11,6 +11,7 @@ const DEFAULT_VOLUNTEER_PERMISSIONS = {
 
 const DEFAULT_SUPER_ADMIN_PERMISSIONS = {
   dashboard: true,
+  finance: true,
   qr_checkin: true,
   devotees: true,
   activity_log: true,

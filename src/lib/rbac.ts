@@ -5,6 +5,7 @@ export type PermissionKey =
   | 'activity_log'
   | 'seva_dashboard'
   | 'donations'
+  | 'finance'
   | 'annadanam'
   | 'reports'
   | 'user_management';
@@ -40,6 +41,12 @@ export const AVAILABLE_PERMISSIONS: PermissionConfig[] = [
     label: 'Activity Log',
     description: 'Audit trail of scan history, verification status, and timestamps.',
     iconName: 'Clock',
+  },
+  {
+    key: 'finance',
+    label: 'Finance',
+    description: 'Central temple accounting, ledger, cash & bank books, reconciliation, invoices, and reports.',
+    iconName: 'Landmark',
   },
   {
     key: 'seva_dashboard',
@@ -78,6 +85,8 @@ export const ROUTE_PERMISSIONS_MAP: Record<string, PermissionKey> = {
   '/dashboard/scanner': 'qr_checkin',
   '/dashboard/devotees': 'devotees',
   '/dashboard/activity': 'activity_log',
+  '/dashboard/finance': 'finance',
+  '/finance': 'finance',
   '/seva-list': 'seva_dashboard',
   '/dashboard/donations': 'donations',
   '/dashboard/annadanam': 'annadanam',

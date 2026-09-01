@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
              const name = email === 'admin@temple.com' ? 'Master Admin' : email === 'gururaj@volunteer.com' ? 'Gururaj Patil' : 'Scanner Vol 01';
              const phone = email === 'admin@temple.com' ? '9876543210' : '9000000001';
              const permissions = role === 'super_admin' 
-               ? { dashboard: true, qr_checkin: true, devotees: true, activity_log: true, seva_dashboard: true, donations: true, annadanam: true, reports: true, user_management: true }
+               ? { dashboard: true, finance: true, qr_checkin: true, devotees: true, activity_log: true, seva_dashboard: true, donations: true, annadanam: true, reports: true, user_management: true }
                : { dashboard: true, qr_checkin: true, devotees: true, activity_log: true };
              
              let insertResult = await supabase.from('users').insert([{

@@ -26,6 +26,7 @@ import {
   Check,
   Flame,
   Phone,
+  Landmark,
   Tag
 } from 'lucide-react';
 import StatCard from '@/components/dashboard/StatCard';
@@ -266,6 +267,7 @@ export default function DashboardPage() {
   const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
   const quickActions = isAdmin ? [
+    { title: 'Finance & Treasury', href: '/dashboard/finance', description: 'Central ledger, cash/bank books & accounting', icon: Landmark, live: true, color: 'text-emerald-600', bg: 'bg-emerald-100 dark:bg-emerald-950/50' },
     { title: 'Live QR Scanner', href: '/dashboard/scanner', description: 'Instant gate QR verification & badge check-in', icon: QrCode, live: true, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-950/50' },
     { title: 'Volunteer QR Dispatch', href: '/dashboard/users', description: 'Send duty passes & QR badges via EmailJS', icon: Flame, live: true, color: 'text-rose-600', bg: 'bg-rose-100 dark:bg-rose-950/50' },
     { title: 'Devotee Roster', href: '/dashboard/devotees', description: 'Manage participant list & search gotra', icon: Users, live: false, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-950/50' },

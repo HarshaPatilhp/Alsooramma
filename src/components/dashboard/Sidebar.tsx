@@ -16,6 +16,7 @@ import {
   Settings,
   Shield,
   Sparkles,
+  Landmark,
   X
 } from 'lucide-react';
 
@@ -35,6 +36,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
   const allLinks: NavLink[] = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, key: 'dashboard' },
+    { name: 'Finance', href: '/dashboard/finance', icon: Landmark, key: 'finance' },
     { name: 'QR Check-in', href: '/dashboard/scanner', icon: QrCode, key: 'qr_checkin', highlight: true, badge: 'Live' },
     { name: 'Devotees', href: '/dashboard/devotees', icon: Users, key: 'devotees' },
     { name: 'Activity Log', href: '/dashboard/activity', icon: Clock, key: 'activity_log' },
