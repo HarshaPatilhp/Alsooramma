@@ -1,10 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Play, Eye, Clock, Film, Sparkles } from 'lucide-react';
+import { Play, Eye, Clock, Film, X, Mail } from 'lucide-react';
 
 export default function Videos() {
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [activeVideo, setActiveVideo] = useState<{
+    id: number; title: string; category: string; duration: string; views: string; date: string; description: string;
+  } | null>(null);
 
   const categories = [
     { id: 'all', name: 'All Videos', count: 6 },
@@ -82,7 +85,7 @@ export default function Videos() {
           <span className="inline-block px-3.5 py-1 rounded-full bg-white/20 text-orange-100 text-xs font-bold uppercase tracking-wider mb-3 backdrop-blur-md">
             Mutt Video Archives
           </span>
-          <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">Video Gallery & Discourses</h1>
+          <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">Video Gallery &amp; Discourses</h1>
           <p className="text-lg md:text-xl text-orange-100 max-w-3xl mx-auto leading-relaxed">
             Experience sacred moments, pravachanas, bhajans, and festival celebrations through our curated video archive
           </p>
@@ -114,12 +117,13 @@ export default function Videos() {
         {/* Video Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredVideos.map((video) => (
-            <div 
-              key={video.id} 
-              className="bg-white dark:bg-slate-900 rounded-3xl shadow-md overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-slate-800 flex flex-col group hover:-translate-y-1"
+            <div
+              key={video.id}
+              onClick={() => setActiveVideo(video)}
+              className="bg-white dark:bg-slate-900 rounded-3xl shadow-md overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-slate-800 flex flex-col group hover:-translate-y-1 cursor-pointer"
             >
               {/* Video Thumbnail Container */}
-              <div className="aspect-video bg-gradient-to-br from-orange-100 via-amber-100 to-orange-200 dark:from-slate-800 dark:to-slate-900 relative overflow-hidden flex items-center justify-center cursor-pointer">
+              <div className="aspect-video bg-gradient-to-br from-orange-100 via-amber-100 to-orange-200 dark:from-slate-800 dark:to-slate-900 relative overflow-hidden flex items-center justify-center">
                 <div className="text-center p-4">
                   <Film className="w-12 h-12 text-orange-400 dark:text-orange-500/60 mx-auto mb-2" />
                   <p className="text-xs font-bold text-gray-600 dark:text-gray-400">Devotional Recording</p>
@@ -169,6 +173,76 @@ export default function Videos() {
           ))}
         </div>
       </div>
+
+      {/* Video Detail Modal */}
+      {activeVideo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
+          onClick={() => setActiveVideo(null)}
+        >
+          <div
+            className="max-w-lg w-full bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-gray-100 dark:border-slate-800 relative animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setActiveVideo(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-white p-1.5 rounded-full bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 z-10 cursor-pointer transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Thumbnail placeholder */}
+            <div className="aspect-video bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-black/20" />
+              <div className="relative text-center text-white">
+                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md border border-white/30">
+                  <Play className="w-8 h-8 ml-1" fill="currentColor" />
+                </div>
+                <p className="text-sm font-bold opacity-90">Devotional Archive</p>
+              </div>
+              <div className="absolute bottom-3 right-3 bg-slate-950/80 backdrop-blur-md text-amber-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border border-amber-400/30">
+                {activeVideo.duration}
+              </div>
+            </div>
+
+            {/* Video Info */}
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="capitalize px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800/40">
+                  {activeVideo.category}
+                </span>
+                <span className="text-[11px] font-mono text-gray-400">{activeVideo.date}</span>
+                <span className="text-[11px] font-mono text-gray-400 flex items-center gap-1 ml-auto">
+                  <Eye size={12} /> {activeVideo.views}
+                </span>
+              </div>
+
+              <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2 leading-snug">
+                {activeVideo.title}
+              </h2>
+              <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-6">
+                {activeVideo.description}
+              </p>
+
+              <div className="p-4 bg-orange-50 dark:bg-slate-800/80 rounded-2xl border border-orange-100 dark:border-slate-700 text-sm text-gray-700 dark:text-gray-300 mb-4">
+                <p className="font-semibold text-orange-800 dark:text-orange-300 mb-1">📹 Full Recording Available</p>
+                <p className="text-xs leading-relaxed">
+                  The complete recording of this programme is available from our Mutt archive. Contact us to request access to the full video.
+                </p>
+              </div>
+
+              <a
+                href={`mailto:vidyaranyapuramutt@gmail.com?subject=Video Request: ${encodeURIComponent(activeVideo.title)}&body=Namaskara,%0A%0AI would like to request the full video recording of:%0A${encodeURIComponent(activeVideo.title)}%0A%0AThank you.`}
+                className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-all text-sm"
+              >
+                <Mail className="w-4 h-4" />
+                <span>Request Full Recording</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

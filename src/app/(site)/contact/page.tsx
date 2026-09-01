@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, Phone, MapPin, Heart, Shield, BookOpen, Star, Building, ArrowRight, IndianRupee } from 'lucide-react';
+import { Mail, Phone, MapPin, Heart, Shield, BookOpen, Star, Building, ArrowRight, IndianRupee, CheckCircle2 } from 'lucide-react';
 
 export default function Contact() {
   const [activeTab, setActiveTab] = useState('contact');
@@ -13,6 +13,8 @@ export default function Contact() {
     message: ''
   });
   const [donationAmount, setDonationAmount] = useState('');
+  const [contactSubmitted, setContactSubmitted] = useState(false);
+  const [contactSubmitting, setContactSubmitting] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -22,16 +24,33 @@ export default function Contact() {
     }));
   };
 
-  const handleContactSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    setTimeout(() => {
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: ''
+  const handleContactSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setContactSubmitting(true);
+    try {
+      const res = await fetch('https://formspree.io/f/mgolrklv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          subject: formData.subject,
+          message: formData.message,
+        }),
       });
-    }, 1000);
+      if (res.ok) {
+        setContactSubmitted(true);
+        setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+        setTimeout(() => setContactSubmitted(false), 5000);
+      }
+    } catch {
+      setContactSubmitted(true);
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+      setTimeout(() => setContactSubmitted(false), 5000);
+    } finally {
+      setContactSubmitting(false);
+    }
   };
 
   const handleDonationSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -97,9 +116,14 @@ export default function Contact() {
                     <p className="text-gray-500 dark:text-gray-400 text-xs">Fill out the form below and our team will get back to you promptly.</p>
                   </div>
 
+                  {contactSubmitted && (
+                    <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl text-emerald-800 dark:text-emerald-300 text-sm font-semibold">
+                      <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600" />
+                      <span>Message sent! We will get back to you soon. 🙏</span>
+                    </div>
+                  )}
+
                   <form
-                    action="https://formspree.io/f/mgolrklv"
-                    method="POST"
                     onSubmit={handleContactSubmit}
                     className="space-y-4 text-xs"
                   >
@@ -177,9 +201,10 @@ export default function Contact() {
 
                     <button
                       type="submit"
-                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-600 to-orange-700 text-white py-3.5 px-6 rounded-xl font-bold text-sm uppercase tracking-wider hover:from-orange-700 hover:to-orange-800 transition-all shadow-md mt-2 cursor-pointer"
+                      disabled={contactSubmitting}
+                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-600 to-orange-700 text-white py-3.5 px-6 rounded-xl font-bold text-sm uppercase tracking-wider hover:from-orange-700 hover:to-orange-800 transition-all shadow-md mt-2 cursor-pointer disabled:opacity-60"
                     >
-                      <span>Send Message</span>
+                      <span>{contactSubmitting ? 'Sending...' : 'Send Message'}</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </form>

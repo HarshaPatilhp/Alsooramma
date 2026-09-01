@@ -166,6 +166,11 @@ export default function DevoteesPage() {
 
   useEffect(() => {
     fetchBookings();
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get('search');
+      if (q) setSearchTerm(q);
+    }
   }, [currentUser]);
 
   // Aggregate Unique Devotee Profiles for Smart Search (Returning Devotees)

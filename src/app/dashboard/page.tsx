@@ -269,7 +269,7 @@ export default function DashboardPage() {
     { title: 'Live QR Scanner', href: '/dashboard/scanner', description: 'Instant gate QR verification & badge check-in', icon: QrCode, live: true, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-950/50' },
     { title: 'Volunteer QR Dispatch', href: '/dashboard/users', description: 'Send duty passes & QR badges via EmailJS', icon: Flame, live: true, color: 'text-rose-600', bg: 'bg-rose-100 dark:bg-rose-950/50' },
     { title: 'Devotee Roster', href: '/dashboard/devotees', description: 'Manage participant list & search gotra', icon: Users, live: false, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-950/50' },
-    { title: 'Seva Management', href: '/dashboard/sevas', description: 'Browse and update available pooja slots', icon: BookOpen, live: false, color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-950/50' },
+    { title: 'Seva Offerings', href: '/seva-list', description: 'Browse active pooja offerings & schedules', icon: BookOpen, live: false, color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-950/50' },
     { title: 'Personnel & Access', href: '/dashboard/users', description: 'Configure staff & volunteer access rights', icon: ShieldCheck, live: false, color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-950/50' },
   ] : [
     { title: 'Launch QR Scanner', href: '/dashboard/scanner', description: 'Verify incoming devotee tickets & gotras', icon: QrCode, live: true, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-950/50' },
@@ -788,7 +788,23 @@ export default function DashboardPage() {
 
         <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700/60 overflow-hidden">
           <div className="divide-y divide-gray-100 dark:divide-slate-700/50">
-            {recentCheckins.length > 0 ? recentCheckins.map((checkin) => (
+            {recentCheckins
+              .filter(checkin => {
+                if (activityFilter === 'scans') {
+                  const s = (checkin.seva || '').toLowerCase();
+                  return s.includes('qr') || s.includes('scan') || s.includes('gate') || s.includes('verification');
+                }
+                return true;
+              })
+              .length > 0 ? recentCheckins
+              .filter(checkin => {
+                if (activityFilter === 'scans') {
+                  const s = (checkin.seva || '').toLowerCase();
+                  return s.includes('qr') || s.includes('scan') || s.includes('gate') || s.includes('verification');
+                }
+                return true;
+              })
+              .map((checkin) => (
               <div key={checkin.id} className="p-5 hover:bg-orange-50/50 dark:hover:bg-slate-800/80 transition-colors flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-white font-black text-lg flex items-center justify-center shadow-md">

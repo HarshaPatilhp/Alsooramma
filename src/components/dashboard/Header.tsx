@@ -70,19 +70,29 @@ export default function Header({ toggleSidebar, user }: HeaderProps) {
           </button>
           
           {/* Global Search */}
-          <div className="hidden lg:flex max-w-md w-full ml-4">
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              const input = (e.currentTarget.elements.namedItem('search') as HTMLInputElement)?.value;
+              if (input && input.trim()) {
+                window.location.href = `/dashboard/devotees?search=${encodeURIComponent(input.trim())}`;
+              }
+            }}
+            className="hidden lg:flex max-w-md w-full ml-4"
+          >
             <div className="relative w-64 focus-within:w-80 transition-all duration-300">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-4 w-4 text-orange-400" aria-hidden="true" />
               </div>
               <input
                 id="search"
+                name="search"
                 className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-slate-700 rounded-full leading-5 bg-gray-50 dark:bg-slate-800 placeholder-gray-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-orange-500 focus:border-transparent sm:text-sm shadow-inner transition-colors"
                 placeholder="Search devotees, bookings..."
                 type="search"
               />
             </div>
-          </div>
+          </form>
         </div>
 
         <div className="flex items-center gap-4 sm:gap-6 ml-auto">

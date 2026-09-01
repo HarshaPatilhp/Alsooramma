@@ -174,9 +174,9 @@ export default function Header() {
                       {user?.name}
                     </span>
 
-                    {user?.role === 'admin' && (
+                    {(user?.role === 'admin' || user?.role === 'super_admin') && (
                       <span className="ml-2 text-xs bg-orange-600 text-white px-2 py-1 rounded-full whitespace-nowrap">
-                        Admin
+                        {user?.role === 'super_admin' ? 'Super Admin' : 'Admin'}
                       </span>
                     )}
                   </div>
@@ -215,34 +215,34 @@ export default function Header() {
           {isMenuOpen && (
             <div className="md:hidden pb-4">
               <nav className="flex flex-col space-y-2">
-                <Link href="/" className="hover:text-orange-200 transition-colors py-2">Home</Link>
+                <Link href="/" onClick={() => setIsMenuOpen(false)} className="hover:text-orange-200 transition-colors py-2">Home</Link>
 
                 <div className="border-t border-orange-500 pt-2">
                   <div className="font-semibold mb-2">About Us</div>
-                  <Link href="/history" className="block pl-4 py-1 hover:text-orange-200">History</Link>
-                  <Link href="/activities" className="block pl-4 py-1 hover:text-orange-200">Activities</Link>
-                  <Link href="/bhajana-mandali" className="block pl-4 py-1 hover:text-orange-200">Bhajana Mandali</Link>
-                  <Link href="/parayana-samithi" className="block pl-4 py-1 hover:text-orange-200">Parayana Samithi</Link>
-                  <Link href="/deities" className="block pl-4 py-1 hover:text-orange-200">Deities</Link>
-                  <Link href="/trustees" className="block pl-4 py-1 hover:text-orange-200">Trustees</Link>
-                  <Link href="/volunteers" className="block pl-4 py-1 hover:text-orange-200">Volunteers</Link>
+                  <Link href="/history" onClick={() => setIsMenuOpen(false)} className="block pl-4 py-1 hover:text-orange-200">History</Link>
+                  <Link href="/activities" onClick={() => setIsMenuOpen(false)} className="block pl-4 py-1 hover:text-orange-200">Activities</Link>
+                  <Link href="/bhajana-mandali" onClick={() => setIsMenuOpen(false)} className="block pl-4 py-1 hover:text-orange-200">Bhajana Mandali</Link>
+                  <Link href="/parayana-samithi" onClick={() => setIsMenuOpen(false)} className="block pl-4 py-1 hover:text-orange-200">Parayana Samithi</Link>
+                  <Link href="/deities" onClick={() => setIsMenuOpen(false)} className="block pl-4 py-1 hover:text-orange-200">Deities</Link>
+                  <Link href="/trustees" onClick={() => setIsMenuOpen(false)} className="block pl-4 py-1 hover:text-orange-200">Trustees</Link>
+                  <Link href="/volunteers" onClick={() => setIsMenuOpen(false)} className="block pl-4 py-1 hover:text-orange-200">Volunteers</Link>
                 </div>
 
                 <div className="border-t border-orange-500 pt-2">
                   <div className="font-semibold mb-2">Events</div>
-                  <Link href="/seva-list" className="block pl-4 py-1 hover:text-orange-200">Seva List</Link>
-                  <Link href="/volunteers" className="block pl-4 py-1 hover:text-orange-200">Volunteers</Link>
-                  <Link href="/upcoming-events" className="block pl-4 py-1 hover:text-orange-200">Upcoming Events</Link>
+                  <Link href="/seva-list" onClick={() => setIsMenuOpen(false)} className="block pl-4 py-1 hover:text-orange-200">Seva List</Link>
+                  <Link href="/volunteers" onClick={() => setIsMenuOpen(false)} className="block pl-4 py-1 hover:text-orange-200">Volunteers</Link>
+                  <Link href="/upcoming-events" onClick={() => setIsMenuOpen(false)} className="block pl-4 py-1 hover:text-orange-200">Upcoming Events</Link>
                 </div>
 
                 <div className="border-t border-orange-500 pt-2">
                   <div className="font-semibold mb-2">Gallery</div>
-                  <Link href="/photos" className="block pl-4 py-1 hover:text-orange-200">Photos</Link>
-                  <Link href="/videos" className="block pl-4 py-1 hover:text-orange-200">Videos</Link>
-                  <Link href="/slokas" className="block pl-4 py-1 hover:text-orange-200">Slokas</Link>
+                  <Link href="/photos" onClick={() => setIsMenuOpen(false)} className="block pl-4 py-1 hover:text-orange-200">Photos</Link>
+                  <Link href="/videos" onClick={() => setIsMenuOpen(false)} className="block pl-4 py-1 hover:text-orange-200">Videos</Link>
+                  <Link href="/slokas" onClick={() => setIsMenuOpen(false)} className="block pl-4 py-1 hover:text-orange-200">Slokas</Link>
                 </div>
 
-                <Link href="/contact" className="hover:text-orange-200 transition-colors py-2 block">Contact</Link>
+                <Link href="/contact" onClick={() => setIsMenuOpen(false)} className="hover:text-orange-200 transition-colors py-2 block">Contact</Link>
 
                 <div className="border-t border-orange-500 pt-2 flex items-center justify-between py-2">
                   <span className="font-semibold text-white">Dark Mode</span>
@@ -263,7 +263,6 @@ export default function Header() {
                   </button>
                 </div>
 
-
                 {/* Mobile User Info / Login */}
                 {isAuthenticated ? (
                   <div className="border-t border-orange-500 pt-2 mt-2">
@@ -274,8 +273,10 @@ export default function Header() {
                           <path d="M12 3a4 4 0 100 8 4 4 0 000-8z" />
                         </svg>
                         <span className="font-semibold text-sm">{user?.name}</span>
-                        {user?.role === 'admin' && (
-                          <span className="ml-2 text-xs bg-orange-600 text-white px-2 py-1 rounded-full">Admin</span>
+                        {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                          <span className="ml-2 text-xs bg-orange-600 text-white px-2 py-1 rounded-full">
+                            {user?.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -293,6 +294,7 @@ export default function Header() {
                   <div className="border-t border-orange-500 pt-2 mt-2">
                     <Link
                       href="/login"
+                      onClick={() => setIsMenuOpen(false)}
                       className="flex items-center bg-white text-orange-600 px-3 py-2 rounded-full hover:bg-orange-50 transition justify-center"
                     >
                       <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
@@ -303,7 +305,6 @@ export default function Header() {
                     </Link>
                   </div>
                 )}
-
 
               </nav>
             </div>

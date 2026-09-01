@@ -68,7 +68,7 @@ export const AVAILABLE_PERMISSIONS: PermissionConfig[] = [
   {
     key: 'user_management',
     label: 'User Management',
-    description: 'Personnel access boundaries, admin invites, and RBAC permissions.',
+    description: 'Personal access boundaries, admin invites, and RBAC permissions.',
     iconName: 'Settings',
   },
 ];
@@ -79,7 +79,6 @@ export const ROUTE_PERMISSIONS_MAP: Record<string, PermissionKey> = {
   '/dashboard/devotees': 'devotees',
   '/dashboard/activity': 'activity_log',
   '/seva-list': 'seva_dashboard',
-  '/dashboard/sevas': 'seva_dashboard',
   '/dashboard/donations': 'donations',
   '/dashboard/annadanam': 'annadanam',
   '/dashboard/reports': 'reports',
