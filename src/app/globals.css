@@ -186,7 +186,7 @@ body {
   }
 
   .dash-card-elevated {
-    @apply bg-white dark:bg-[#1a2234] rounded-3xl border border-slate-200/80 dark:border-slate-750 shadow-md transition-all duration-200;
+    @apply bg-white dark:bg-[#1a2234] rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-md transition-all duration-200;
   }
 
   /* Standard Action Buttons */

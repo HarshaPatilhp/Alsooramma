@@ -1187,7 +1187,7 @@ export default function FinancePage() {
                     filteredTransactions.map(txn => {
                       const isIncome = txn.type === 'income' || txn.type === 'donation';
                       return (
-                        <tr key={txn.id} className="hover:bg-gray-50/60 dark:hover:bg-slate-750 transition-colors">
+                        <tr key={txn.id} className="hover:bg-gray-50/60 dark:hover:bg-slate-800/60 transition-colors">
                           <td className="py-3.5 px-4 whitespace-nowrap font-mono text-gray-500 dark:text-gray-400">
                             {txn.date}
                           </td>
@@ -1318,7 +1318,7 @@ export default function FinancePage() {
                   </tr>
 
                   {ledgerEntries.map(entry => (
-                    <tr key={entry.id} className="hover:bg-amber-50/40 dark:hover:bg-slate-750 transition-colors">
+                    <tr key={entry.id} className="hover:bg-amber-50/40 dark:hover:bg-slate-800/60 transition-colors">
                       <td className="py-3 px-4 whitespace-nowrap font-mono text-gray-500">{entry.date}</td>
                       <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">
                         {entry.particulars}
@@ -1753,7 +1753,7 @@ export default function FinancePage() {
                       .filter(t => t.status === 'approved' && t.category === cat && (t.type === 'expense' || t.type === 'payment'))
                       .reduce((s, t) => s + t.amount, 0);
                     return (
-                      <div key={cat} className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-750">
+                      <div key={cat} className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800">
                         <span className="text-gray-600 dark:text-gray-300">To {cat} Expenses</span>
                         <span className="font-mono font-bold text-gray-900 dark:text-white">₹{sum.toLocaleString('en-IN')}</span>
                       </div>
@@ -1777,7 +1777,7 @@ export default function FinancePage() {
                       .filter(t => t.status === 'approved' && t.category === cat && (t.type === 'income' || t.type === 'donation'))
                       .reduce((s, t) => s + t.amount, 0);
                     return (
-                      <div key={cat} className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-750">
+                      <div key={cat} className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800">
                         <span className="text-gray-600 dark:text-gray-300">By {cat} Receipts</span>
                         <span className="font-mono font-bold text-gray-900 dark:text-white">₹{sum.toLocaleString('en-IN')}</span>
                       </div>
