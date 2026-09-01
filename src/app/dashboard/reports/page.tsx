@@ -14,8 +14,10 @@ import {
   Receipt,
   FileSpreadsheet,
   ArrowUpRight,
+  Landmark,
   ChevronDown
 } from 'lucide-react';
+import Link from 'next/link';
 import StatCard from '@/components/dashboard/StatCard';
 import { createClient } from '@/lib/client';
 
@@ -341,7 +343,15 @@ export default function ReportsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            href="/dashboard/finance"
+            className="flex items-center gap-2 px-4 py-2 border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors font-bold text-sm shadow-xs cursor-pointer"
+          >
+            <Landmark size={17} />
+            <span>Open Finance Ledger</span>
+          </Link>
+
           {/* Time Filter Menu */}
           <div className="relative">
             <button 

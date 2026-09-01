@@ -17,8 +17,10 @@ import {
   CreditCard, 
   Receipt,
   Sparkles,
+  Landmark,
   ArrowRight
 } from 'lucide-react';
+import Link from 'next/link';
 import { createClient } from '@/lib/client';
 
 interface Donation {
@@ -159,6 +161,35 @@ export default function DonationsPage() {
           },
           ...donations
         ]);
+
+        // Auto-sync into Central Finance Ledger
+        if (typeof window !== 'undefined') {
+          try {
+            const existingFinance = JSON.parse(localStorage.getItem('alsur_finance_transactions') || '[]');
+            const newFinanceTxn = {
+              id: newRecord.id,
+              type: 'donation',
+              category: 'Donations',
+              amount: newRecord.amount,
+              date: newRecord.date,
+              paymentMethod: (newRecord.payment_mode || 'upi').toLowerCase(),
+              accountId: (newRecord.payment_mode && newRecord.payment_mode.toLowerCase().includes('cash')) ? 'cash_in_hand' : 'sbi_main',
+              partyName: newRecord.donor_name,
+              purpose: newRecord.purpose || 'Temple Seva & Annadanam Donation',
+              referenceNo: newRecord.id,
+              receiptNumber: `MUM-${new Date().getFullYear()}-${newRecord.id.slice(-5)}`,
+              description: `Donation from ${newRecord.donor_name} (${newRecord.purpose})`,
+              status: 'approved',
+              isReconciled: true,
+              createdAt: newRecord.created_at,
+              createdBy: 'Donations Portal'
+            };
+            localStorage.setItem('alsur_finance_transactions', JSON.stringify([newFinanceTxn, ...existingFinance]));
+          } catch (syncErr) {
+            console.warn('Finance sync notice:', syncErr);
+          }
+        }
+
         setSubmitSuccess(true);
         setTimeout(() => {
           setShowAddModal(false);
@@ -231,7 +262,14 @@ export default function DonationsPage() {
             Track sacred contributions, issue receipts, and manage seva endowments.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/dashboard/finance"
+            className="flex items-center gap-2 px-4 py-2 border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors font-bold text-sm cursor-pointer shadow-xs"
+          >
+            <Landmark size={17} />
+            <span>Open Finance Ledger</span>
+          </Link>
           <button 
             onClick={handleExport}
             className="flex items-center gap-2 px-4 py-2 border border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 rounded-xl hover:bg-orange-100 dark:hover:bg-orange-800/40 transition-colors font-semibold text-sm cursor-pointer shadow-xs"

@@ -226,8 +226,93 @@ export default function FinancePage() {
     dueDate: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
     category: 'Purchases' as ExpenseCategory,
     description: '',
-    attachmentName: ''
+    attachmentName: '',
+    attachmentUrl: ''
   });
+
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [selectedFileMeta, setSelectedFileMeta] = useState<{ name: string; size: string } | null>(null);
+
+  // File Upload Handlers
+  const handleFileUpload = (file: File) => {
+    if (!file) return;
+    const sizeKB = (file.size / 1024).toFixed(1);
+    const sizeStr = file.size > 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : `${sizeKB} KB`;
+    setSelectedFileMeta({ name: file.name, size: sizeStr });
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setBillForm(prev => ({
+        ...prev,
+        attachmentName: file.name,
+        attachmentUrl: dataUrl
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFileUpload(e.target.files[0]);
+    }
+  };
+
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingFile(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
+  };
+
+  // Sync Supabase Donations & Seva Bookings directly into Finance Ledger on Mount
+  useEffect(() => {
+    const syncDatabaseRecords = async () => {
+      try {
+        const { createClient } = await import('@/lib/client');
+        const supabase = createClient();
+
+        // 1. Query Donations Table
+        const { data: dbDonations } = await supabase.from('donations').select('*').order('created_at', { ascending: false });
+
+        if (Array.isArray(dbDonations) && dbDonations.length > 0) {
+          setTransactions(prev => {
+            const merged = [...prev];
+            dbDonations.forEach((d: any) => {
+              const dId = d.id || `DON-DB-${d.created_at || Date.now()}`;
+              const exists = merged.some(t => t.id === dId || (t.referenceNo && t.referenceNo === d.id) || (t.partyName === d.donor_name && t.amount === Number(d.amount)));
+              if (!exists) {
+                merged.unshift({
+                  id: dId,
+                  type: 'donation',
+                  category: 'Donations',
+                  amount: Number(d.amount) || 0,
+                  date: d.date || (d.created_at ? d.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+                  paymentMethod: (d.payment_mode || 'upi').toLowerCase() as PaymentMethod,
+                  accountId: (d.payment_mode && String(d.payment_mode).toLowerCase().includes('cash')) ? 'cash_in_hand' : 'sbi_main',
+                  partyName: d.donor_name || 'Anonymous Seva Seeker',
+                  purpose: d.purpose || 'Temple Seva & Annadanam Donation',
+                  referenceNo: d.id,
+                  receiptNumber: d.receipt_sent ? `REC-${dId.slice(-6)}` : undefined,
+                  description: `Online/Counter Donation from ${d.donor_name || 'Devotee'} (${d.purpose || 'General'})`,
+                  status: 'approved',
+                  isReconciled: true,
+                  createdAt: d.created_at || new Date().toISOString(),
+                  createdBy: 'Devotee Seva Portal / Counter'
+                });
+              }
+            });
+            return merged;
+          });
+        }
+      } catch (err) {
+        console.warn('Finance Supabase auto-sync notice:', err);
+      }
+    };
+
+    syncDatabaseRecords();
+  }, []);
 
   // =========================================================================
   // HANDLERS FOR UNIFIED ACCOUNTING (ENTER ONCE, AUTO-PROPAGATE TO ALL)
@@ -403,6 +488,7 @@ export default function FinancePage() {
     };
     setAuditLogs(prev => [newLog, ...prev]);
 
+    setSelectedFileMeta(null);
     setShowBillModal(false);
     setBillForm({
       vendor: '',
@@ -412,7 +498,8 @@ export default function FinancePage() {
       dueDate: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
       category: 'Purchases',
       description: '',
-      attachmentName: ''
+      attachmentName: '',
+      attachmentUrl: ''
     });
   };
 
@@ -1519,7 +1606,19 @@ export default function FinancePage() {
                     </span>
                   </div>
                   <h4 className="font-extrabold text-sm text-gray-900 dark:text-white mb-1">{bill.vendor}</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">{bill.description}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-2">{bill.description}</p>
+                  {bill.attachmentName && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold mb-3">
+                      <Paperclip size={13} />
+                      {bill.attachmentUrl ? (
+                        <a href={bill.attachmentUrl} download={bill.attachmentName} target="_blank" rel="noopener noreferrer" className="underline hover:text-emerald-500 cursor-pointer">
+                          {bill.attachmentName} (View File)
+                        </a>
+                      ) : (
+                        <span>{bill.attachmentName}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-3 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between">
@@ -2111,11 +2210,55 @@ export default function FinancePage() {
 
               <div>
                 <label className="font-bold text-gray-700 dark:text-gray-300 block mb-1">Attachment (PDF / JPG / PNG)</label>
-                <div className="p-4 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-2xl text-center space-y-1">
-                  <Upload className="w-6 h-6 text-gray-400 mx-auto" />
-                  <p className="text-gray-500 font-semibold text-[11px]">Click or drag bill file here</p>
-                  <span className="text-[10px] text-gray-400">PDF, JPEG, PNG up to 10MB</span>
-                </div>
+                <input
+                  type="file"
+                  id="bill-file-upload-input"
+                  accept="application/pdf,image/png,image/jpeg,image/jpg"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+
+                {selectedFileMeta ? (
+                  <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 rounded-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 overflow-hidden">
+                      <div className="p-2 bg-emerald-600 text-white rounded-xl">
+                        <CheckCircle2 size={16} />
+                      </div>
+                      <div className="overflow-hidden">
+                        <span className="font-bold text-gray-900 dark:text-white text-xs truncate block">{selectedFileMeta.name}</span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400">{selectedFileMeta.size} • Ready for upload</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFileMeta(null);
+                        setBillForm(prev => ({ ...prev, attachmentName: '', attachmentUrl: '' }));
+                      }}
+                      className="text-xs text-rose-600 hover:text-rose-700 font-bold px-2 py-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => document.getElementById('bill-file-upload-input')?.click()}
+                    onDragOver={(e) => { e.preventDefault(); setIsDraggingFile(true); }}
+                    onDragLeave={() => setIsDraggingFile(false)}
+                    onDrop={handleFileDrop}
+                    className={`p-6 border-2 border-dashed rounded-2xl text-center space-y-1.5 cursor-pointer transition-all ${
+                      isDraggingFile
+                        ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30'
+                        : 'border-gray-300 dark:border-slate-700 hover:border-emerald-500 hover:bg-gray-50 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <Upload className="w-7 h-7 text-emerald-600 mx-auto" />
+                    <p className="text-gray-800 dark:text-gray-200 font-bold text-xs">
+                      <span className="text-emerald-600 dark:text-emerald-400 underline">Click to upload</span> or drag bill file here
+                    </p>
+                    <span className="text-[10px] text-gray-400 block">Supports PDF, JPEG, PNG up to 10MB</span>
+                  </div>
+                )}
               </div>
             </div>
 
