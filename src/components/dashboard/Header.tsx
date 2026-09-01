@@ -57,19 +57,21 @@ export default function Header({ toggleSidebar, user }: HeaderProps) {
   }, []);
 
   return (
-    <header className="bg-white/95 dark:bg-[#0f172a]/95 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-30 shadow-xs backdrop-blur-md transition-colors duration-200">
+    <header className="bg-white/90 dark:bg-[#0f172a]/90 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-30 shadow-xs backdrop-blur-md transition-colors duration-200 font-sans">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-4">
+        
+        {/* Left Side: Mobile Hamburger & Search */}
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            className="md:hidden p-2 -ml-2 text-gray-400 hover:text-gray-500 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="md:hidden p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none cursor-pointer"
             onClick={toggleSidebar}
           >
             <span className="sr-only">Open sidebar</span>
-            <Menu className="h-6 w-6" aria-hidden="true" />
+            <Menu className="h-5 w-5" aria-hidden="true" />
           </button>
           
-          {/* Global Search */}
+          {/* Global Search Bar */}
           <form 
             onSubmit={(e) => {
               e.preventDefault();
@@ -78,119 +80,125 @@ export default function Header({ toggleSidebar, user }: HeaderProps) {
                 window.location.href = `/dashboard/devotees?search=${encodeURIComponent(input.trim())}`;
               }
             }}
-            className="hidden lg:flex max-w-md w-full ml-4"
+            className="hidden sm:flex max-w-md w-full"
           >
-            <div className="relative w-64 focus-within:w-80 transition-all duration-300">
+            <div className="relative w-72 focus-within:w-96 transition-all duration-300">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-orange-400" aria-hidden="true" />
+                <Search className="h-4 w-4 text-orange-500" aria-hidden="true" />
               </div>
               <input
                 id="search"
                 name="search"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-slate-700 rounded-full leading-5 bg-gray-50 dark:bg-slate-800 placeholder-gray-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-orange-500 focus:border-transparent sm:text-sm shadow-inner transition-colors"
-                placeholder="Search devotees, bookings..."
+                className="block w-full pl-9 pr-14 py-2 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-xs bg-slate-50 dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-orange-500 focus:border-transparent shadow-inner transition-colors"
+                placeholder="Search devotees, sevas, tickets..."
                 type="search"
               />
+              <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none">
+                <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-700">⌘K</kbd>
+              </div>
             </div>
           </form>
         </div>
 
-        <div className="flex items-center gap-4 sm:gap-6 ml-auto">
-          {/* Date & Time display */}
-          <div className="hidden sm:flex flex-col items-end mr-4 border-r border-gray-200 dark:border-slate-700 pr-6">
-            <span className="text-xs font-semibold text-orange-600 dark:text-orange-400 tracking-wider">TODAY</span>
-            <span className="text-sm text-gray-600 dark:text-gray-300 font-medium">{currentDate}</span>
+        {/* Right Side: IST Clock, Notifications, Theme Toggle, Profile */}
+        <div className="flex items-center gap-2.5 sm:gap-4 ml-auto">
+          
+          {/* Live Indian Standard Time */}
+          <div className="hidden lg:flex flex-col items-end pr-4 border-r border-slate-200 dark:border-slate-800">
+            <span className="text-[10px] font-extrabold text-orange-600 dark:text-orange-400 tracking-wider uppercase flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+              Live IST
+            </span>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono mt-0.5">{currentDate}</span>
           </div>
 
-          {/* Notifications */}
+          {/* Notifications Flyout */}
           <div className="relative" ref={notifRef}>
             <button 
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 text-gray-400 hover:text-orange-500 transition-colors"
+              className="relative p-2.5 text-slate-500 hover:text-orange-600 dark:text-slate-400 dark:hover:text-orange-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Recent Notifications"
             >
-              <span className="sr-only">View notifications</span>
-              <Bell className="h-5 w-5" aria-hidden="true" />
+              <Bell className="h-4 w-4" aria-hidden="true" />
               {notifications.length > 0 && (
-                <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
+                <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-orange-600 ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
               )}
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 z-50 overflow-hidden">
-                <div className="p-4 border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex justify-between items-center">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</h3>
-                  <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full font-medium">{notifications.length} New</span>
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-[#111827] rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-fade-in">
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex justify-between items-center">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Live Activity Alerts</h3>
+                  <span className="text-[10px] bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded-full font-bold">{notifications.length} Recent</span>
                 </div>
-                <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-slate-700">
+                <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
                   {notifications.length > 0 ? (
                     notifications.map((notif) => (
-                      <div key={notif.id} className="p-4 border-b border-gray-50 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors flex gap-3 items-start">
-                        <div className="mt-0.5 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
-                          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <div key={notif.id} className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors flex gap-3 items-start">
+                        <div className="mt-0.5 w-7 h-7 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                          <CheckCircle className="h-4 w-4" />
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">QR Checked-in Verified</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">Booking ID #{notif.booking_id} was scanned and verified successfully.</p>
-                          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5 font-semibold uppercase tracking-wider flex items-center gap-1">
+                        <div className="flex-1">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white">QR Check-in Verified</p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">Devotee Booking #{notif.booking_id} verified at gate scanner.</p>
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-mono flex items-center gap-1">
                             <Clock className="w-3 h-3" /> {notif.scanned_at || new Date(notif.created_at).toLocaleString('en-IN')}
                           </p>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
-                      No new notifications
+                    <div className="p-6 text-center text-slate-400 text-xs">
+                      No new gate notifications
                     </div>
                   )}
                 </div>
-                <div className="p-3 bg-gray-50 dark:bg-slate-800/50 text-center border-t border-gray-100 dark:border-slate-700">
-                  <a href="/dashboard/activity" className="text-xs font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700 uppercase tracking-wider">
-                    View All Activity
+                <div className="p-3 bg-slate-50 dark:bg-slate-900/60 text-center border-t border-slate-100 dark:border-slate-800">
+                  <a href="/dashboard/activity" className="text-[11px] font-bold text-orange-600 dark:text-orange-400 hover:underline uppercase tracking-wider">
+                    View Complete Audit Log →
                   </a>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Theme Switcher */}
+          {/* Tactile Theme Switcher */}
           <button
             onClick={toggleTheme}
-            className="p-2 text-gray-400 hover:text-orange-500 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-slate-800"
+            className="p-2.5 text-slate-500 hover:text-orange-500 dark:text-slate-400 dark:hover:text-yellow-400 transition-all rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
             aria-label="Toggle theme"
+            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
           >
             {theme === 'light' ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
               </svg>
             ) : (
-              <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+              <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
               </svg>
             )}
           </button>
 
-          {/* Profile */}
-          <div className="flex items-center gap-3 pl-2 border-l border-gray-100 dark:border-slate-800">
-            <div className="hidden md:block text-right">
-              <p className="text-sm font-bold text-gray-900 dark:text-white leading-none mb-1">
-                {user?.name || 'Vidyaranyapura Mutt'}
+          {/* User Profile Chip */}
+          <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200 dark:border-slate-800">
+            <div className="hidden sm:block text-right">
+              <p className="text-xs font-bold text-slate-900 dark:text-white leading-none">
+                {user?.name || 'Mutt Admin'}
               </p>
-              <p className={`text-[10px] font-extrabold tracking-wider uppercase ${
+              <p className={`text-[9px] font-extrabold tracking-wider uppercase mt-1 ${
                 user?.role === 'super_admin' ? 'text-purple-600 dark:text-purple-400' :
                 user?.role === 'admin' ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
               }`}>
-                {user?.role === 'super_admin' ? 'Super Admin' : user?.role === 'admin' ? 'Administrator' : 'Swayamsevak / Scanner'}
+                {user?.role === 'super_admin' ? 'Super Admin' : user?.role === 'admin' ? 'Admin' : 'Swayamsevak'}
               </p>
             </div>
-            <div className="relative group cursor-pointer">
-              <div className={`h-10 w-10 rounded-full flex items-center justify-center border-2 shadow-sm transition-transform group-hover:scale-105 ${
-                user?.role === 'super_admin' ? 'bg-purple-100 text-purple-700 border-purple-400 dark:bg-purple-950 dark:text-purple-300' :
-                user?.role === 'admin' ? 'bg-amber-100 text-amber-700 border-amber-400 dark:bg-amber-950 dark:text-amber-300' :
-                'bg-emerald-100 text-emerald-700 border-emerald-400 dark:bg-emerald-950 dark:text-emerald-300'
-              }`}>
-                <User className="h-5 w-5" />
-              </div>
-              <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
+            <div className={`h-9 w-9 rounded-xl flex items-center justify-center border font-bold text-xs shadow-xs transition-transform hover:scale-105 ${
+              user?.role === 'super_admin' ? 'bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800' :
+              user?.role === 'admin' ? 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800' :
+              'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800'
+            }`}>
+              {user?.name ? user.name.charAt(0).toUpperCase() : 'M'}
             </div>
           </div>
         </div>
