@@ -47,7 +47,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-slate-900 overflow-hidden font-sans">
+    <div className="flex h-screen bg-slate-50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 overflow-hidden font-sans transition-colors duration-200">
       <Sidebar 
         isOpen={isSidebarOpen} 
         setIsOpen={setIsSidebarOpen} 
@@ -60,7 +60,7 @@ export default function DashboardLayout({
           user={user} 
         />
         
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50/50 p-4 md:p-6 lg:p-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50/70 dark:bg-[#090d16] p-4 md:p-6 lg:p-8 transition-colors duration-200">
           <div className="mx-auto max-w-7xl animate-fade-in">
             {children}
           </div>
