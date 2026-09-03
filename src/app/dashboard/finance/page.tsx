@@ -1141,13 +1141,25 @@ export default function FinancePage() {
 
             {/* Bank Accounts Distribution */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm space-y-4">
-              <h3 className="text-base font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-blue-600" />
-                <span>Account Balance Allocations</span>
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-blue-600" />
+                  <span>Account Balance Allocations</span>
+                </h3>
+                <button
+                  onClick={() => {
+                    setEditingAccounts(accounts);
+                    setShowAccountsConfigModal(true);
+                  }}
+                  className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:text-amber-500 flex items-center gap-1 cursor-pointer"
+                >
+                  <Settings size={13} />
+                  <span>Configure Accounts</span>
+                </button>
+              </div>
 
               <div className="space-y-3">
-                {TEMPLE_BANK_ACCOUNTS.map(acc => {
+                {accounts.map(acc => {
                   let bal = acc.openingBalance;
                   transactions.filter(t => t.status === 'approved' && t.accountId === acc.id).forEach(t => {
                     if (t.type === 'income' || t.type === 'donation') bal += t.amount;
@@ -2321,7 +2333,7 @@ export default function FinancePage() {
                     onChange={e => setIncomeForm({ ...incomeForm, accountId: e.target.value as any })}
                     className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl outline-none font-semibold"
                   >
-                    {TEMPLE_BANK_ACCOUNTS.map(acc => (
+                    {accounts.map(acc => (
                       <option key={acc.id} value={acc.id}>{acc.name}</option>
                     ))}
                   </select>
@@ -2427,7 +2439,7 @@ export default function FinancePage() {
                     onChange={e => setExpenseForm({ ...expenseForm, accountId: e.target.value as any })}
                     className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl outline-none font-semibold"
                   >
-                    {TEMPLE_BANK_ACCOUNTS.map(acc => (
+                    {accounts.map(acc => (
                       <option key={acc.id} value={acc.id}>{acc.name}</option>
                     ))}
                   </select>
@@ -2637,7 +2649,7 @@ export default function FinancePage() {
                   defaultValue="sbi_main"
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl outline-none font-bold"
                 >
-                  {TEMPLE_BANK_ACCOUNTS.map(acc => (
+                  {accounts.map(acc => (
                     <option key={acc.id} value={acc.id}>{acc.name} (₹{acc.openingBalance.toLocaleString('en-IN')})</option>
                   ))}
                 </select>
