@@ -1,14 +1,22 @@
 /**
- * Opens a pristine new browser window with only the report HTML + inline A4 CSS,
- * then immediately invokes the browser's native print dialog.
+ * Opens a pristine new browser window containing only the report HTML,
+ * with all CSS inlined by the print-builders module.
  *
- * This approach completely bypasses all Next.js / Tailwind / dashboard CSS conflicts,
+ * This completely bypasses all Next.js / Tailwind / dashboard CSS conflicts,
  * z-index wars with fixed navbars, and @media print selector leakage.
+ *
+ * Usage: printHtmlInNewWindow(buildCashBookHtml(data), 'Cash Book — FY 2025-26')
  */
 export function printHtmlInNewWindow(htmlContent: string, title: string): void {
-  const printWindow = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
+  const printWindow = window.open('', '_blank', 'width=1000,height=750,scrollbars=yes,resizable=yes');
   if (!printWindow) {
-    alert('Pop-up blocked. Please allow pop-ups for this site and try again.');
+    alert(
+      '⚠️ Pop-up was blocked by your browser.\n\n' +
+      'Please allow pop-ups for this site:\n' +
+      '1. Look for a pop-up blocked icon in your browser address bar\n' +
+      '2. Click it and choose "Always allow pop-ups"\n' +
+      '3. Then click the Print button again.'
+    );
     return;
   }
 

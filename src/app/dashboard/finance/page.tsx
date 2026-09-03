@@ -70,9 +70,12 @@ import {
   numberToIndianWords
 } from '@/lib/finance-engine';
 import { createClient } from '@/lib/client';
-import PrintCashBookDoc from '@/components/dashboard/finance/PrintCashBookDoc';
-import PrintLedgerDoc from '@/components/dashboard/finance/PrintLedgerDoc';
-import PrintFormalStatementDoc from '@/components/dashboard/finance/PrintFormalStatementDoc';
+import { printHtmlInNewWindow } from '@/lib/print-utils';
+import {
+  buildCashBookHtml,
+  buildLedgerHtml,
+  buildFormalStatementHtml
+} from '@/lib/print-builders';
 
 export default function FinancePage() {
   const { user } = useAuth();
@@ -121,8 +124,7 @@ export default function FinancePage() {
 
   const [isLoadingLive, setIsLoadingLive] = useState(true);
 
-  // Active Print Report Modal State
-  const [activePrintReport, setActivePrintReport] = useState<{ type: PrintReportType; data: any } | null>(null);
+  // (Print report state removed — prints now open directly in a new window)
 
   // Reconciled Bank Statement Balance for Reconciliation tool
   const [bankStatementBalance, setBankStatementBalance] = useState<number>(385000);
@@ -678,6 +680,75 @@ export default function FinancePage() {
     }));
   };
 
+  // ─── Direct Print Handlers (open clean new window — no on-screen modal) ────
+  const handlePrintCashBook = () => {
+    printHtmlInNewWindow(
+      buildCashBookHtml({
+        orgName: 'Mathaji Ulsooramma Sri Raghavendra Swamy Mutt',
+        orgSubtitle: 'Vidyaranyapura, Bengaluru - 560097, Karnataka • Ph: 080 4972 3252',
+        title: 'CASH BOOK (TREASURY CASH IN HAND)',
+        periodLabel: dateRange.label,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        accountName: 'Cash in Hand (Temple Treasury Vault)',
+        openingBalance: cashBookResult.openingBalance,
+        entries: cashBookResult.entries,
+        totalInflows: cashBookResult.totalInflows,
+        totalOutflows: cashBookResult.totalOutflows,
+        closingBalance: cashBookResult.closingBalance,
+        generatedAt: new Date().toLocaleString('en-IN')
+      }),
+      `Cash Book — ${dateRange.label}`
+    );
+  };
+
+  const handlePrintLedger = (title?: string, accountName?: string, openingBalance?: number, entries?: any[], totalDebits?: number, totalCredits?: number, closingBalance?: number) => {
+    printHtmlInNewWindow(
+      buildLedgerHtml({
+        orgName: 'Mathaji Ulsooramma Sri Raghavendra Swamy Mutt',
+        orgSubtitle: 'Vidyaranyapura, Bengaluru - 560097, Karnataka • Ph: 080 4972 3252',
+        title: title || 'GENERAL LEDGER STATEMENT',
+        periodLabel: dateRange.label,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        accountName: accountName || 'All Temple Operational Accounts',
+        openingBalance: openingBalance ?? ledgerResult.openingBalance,
+        entries: entries ?? ledgerResult.entries,
+        totalDebits: totalDebits ?? ledgerResult.totalDebits,
+        totalCredits: totalCredits ?? ledgerResult.totalCredits,
+        closingBalance: closingBalance ?? ledgerResult.closingBalance,
+        generatedAt: new Date().toLocaleString('en-IN')
+      }),
+      `Ledger — ${dateRange.label}`
+    );
+  };
+
+  const handlePrintFormalStatement = () => {
+    printHtmlInNewWindow(
+      buildFormalStatementHtml({
+        orgName: 'Mathaji Ulsooramma Sri Raghavendra Swamy Mutt',
+        orgSubtitle: 'Vidyaranyapura, Bengaluru - 560097, Karnataka • Ph: 080 4972 3252',
+        title: 'STATEMENT OF INCOME & EXPENDITURE',
+        periodLabel: dateRange.label,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        incomeCategories: formalIncomeAndExp.incomeCategories,
+        totalIncome: formalIncomeAndExp.totalIncome,
+        expenseCategories: formalIncomeAndExp.expenseCategories,
+        totalExpenses: formalIncomeAndExp.totalExpenses,
+        netSurplus: formalIncomeAndExp.netSurplus,
+        accountBalances: accounts.map(a => ({
+          name: a.name,
+          type: a.type,
+          balance: computePeriodOpeningBalance(transactions, a.id, '2099-12-31', accounts)
+        })),
+        totalReserves: summary.currentBalance,
+        generatedAt: new Date().toLocaleString('en-IN')
+      }),
+      `Formal Statement — ${dateRange.label}`
+    );
+  };
+
   // Export CSV Helper
   const exportLedgerCSV = () => {
     const headers = ['Date', 'Transaction ID', 'Particulars', 'Party Name', 'Reference No', 'Account', 'Category', 'Debit (Outflow ₹)', 'Credit (Inflow ₹)', 'Running Balance (₹)'];
@@ -707,7 +778,7 @@ export default function FinancePage() {
   return (
     <>
       {/* 🖥️ MAIN DASHBOARD SCREEN (Strictly hidden during print when activePrintReport is open) */}
-      <div className={`dashboard-screen-content space-y-6 max-w-7xl mx-auto pb-16 animate-fade-in font-sans ${activePrintReport ? 'print:hidden' : ''}`}>
+      <div className="dashboard-screen-content space-y-6 max-w-7xl mx-auto pb-16 animate-fade-in font-sans">
       
       {/* ========================================================================= */}
       {/* 🏛️ TOP CONTROL BAR & PERIOD SELECTOR                                      */}
@@ -1395,24 +1466,7 @@ export default function FinancePage() {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setActivePrintReport({
-                  type: 'ledger',
-                  data: {
-                    orgName: 'Mathaji Ulsooramma Sri Raghavendra Swamy Mutt',
-                    orgSubtitle: 'Vidyaranyapura, Bengaluru - 560097, Karnataka • Ph: 080 4972 3252',
-                    title: 'GENERAL LEDGER STATEMENT',
-                    periodLabel: dateRange.label,
-                    startDate: dateRange.startDate,
-                    endDate: dateRange.endDate,
-                    accountName: 'All Temple Operational Accounts',
-                    openingBalance: ledgerResult.openingBalance,
-                    entries: ledgerResult.entries,
-                    totalDebits: ledgerResult.totalDebits,
-                    totalCredits: ledgerResult.totalCredits,
-                    closingBalance: ledgerResult.closingBalance,
-                    generatedAt: new Date().toLocaleString('en-IN')
-                  }
-                })}
+                onClick={() => handlePrintLedger()}
                 className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
               >
                 <Printer size={13} />
@@ -1552,24 +1606,7 @@ export default function FinancePage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setActivePrintReport({
-                    type: 'cash_book',
-                    data: {
-                      orgName: 'Mathaji Ulsooramma Sri Raghavendra Swamy Mutt',
-                      orgSubtitle: 'Vidyaranyapura, Bengaluru - 560097, Karnataka • Ph: 080 4972 3252',
-                      title: 'CASH BOOK (TREASURY CASH IN HAND)',
-                      periodLabel: dateRange.label,
-                      startDate: dateRange.startDate,
-                      endDate: dateRange.endDate,
-                      accountName: 'Cash in Hand (Temple Treasury Vault)',
-                      openingBalance: cashBookResult.openingBalance,
-                      entries: cashBookResult.entries,
-                      totalInflows: cashBookResult.totalInflows,
-                      totalOutflows: cashBookResult.totalOutflows,
-                      closingBalance: cashBookResult.closingBalance,
-                      generatedAt: new Date().toLocaleString('en-IN')
-                    }
-                  })}
+                  onClick={handlePrintCashBook}
                   className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md transition-all active:scale-95"
                 >
                   <Printer size={14} />
@@ -1708,24 +1745,15 @@ export default function FinancePage() {
                     <span>Change Opening Balance</span>
                   </button>
                   <button
-                    onClick={() => setActivePrintReport({
-                      type: 'ledger',
-                      data: {
-                        orgName: 'Mathaji Ulsooramma Sri Raghavendra Swamy Mutt',
-                        orgSubtitle: 'Vidyaranyapura, Bengaluru - 560097, Karnataka • Ph: 080 4972 3252',
-                        title: `BANK BOOK — ${(accounts.find(a => a.id === selectedBankAccountId)?.bankName || 'BANK').toUpperCase()}`,
-                        periodLabel: dateRange.label,
-                        startDate: dateRange.startDate,
-                        endDate: dateRange.endDate,
-                        accountName: accounts.find(a => a.id === selectedBankAccountId)?.name || 'Bank Operational A/C',
-                        openingBalance: selectedBankResult.openingBalance,
-                        entries: selectedBankResult.entries,
-                        totalDebits: selectedBankResult.totalDebits,
-                        totalCredits: selectedBankResult.totalCredits,
-                        closingBalance: selectedBankResult.closingBalance,
-                        generatedAt: new Date().toLocaleString('en-IN')
-                      }
-                    })}
+                    onClick={() => handlePrintLedger(
+                      `BANK BOOK — ${(accounts.find(a => a.id === selectedBankAccountId)?.bankName || 'BANK').toUpperCase()}`,
+                      accounts.find(a => a.id === selectedBankAccountId)?.name || 'Bank Operational A/C',
+                      selectedBankResult.openingBalance,
+                      selectedBankResult.entries,
+                      selectedBankResult.totalDebits,
+                      selectedBankResult.totalCredits,
+                      selectedBankResult.closingBalance
+                    )}
                     className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md transition-all active:scale-95"
                   >
                     <Printer size={14} />
@@ -2044,29 +2072,7 @@ export default function FinancePage() {
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setActivePrintReport({
-                    type: 'statement',
-                    data: {
-                      orgName: 'Mathaji Ulsooramma Sri Raghavendra Swamy Mutt',
-                      orgSubtitle: 'Vidyaranyapura, Bengaluru - 560097, Karnataka • Ph: 080 4972 3252',
-                      title: 'STATEMENT OF INCOME & EXPENDITURE',
-                      periodLabel: dateRange.label,
-                      startDate: dateRange.startDate,
-                      endDate: dateRange.endDate,
-                      incomeCategories: formalIncomeAndExp.incomeCategories,
-                      totalIncome: formalIncomeAndExp.totalIncome,
-                      expenseCategories: formalIncomeAndExp.expenseCategories,
-                      totalExpenses: formalIncomeAndExp.totalExpenses,
-                      netSurplus: formalIncomeAndExp.netSurplus,
-                      accountBalances: accounts.map(a => ({
-                        name: a.name,
-                        type: a.type,
-                        balance: computePeriodOpeningBalance(transactions, a.id, '2099-12-31', accounts)
-                      })),
-                      totalReserves: summary.currentBalance,
-                      generatedAt: new Date().toLocaleString('en-IN')
-                    }
-                  })}
+                  onClick={handlePrintFormalStatement}
                   className="px-4 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-sm transition-all active:scale-95"
                 >
                   <Printer size={14} />
@@ -2953,29 +2959,7 @@ export default function FinancePage() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* 🖨️ MODAL: LIVE A4 PRINT DOCUMENT PREVIEW & PRINT ENGINE                  */}
-      {/* ========================================================================= */}
-      {activePrintReport?.type === 'cash_book' && (
-        <PrintCashBookDoc
-          data={activePrintReport.data}
-          onClose={() => setActivePrintReport(null)}
-        />
-      )}
-
-      {activePrintReport?.type === 'ledger' && (
-        <PrintLedgerDoc
-          data={activePrintReport.data}
-          onClose={() => setActivePrintReport(null)}
-        />
-      )}
-
-      {activePrintReport?.type === 'statement' && (
-        <PrintFormalStatementDoc
-          data={activePrintReport.data}
-          onClose={() => setActivePrintReport(null)}
-        />
-      )}
+      {/* Print reports now open directly in a clean new browser window via printHtmlInNewWindow() */}
     </>
   );
 }
