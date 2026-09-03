@@ -36,7 +36,8 @@ import {
   CheckSquare,
   Square,
   AlertCircle,
-  Settings
+  Settings,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -2742,16 +2743,72 @@ export default function FinancePage() {
               </button>
             </div>
 
+            {/* Add Bank Account action bar */}
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-slate-800">
+              <span className="text-xs font-bold text-gray-500">
+                {editingAccounts.length} Total Registered Accounts
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const timestamp = Date.now();
+                  const newAcc: BankAccountInfo = {
+                    id: `bank_${timestamp}`,
+                    name: 'New Bank Operational A/C',
+                    accountNumber: 'XXXX-XXXX-XXXX',
+                    bankName: 'Bank of Baroda',
+                    ifsc: 'BARB0XXXXXX',
+                    branch: 'Vidyaranyapura',
+                    type: 'bank',
+                    openingBalance: 0
+                  };
+                  setEditingAccounts(prev => [...prev, newAcc]);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer transform hover:scale-102 active:scale-95"
+              >
+                <Plus size={14} />
+                <span>+ Add Bank Account</span>
+              </button>
+            </div>
+
             <div className="space-y-4">
               {editingAccounts.map((acc, index) => (
                 <div key={acc.id} className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                      {acc.type === 'cash' ? '💵 Physical Treasury (Cash in Vault)' : '🏦 Official Bank Account'}
-                    </span>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300">
-                      {acc.id}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                        {acc.type === 'cash' ? '💵 Physical Treasury (Cash in Vault)' : '🏦 Official Bank Account'}
+                      </span>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300">
+                        {acc.id}
+                      </span>
+                    </div>
+
+                    {acc.type === 'bank' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (editingAccounts.filter(a => a.type === 'bank').length <= 1) {
+                            alert('You must retain at least one active bank account in the system.');
+                            return;
+                          }
+                          if (confirm(`Are you sure you want to delete bank account "${acc.name}"?`)) {
+                            setEditingAccounts(prev => prev.filter(a => a.id !== acc.id));
+                            if (selectedBankAccountId === acc.id) {
+                              const remaining = editingAccounts.filter(a => a.type === 'bank' && a.id !== acc.id);
+                              if (remaining.length > 0) {
+                                setSelectedBankAccountId(remaining[0].id);
+                              }
+                            }
+                          }
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1 text-rose-600 hover:bg-rose-100/70 dark:hover:bg-rose-950/40 rounded-lg text-xs font-bold cursor-pointer transition-colors"
+                        title="Delete Bank Account"
+                      >
+                        <Trash2 size={13} />
+                        <span>Delete</span>
+                      </button>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2791,7 +2848,7 @@ export default function FinancePage() {
                       <>
                         <div>
                           <label className="text-[11px] font-bold text-gray-600 dark:text-gray-400 block mb-1">
-                            Bank Name & Branch
+                            Bank Name
                           </label>
                           <input
                             type="text"
@@ -2816,6 +2873,38 @@ export default function FinancePage() {
                               setEditingAccounts(prev => prev.map((a, i) => i === index ? { ...a, accountNumber: val } : a));
                             }}
                             className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-mono text-gray-900 dark:text-white outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-gray-600 dark:text-gray-400 block mb-1">
+                            IFSC Code
+                          </label>
+                          <input
+                            type="text"
+                            value={acc.ifsc || ''}
+                            placeholder="e.g. SBIN0001234"
+                            onChange={e => {
+                              const val = e.target.value.toUpperCase();
+                              setEditingAccounts(prev => prev.map((a, i) => i === index ? { ...a, ifsc: val } : a));
+                            }}
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-mono uppercase text-gray-900 dark:text-white outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-gray-600 dark:text-gray-400 block mb-1">
+                            Branch Name
+                          </label>
+                          <input
+                            type="text"
+                            value={acc.branch || ''}
+                            placeholder="e.g. Vidyaranyapura Main Branch"
+                            onChange={e => {
+                              const val = e.target.value;
+                              setEditingAccounts(prev => prev.map((a, i) => i === index ? { ...a, branch: val } : a));
+                            }}
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs text-gray-900 dark:text-white outline-none"
                           />
                         </div>
                       </>

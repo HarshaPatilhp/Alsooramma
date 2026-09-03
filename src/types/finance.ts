@@ -25,7 +25,7 @@ export type ExpenseCategory =
 
 export type PaymentMethod = 'cash' | 'upi' | 'bank_transfer' | 'cheque' | 'dd' | 'card';
 
-export type AccountId = 'cash_in_hand' | 'sbi_main' | 'canara_seva' | 'hdfc_annadanam';
+export type AccountId = 'cash_in_hand' | 'sbi_main' | 'canara_seva' | 'hdfc_annadanam' | (string & {});
 
 export interface BankAccountInfo {
   id: AccountId;
