@@ -76,14 +76,14 @@ export default function Deities() {
         {/* Subtle decorative background patterns */}
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_30%_20%,#fff_0,transparent_60%)] pointer-events-none" />
         <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-        
+
         <div className="container mx-auto px-4 relative z-10 text-center">
           <span className="inline-block px-4 py-1.5 rounded-full bg-white/20 text-orange-50 text-xs font-bold uppercase tracking-wider mb-3 backdrop-blur-md">
             Divine Atmosphere
           </span>
           <h1 className="text-4xl md:text-6xl font-extrabold mb-4 drop-shadow-md">Divine Presences</h1>
           <p className="text-lg md:text-xl text-orange-100 max-w-2xl mx-auto font-medium">
-            Explore the deities, daily timings, and holy celebrations at Mathaji Ulsooramma Raghavendra Swamy Mutt.
+            Explore the deities, daily timings, and holy celebrations at Mathaji Ulsooramma Sri Raghavendra Swamy Mutt.
           </p>
         </div>
       </section>
@@ -91,7 +91,7 @@ export default function Deities() {
       {/* Main Container */}
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto">
-          
+
           {/* Custom Tabs Navigation */}
           <div className="flex flex-wrap justify-center gap-2 md:gap-4 mb-12">
             {tabs.map((tab) => {
@@ -101,11 +101,10 @@ export default function Deities() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-bold transition-all duration-300 text-sm md:text-base border shadow-sm ${
-                    isActive
+                  className={`flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-bold transition-all duration-300 text-sm md:text-base border shadow-sm ${isActive
                       ? 'bg-orange-600 border-orange-600 text-white shadow-orange-500/20 scale-105'
                       : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-slate-700 hover:border-orange-200'
-                  }`}
+                    }`}
                 >
                   <Icon size={18} className={isActive ? 'animate-pulse' : 'text-gray-400 dark:text-gray-500'} />
                   {tab.name}
@@ -116,12 +115,12 @@ export default function Deities() {
 
           {/* Active Tab Panel Content */}
           <div className="transition-all duration-300">
-            
+
             {/* 1. Sri Raghavendra Swami */}
             {activeTab === 'raghavendra' && (
               <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-10 border border-gray-100 dark:border-slate-700/50 shadow-xl animate-fade-in">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-                  
+
                   {/* Styled Image Card Container */}
                   <div className="lg:col-span-5 relative group">
                     <div className="absolute inset-0 bg-gradient-to-tr from-orange-500 to-amber-400 rounded-3xl transform rotate-2 scale-102 opacity-40 blur-xl group-hover:rotate-3 transition-transform duration-300"></div>
@@ -130,7 +129,7 @@ export default function Deities() {
                       <div className="absolute inset-4 border border-white/10 rounded-2xl pointer-events-none" />
                       <div className="absolute -top-12 -left-12 w-36 h-36 bg-amber-300/20 rounded-full blur-2xl" />
                       <div className="absolute -bottom-12 -right-12 w-36 h-36 bg-orange-600/20 rounded-full blur-2xl" />
-                      
+
                       <div className="text-center z-10">
                         <span className="text-6xl md:text-8xl drop-shadow-lg block mb-4">🙏</span>
                         <h4 className="text-2xl font-extrabold text-white tracking-wide drop-shadow-md">Guru Raghavendra</h4>
@@ -158,7 +157,7 @@ export default function Deities() {
                         Our Mutt in Vidyaranyapura serves as a sacred sanctum of Rayaru, carrying forward his message of devotion, humility, and selfless service. Devotees visit daily to seek spiritual peace and blessings.
                       </p>
                     </div>
-                    
+
                     {/* Key Attributes Grid */}
                     <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100 dark:border-slate-700/50">
                       <div className="bg-orange-50/55 dark:bg-slate-700/30 p-4 rounded-2xl">
@@ -185,7 +184,7 @@ export default function Deities() {
                   >
                     {/* Visual Card Accent Background */}
                     <div className={`absolute top-0 right-0 w-32 h-32 rounded-bl-full bg-gradient-to-br ${deity.gradient} opacity-40 group-hover:scale-110 transition-transform duration-300 pointer-events-none`} />
-                    
+
                     <div>
                       {/* Custom Icon Circle */}
                       <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${deity.gradient} ${deity.border} border flex items-center justify-center mb-6`}>
@@ -214,12 +213,12 @@ export default function Deities() {
                   <h3 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">Daily Rituals and Puja Timings</h3>
                   <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base mt-2">Devotees are welcome to participate and receive the sacred blessings during these hours.</p>
                 </div>
-                
+
                 {/* Vertical Timeline stepper */}
                 <div className="relative max-w-3xl mx-auto pl-4 sm:pl-8 py-4">
                   {/* Vertical line connector */}
                   <div className="absolute left-7 sm:left-11 top-0 bottom-0 w-1 bg-gradient-to-b from-orange-400 via-amber-500 to-orange-600 rounded-full opacity-30" />
-                  
+
                   <div className="space-y-8">
                     {schedule.map((item, idx) => {
                       const Icon = item.icon;
@@ -229,7 +228,7 @@ export default function Deities() {
                           <div className="relative z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-orange-600 border-4 border-orange-100 dark:border-slate-700 text-white flex items-center justify-center font-bold text-xs shadow-md group-hover:scale-110 transition-transform duration-300 shrink-0">
                             <Icon size={14} />
                           </div>
-                          
+
                           {/* Timeline Card */}
                           <div className="flex-1 bg-gray-50 dark:bg-slate-900/50 rounded-2xl p-5 border border-gray-100 dark:border-slate-700/40 shadow-sm hover:shadow-md transition-shadow group-hover:-translate-x-1 duration-300">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
@@ -320,7 +319,7 @@ export default function Deities() {
                 </div>
               </div>
             )}
-            
+
           </div>
         </div>
       </div>

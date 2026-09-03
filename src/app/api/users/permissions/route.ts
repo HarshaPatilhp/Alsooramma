@@ -117,14 +117,14 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Personnel permissions and role updated successfully',
+      message: 'Personal permissions and role updated successfully',
       permissions,
       role: updatePayload.role || targetUser.role,
     });
   } catch (err: any) {
     console.error('PUT /api/users/permissions error:', err.message);
     return NextResponse.json(
-      { success: false, message: 'Failed to update personnel permissions', error: err.message },
+      { success: false, message: 'Failed to update personal permissions', error: err.message },
       { status: 500 }
     );
   }

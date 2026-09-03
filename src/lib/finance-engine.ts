@@ -186,14 +186,16 @@ export function numberToIndianWords(amount: number): string {
 export function computePeriodOpeningBalance(
   transactions: FinanceTransaction[],
   accountIdFilter: AccountId | 'all',
-  startDate: string
+  startDate: string,
+  customAccounts?: BankAccountInfo[]
 ): number {
+  const accounts = customAccounts && customAccounts.length > 0 ? customAccounts : TEMPLE_BANK_ACCOUNTS;
   let baseOpening = 0;
   if (accountIdFilter && accountIdFilter !== 'all') {
-    const acc = TEMPLE_BANK_ACCOUNTS.find(a => a.id === accountIdFilter);
+    const acc = accounts.find(a => a.id === accountIdFilter);
     baseOpening = acc?.openingBalance || 0;
   } else {
-    baseOpening = TEMPLE_BANK_ACCOUNTS.reduce((sum, a) => sum + a.openingBalance, 0);
+    baseOpening = accounts.reduce((sum, a) => sum + a.openingBalance, 0);
   }
 
   // Transactions before startDate
@@ -218,7 +220,8 @@ export function computePeriodOpeningBalance(
 export function computeLedger(
   transactions: FinanceTransaction[],
   accountIdFilter: AccountId | 'all' = 'all',
-  dateRange?: DateRange
+  dateRange?: DateRange,
+  customAccounts?: BankAccountInfo[]
 ): {
   entries: LedgerEntry[];
   openingBalance: number;
@@ -226,11 +229,12 @@ export function computeLedger(
   totalCredits: number;
   closingBalance: number;
 } {
+  const accounts = customAccounts && customAccounts.length > 0 ? customAccounts : TEMPLE_BANK_ACCOUNTS;
   const startDate = dateRange?.startDate || '1970-01-01';
   const endDate = dateRange?.endDate || '2099-12-31';
 
   // Dynamic Opening Balance as of startDate
-  const openingBalance = computePeriodOpeningBalance(transactions, accountIdFilter, startDate);
+  const openingBalance = computePeriodOpeningBalance(transactions, accountIdFilter, startDate, accounts);
 
   // Filter approved transactions for the selected period and account
   const inPeriodTransactions = transactions
@@ -283,7 +287,8 @@ export function computeLedger(
  */
 export function computeCashBook(
   transactions: FinanceTransaction[],
-  dateRange?: DateRange
+  dateRange?: DateRange,
+  customAccounts?: BankAccountInfo[]
 ): {
   entries: CashBookEntry[];
   openingBalance: number;
@@ -291,11 +296,12 @@ export function computeCashBook(
   totalOutflows: number;
   closingBalance: number;
 } {
+  const accounts = customAccounts && customAccounts.length > 0 ? customAccounts : TEMPLE_BANK_ACCOUNTS;
   const startDate = dateRange?.startDate || '1970-01-01';
   const endDate = dateRange?.endDate || '2099-12-31';
 
   // Opening balance of cash as of startDate
-  const openingBalance = computePeriodOpeningBalance(transactions, 'cash_in_hand', startDate);
+  const openingBalance = computePeriodOpeningBalance(transactions, 'cash_in_hand', startDate, accounts);
 
   const cashTxns = transactions
     .filter(t => t.status === 'approved' && t.accountId === 'cash_in_hand')
@@ -343,18 +349,20 @@ export function computeCashBook(
 export function computeFinancialSummary(
   transactions: FinanceTransaction[],
   bills: BillInvoice[],
-  dateRange: DateRange
+  dateRange: DateRange,
+  customAccounts?: BankAccountInfo[]
 ): FinancialSummary {
+  const accounts = customAccounts && customAccounts.length > 0 ? customAccounts : TEMPLE_BANK_ACCOUNTS;
   const todayStr = new Date().toISOString().split('T')[0];
 
-  const totalOpening = TEMPLE_BANK_ACCOUNTS.reduce((sum, a) => sum + a.openingBalance, 0);
+  const totalOpening = accounts.reduce((sum, a) => sum + a.openingBalance, 0);
 
   let totalIncome = 0;
   let totalExpenses = 0;
 
   // Running balances from base opening
-  let cashInHand = TEMPLE_BANK_ACCOUNTS.find(a => a.id === 'cash_in_hand')?.openingBalance || 0;
-  let bankBalance = TEMPLE_BANK_ACCOUNTS.filter(a => a.type === 'bank').reduce((sum, a) => sum + a.openingBalance, 0);
+  let cashInHand = accounts.find(a => a.id === 'cash_in_hand')?.openingBalance || 0;
+  let bankBalance = accounts.filter(a => a.type === 'bank').reduce((sum, a) => sum + a.openingBalance, 0);
 
   let incomeToday = 0;
   let expensesToday = 0;
@@ -493,7 +501,7 @@ export async function fetchLiveFinanceData(supabase: any): Promise<FinanceTransa
       { data: donData, error: donErr },
       { data: annData, error: annErr }
     ] = await Promise.all([
-      supabase.from('bookings').select('*').neq('status', 'deleted'),
+      supabase.from('bookings').select('*'),
       supabase.from('donations').select('*'),
       supabase.from('annadanam').select('*')
     ]);
@@ -504,12 +512,18 @@ export async function fetchLiveFinanceData(supabase: any): Promise<FinanceTransa
 
     const unifiedList: FinanceTransaction[] = [];
 
-    // 1. Map Live Seva Bookings
+    // 1. Map Live Seva Bookings (exclude explicitly deleted bookings)
     if (Array.isArray(bksData)) {
-      bksData.forEach((b: any) => {
-        const rawCost = Number(b.total_cost || b.seva_cost || 0);
-        if (rawCost > 0) {
-          unifiedList.push({
+      bksData
+        .filter((b: any) => b.status !== 'deleted')
+        .forEach((b: any) => {
+          const rawCost = Number(
+            typeof b.total_cost === 'string' 
+              ? b.total_cost.replace(/[^0-9.]/g, '') 
+              : (b.total_cost || b.seva_cost || 0)
+          );
+          if (rawCost > 0) {
+            unifiedList.push({
             id: `SEVA-${b.id}`,
             type: 'income',
             category: 'Seva',

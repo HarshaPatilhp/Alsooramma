@@ -35,7 +35,8 @@ import {
   Paperclip,
   CheckSquare,
   Square,
-  AlertCircle
+  AlertCircle,
+  Settings
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -51,7 +52,8 @@ import {
   PrintReportType,
   CashBookReportData,
   LedgerReportData,
-  FormalStatementData
+  FormalStatementData,
+  BankAccountInfo
 } from '@/types/finance';
 import {
   TEMPLE_BANK_ACCOUNTS,
@@ -150,30 +152,64 @@ export default function FinancePage() {
     }
   }, [bills, auditLogs]);
 
+  // Treasury & Bank Accounts State (Configurable by user, persisted to localStorage)
+  const [accounts, setAccounts] = useState<BankAccountInfo[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('alsur_temple_accounts');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch (e) { }
+      }
+    }
+    return TEMPLE_BANK_ACCOUNTS;
+  });
+  const [showAccountsConfigModal, setShowAccountsConfigModal] = useState(false);
+  const [editingAccounts, setEditingAccounts] = useState<BankAccountInfo[]>(accounts);
+
+  const handleSaveAccounts = (updated: BankAccountInfo[]) => {
+    setAccounts(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('alsur_temple_accounts', JSON.stringify(updated));
+    }
+    setShowAccountsConfigModal(false);
+
+    const newLog: AuditLogEntry = {
+      id: `AUD-${Date.now()}`,
+      timestamp: new Date().toLocaleString('en-IN'),
+      actor: user?.name || 'Managing Trustee',
+      action: 'update',
+      transactionId: 'ACC-CONFIG',
+      summary: `Updated Treasury & Bank Account Opening Balances`
+    };
+    setAuditLogs(prev => [newLog, ...prev]);
+  };
+
   // Date Range calculation
   const dateRange = useMemo(() => {
     return getPeriodDateRange(period, customStartDate, customEndDate);
   }, [period, customStartDate, customEndDate]);
 
-  // Computed Financial Metrics (Fully Dynamic)
+  // Computed Financial Metrics (Fully Dynamic from live transactions + user configurable accounts)
   const summary = useMemo(() => {
-    return computeFinancialSummary(transactions, bills, dateRange);
-  }, [transactions, bills, dateRange]);
+    return computeFinancialSummary(transactions, bills, dateRange, accounts);
+  }, [transactions, bills, dateRange, accounts]);
 
   // Computed General Ledger (Filtered by Date Range & Accounts)
   const ledgerResult = useMemo(() => {
-    return computeLedger(transactions, 'all', dateRange);
-  }, [transactions, dateRange]);
+    return computeLedger(transactions, 'all', dateRange, accounts);
+  }, [transactions, dateRange, accounts]);
 
   // Computed Cash Book (Physical Treasury Cash only)
   const cashBookResult = useMemo(() => {
-    return computeCashBook(transactions, dateRange);
-  }, [transactions, dateRange]);
+    return computeCashBook(transactions, dateRange, accounts);
+  }, [transactions, dateRange, accounts]);
 
   // Computed Bank Book for selected account
   const selectedBankResult = useMemo(() => {
-    return computeLedger(transactions, selectedBankAccountId, dateRange);
-  }, [transactions, selectedBankAccountId, dateRange]);
+    return computeLedger(transactions, selectedBankAccountId, dateRange, accounts);
+  }, [transactions, selectedBankAccountId, dateRange, accounts]);
 
   // Computed Income & Expenditure Schedule for Formal Statements
   const formalIncomeAndExp = useMemo(() => {
@@ -344,11 +380,11 @@ export default function FinancePage() {
     // 1. Immediately update reactive state
     setTransactions(prev => [newTxn, ...prev]);
 
-    // 2. Persist to Supabase Database (donations table)
+    // 2. Persist to Supabase Database (donations table) with numeric BigInt ID
     try {
       const supabase = createClient();
       await supabase.from('donations').insert([{
-        id: newTxnId,
+        id: Date.now(),
         donor_name: incomeForm.partyName.trim(),
         amount: Number(incomeForm.amount),
         date: incomeForm.date,
@@ -430,11 +466,11 @@ export default function FinancePage() {
     // 1. Immediately update reactive state
     setTransactions(prev => [newTxn, ...prev]);
 
-    // 2. Persist to Supabase Database as negative amount (Expense)
+    // 2. Persist to Supabase Database as negative amount (Expense) with numeric BigInt ID
     try {
       const supabase = createClient();
       await supabase.from('donations').insert([{
-        id: newTxnId,
+        id: Date.now(),
         donor_name: expenseForm.partyName.trim(),
         amount: -Number(expenseForm.amount), // negative denotes expense outflow
         date: expenseForm.date,
@@ -551,11 +587,11 @@ export default function FinancePage() {
     // Append to transactions ledger
     setTransactions(prev => [paymentTxn, ...prev]);
 
-    // Persist expense to Supabase donations table
+    // Persist expense to Supabase donations table with numeric BigInt ID
     try {
       const supabase = createClient();
       await supabase.from('donations').insert([{
-        id: txnId,
+        id: Date.now(),
         donor_name: bill.vendor,
         amount: -bill.amount,
         date: new Date().toISOString().split('T')[0],
@@ -668,7 +704,9 @@ export default function FinancePage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16 animate-fade-in font-sans">
+    <>
+      {/* 🖥️ MAIN DASHBOARD SCREEN (Strictly hidden during print when activePrintReport is open) */}
+      <div className={`dashboard-screen-content space-y-6 max-w-7xl mx-auto pb-16 animate-fade-in font-sans ${activePrintReport ? 'print:hidden' : ''}`}>
       
       {/* ========================================================================= */}
       {/* 🏛️ TOP CONTROL BAR & PERIOD SELECTOR                                      */}
@@ -781,6 +819,17 @@ export default function FinancePage() {
           >
             <Upload size={14} />
             <span>Upload Bill</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setEditingAccounts(accounts);
+              setShowAccountsConfigModal(true);
+            }}
+            className="flex items-center gap-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold border border-amber-500/50 shadow-sm transition-all cursor-pointer transform hover:-translate-y-0.5"
+          >
+            <Settings size={14} />
+            <span>⚙️ Configure Opening Balances</span>
           </button>
 
           <button
@@ -936,9 +985,21 @@ export default function FinancePage() {
                 <h3 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">
                   ₹{summary.cashInHand.toLocaleString('en-IN')}
                 </h3>
-                <span className="text-[11px] font-semibold text-amber-600 mt-1 block">
-                  Vault & Counter Petty Cash
-                </span>
+                <div className="flex items-center justify-between mt-1 pt-1 border-t border-gray-100 dark:border-slate-700">
+                  <span className="text-[11px] font-semibold text-amber-600">
+                    Vault & Counter Petty Cash
+                  </span>
+                  <button
+                    onClick={() => {
+                      setEditingAccounts(accounts);
+                      setShowAccountsConfigModal(true);
+                    }}
+                    className="text-[10px] font-bold text-amber-700 dark:text-amber-400 hover:text-amber-800 underline cursor-pointer flex items-center gap-1"
+                  >
+                    <Settings size={11} />
+                    <span>Change Amount</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -956,9 +1017,21 @@ export default function FinancePage() {
                 <h3 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">
                   ₹{summary.bankBalance.toLocaleString('en-IN')}
                 </h3>
-                <span className="text-[11px] font-semibold text-blue-600 mt-1 block">
-                  3 Active Bank Accounts (SBI, Canara, HDFC)
-                </span>
+                <div className="flex items-center justify-between mt-1 pt-1 border-t border-gray-100 dark:border-slate-700">
+                  <span className="text-[11px] font-semibold text-blue-600">
+                    {accounts.filter(a => a.type === 'bank').length} Active Bank Accounts
+                  </span>
+                  <button
+                    onClick={() => {
+                      setEditingAccounts(accounts);
+                      setShowAccountsConfigModal(true);
+                    }}
+                    className="text-[10px] font-bold text-blue-700 dark:text-blue-400 hover:text-blue-800 underline cursor-pointer flex items-center gap-1"
+                  >
+                    <Settings size={11} />
+                    <span>Change Amounts</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1565,30 +1638,43 @@ export default function FinancePage() {
           {/* 4B: BANK BOOK */}
           {accountsSubTab === 'bank_book' && (
             <div className="space-y-4">
-              {/* Account Selector */}
-              <div className="flex items-center gap-3 overflow-x-auto pb-1">
-                {TEMPLE_BANK_ACCOUNTS.filter(a => a.type === 'bank').map(acc => (
-                  <button
-                    key={acc.id}
-                    onClick={() => setSelectedBankAccountId(acc.id)}
-                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer shrink-0 w-64 ${
-                      selectedBankAccountId === acc.id
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                        : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-slate-700'
-                    }`}
-                  >
-                    <span className="text-[10px] font-extrabold uppercase opacity-80 block">{acc.bankName}</span>
-                    <h4 className="text-sm font-black mt-0.5">{acc.name}</h4>
-                    <span className="text-xs font-mono opacity-90 block mt-2">{acc.accountNumber}</span>
-                  </button>
-                ))}
+              {/* Account Selector and Config Button */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-none flex-1">
+                  {accounts.filter(a => a.type === 'bank').map(acc => (
+                    <button
+                      key={acc.id}
+                      onClick={() => setSelectedBankAccountId(acc.id)}
+                      className={`p-4 rounded-2xl border text-left transition-all cursor-pointer shrink-0 w-64 ${
+                        selectedBankAccountId === acc.id
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                          : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-slate-700'
+                      }`}
+                    >
+                      <span className="text-[10px] font-extrabold uppercase opacity-80 block">{acc.bankName}</span>
+                      <h4 className="text-sm font-black mt-0.5">{acc.name}</h4>
+                      <span className="text-xs font-mono opacity-90 block mt-2">{acc.accountNumber}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => {
+                    setEditingAccounts(accounts);
+                    setShowAccountsConfigModal(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-xl text-xs font-bold border border-slate-700 shrink-0 cursor-pointer shadow-sm transition-all"
+                >
+                  <Settings size={14} />
+                  <span>Configure Accounts & Balances</span>
+                </button>
               </div>
 
               {/* Bank Account Overview Card & Print Button */}
               <div className="bg-blue-50/80 dark:bg-blue-950/40 p-5 rounded-3xl border border-blue-200 dark:border-blue-800/50 flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <span className="text-xs font-extrabold uppercase tracking-wider text-blue-800 dark:text-blue-300">
-                    {TEMPLE_BANK_ACCOUNTS.find(a => a.id === selectedBankAccountId)?.name}
+                    {accounts.find(a => a.id === selectedBankAccountId)?.name || 'Bank Account'}
                   </span>
                   <h3 className="text-2xl font-black text-gray-900 dark:text-white mt-0.5">
                     Closing Bank Balance: ₹{selectedBankResult.closingBalance.toLocaleString('en-IN')}
@@ -1597,30 +1683,42 @@ export default function FinancePage() {
                     Opening: ₹{selectedBankResult.openingBalance.toLocaleString('en-IN')} • Credits: +₹{selectedBankResult.totalCredits.toLocaleString('en-IN')} • Debits: -₹{selectedBankResult.totalDebits.toLocaleString('en-IN')}
                   </p>
                 </div>
-                <button
-                  onClick={() => setActivePrintReport({
-                    type: 'ledger',
-                    data: {
-                      orgName: 'Mathaji Ulsooramma Sri Raghavendra Swamy Mutt',
-                      orgSubtitle: 'Vidyaranyapura, Bengaluru - 560097, Karnataka • Ph: 080 4972 3252',
-                      title: `BANK BOOK — ${TEMPLE_BANK_ACCOUNTS.find(a => a.id === selectedBankAccountId)?.bankName.toUpperCase()}`,
-                      periodLabel: dateRange.label,
-                      startDate: dateRange.startDate,
-                      endDate: dateRange.endDate,
-                      accountName: TEMPLE_BANK_ACCOUNTS.find(a => a.id === selectedBankAccountId)?.name || 'Bank Operational A/C',
-                      openingBalance: selectedBankResult.openingBalance,
-                      entries: selectedBankResult.entries,
-                      totalDebits: selectedBankResult.totalDebits,
-                      totalCredits: selectedBankResult.totalCredits,
-                      closingBalance: selectedBankResult.closingBalance,
-                      generatedAt: new Date().toLocaleString('en-IN')
-                    }
-                  })}
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md transition-all active:scale-95"
-                >
-                  <Printer size={14} />
-                  <span>Print Bank Book</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setEditingAccounts(accounts);
+                      setShowAccountsConfigModal(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-2.5 bg-white dark:bg-slate-800 hover:bg-gray-50 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-slate-700 font-bold rounded-xl text-xs cursor-pointer shadow-sm transition-all"
+                  >
+                    <Settings size={13} />
+                    <span>Change Opening Balance</span>
+                  </button>
+                  <button
+                    onClick={() => setActivePrintReport({
+                      type: 'ledger',
+                      data: {
+                        orgName: 'Mathaji Ulsooramma Sri Raghavendra Swamy Mutt',
+                        orgSubtitle: 'Vidyaranyapura, Bengaluru - 560097, Karnataka • Ph: 080 4972 3252',
+                        title: `BANK BOOK — ${(accounts.find(a => a.id === selectedBankAccountId)?.bankName || 'BANK').toUpperCase()}`,
+                        periodLabel: dateRange.label,
+                        startDate: dateRange.startDate,
+                        endDate: dateRange.endDate,
+                        accountName: accounts.find(a => a.id === selectedBankAccountId)?.name || 'Bank Operational A/C',
+                        openingBalance: selectedBankResult.openingBalance,
+                        entries: selectedBankResult.entries,
+                        totalDebits: selectedBankResult.totalDebits,
+                        totalCredits: selectedBankResult.totalCredits,
+                        closingBalance: selectedBankResult.closingBalance,
+                        generatedAt: new Date().toLocaleString('en-IN')
+                      }
+                    })}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md transition-all active:scale-95"
+                  >
+                    <Printer size={14} />
+                    <span>Print Bank Book</span>
+                  </button>
+                </div>
               </div>
 
               {/* Bank Book Transactions Table */}
@@ -1947,10 +2045,10 @@ export default function FinancePage() {
                       expenseCategories: formalIncomeAndExp.expenseCategories,
                       totalExpenses: formalIncomeAndExp.totalExpenses,
                       netSurplus: formalIncomeAndExp.netSurplus,
-                      accountBalances: TEMPLE_BANK_ACCOUNTS.map(a => ({
+                      accountBalances: accounts.map(a => ({
                         name: a.name,
                         type: a.type,
-                        balance: computePeriodOpeningBalance(transactions, a.id, '2099-12-31')
+                        balance: computePeriodOpeningBalance(transactions, a.id, '2099-12-31', accounts)
                       })),
                       totalReserves: summary.currentBalance,
                       generatedAt: new Date().toLocaleString('en-IN')
@@ -2614,6 +2712,146 @@ export default function FinancePage() {
         </div>
       )}
 
+      </div>
+
+      {/* ========================================================================= */}
+      {/* ⚙️ MODAL: CONFIGURE ACCOUNTS & OPENING BALANCES (User Editable)           */}
+      {/* ========================================================================= */}
+      {showAccountsConfigModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in no-print">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-gray-100 dark:border-slate-800 space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                  <Settings size={22} />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white">
+                    Configure Treasury Accounts & Opening Balances
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Set physical cash in treasury and bank account opening balances. These drive all ledger reports & closing reserves.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAccountsConfigModal(false)}
+                className="p-2 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {editingAccounts.map((acc, index) => (
+                <div key={acc.id} className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                      {acc.type === 'cash' ? '💵 Physical Treasury (Cash in Vault)' : '🏦 Official Bank Account'}
+                    </span>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300">
+                      {acc.id}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-gray-600 dark:text-gray-400 block mb-1">
+                        Account Display Name
+                      </label>
+                      <input
+                        type="text"
+                        value={acc.name}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setEditingAccounts(prev => prev.map((a, i) => i === index ? { ...a, name: val } : a));
+                        }}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-black text-amber-700 dark:text-amber-400 block mb-1">
+                        Opening Balance (₹)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={acc.openingBalance}
+                        onChange={e => {
+                          const val = Number(e.target.value) || 0;
+                          setEditingAccounts(prev => prev.map((a, i) => i === index ? { ...a, openingBalance: val } : a));
+                        }}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border-2 border-amber-400 dark:border-amber-600 rounded-xl text-xs font-mono font-bold text-gray-900 dark:text-white outline-none"
+                      />
+                    </div>
+
+                    {acc.type === 'bank' && (
+                      <>
+                        <div>
+                          <label className="text-[11px] font-bold text-gray-600 dark:text-gray-400 block mb-1">
+                            Bank Name & Branch
+                          </label>
+                          <input
+                            type="text"
+                            value={acc.bankName}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setEditingAccounts(prev => prev.map((a, i) => i === index ? { ...a, bankName: val } : a));
+                            }}
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs text-gray-900 dark:text-white outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-gray-600 dark:text-gray-400 block mb-1">
+                            Account Number
+                          </label>
+                          <input
+                            type="text"
+                            value={acc.accountNumber}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setEditingAccounts(prev => prev.map((a, i) => i === index ? { ...a, accountNumber: val } : a));
+                            }}
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-mono text-gray-900 dark:text-white outline-none"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-4 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="text-xs">
+                <span className="text-gray-500 block">Total Combined Opening Reserves:</span>
+                <strong className="font-mono text-sm text-gray-900 dark:text-white">
+                  ₹{editingAccounts.reduce((s, a) => s + a.openingBalance, 0).toLocaleString('en-IN')}
+                </strong>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => setShowAccountsConfigModal(false)}
+                  className="px-4 py-2.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-bold text-xs rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleSaveAccounts(editingAccounts)}
+                  className="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer transition-all"
+                >
+                  Save & Apply New Balances
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* 🖨️ MODAL: LIVE A4 PRINT DOCUMENT PREVIEW & PRINT ENGINE                  */}
       {/* ========================================================================= */}
@@ -2637,7 +2875,8 @@ export default function FinancePage() {
           onClose={() => setActivePrintReport(null)}
         />
       )}
-    </div>
+    </>
   );
 }
+
 
