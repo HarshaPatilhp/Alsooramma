@@ -680,6 +680,26 @@ export default function FinancePage() {
     }));
   };
 
+  // ─── Delete a Bill / Invoice ─────────────────────────────────────────────────
+  const handleDeleteBill = (billId: string) => {
+    const bill = bills.find(b => b.id === billId);
+    if (!bill) return;
+    const confirmed = window.confirm(
+      `Delete this bill?\n\nVendor: ${bill.vendor}\nInvoice: ${bill.invoiceNumber}\nAmount: ₹${bill.amount.toLocaleString('en-IN')}\n\nThis action cannot be undone.`
+    );
+    if (!confirmed) return;
+    setBills(prev => prev.filter(b => b.id !== billId));
+    const newLog: AuditLogEntry = {
+      id: `AUD-${Date.now()}`,
+      timestamp: new Date().toLocaleString('en-IN'),
+      actor: user?.name || 'Accountant',
+      action: 'delete' as any,
+      transactionId: billId,
+      summary: `Deleted bill ${bill.invoiceNumber} from ${bill.vendor} — ₹${bill.amount.toLocaleString('en-IN')}`
+    };
+    setAuditLogs(prev => [newLog, ...prev]);
+  };
+
   // ─── Direct Print Handlers (open clean new window — no on-screen modal) ────
   const handlePrintCashBook = () => {
     printHtmlInNewWindow(
@@ -1969,24 +1989,33 @@ export default function FinancePage() {
                   )}
                 </div>
 
-                <div className="pt-3 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                <div className="pt-3 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between gap-2">
                   <div>
                     <span className="text-[10px] text-gray-400 block font-semibold">Bill Amount</span>
                     <p className="text-base font-black text-gray-900 dark:text-white">₹{bill.amount.toLocaleString('en-IN')}</p>
                   </div>
 
-                  {bill.status !== 'paid' ? (
+                  <div className="flex items-center gap-2">
+                    {bill.status !== 'paid' ? (
+                      <button
+                        onClick={() => setPayingBill(bill)}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
+                      >
+                        Pay Bill
+                      </button>
+                    ) : (
+                      <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
+                        <CheckCircle2 size={13} /> Paid
+                      </span>
+                    )}
                     <button
-                      onClick={() => setPayingBill(bill)}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
+                      onClick={() => handleDeleteBill(bill.id)}
+                      title="Delete this bill"
+                      className="p-1.5 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-500 hover:text-rose-700 rounded-xl transition-all cursor-pointer border border-rose-200 dark:border-rose-800/40"
                     >
-                      Pay Bill
+                      <Trash2 size={13} />
                     </button>
-                  ) : (
-                    <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
-                      <CheckCircle2 size={13} /> Paid
-                    </span>
-                  )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -2013,7 +2042,7 @@ export default function FinancePage() {
                     <th className="py-3 px-4">Due Date</th>
                     <th className="py-3 px-4 text-right">Amount Due (₹)</th>
                     <th className="py-3 px-4 text-center">Status</th>
-                    <th className="py-3 px-4 text-center">Action</th>
+                    <th className="py-3 px-4 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-slate-700 font-medium">
@@ -2041,12 +2070,21 @@ export default function FinancePage() {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <button
-                            onClick={() => setPayingBill(bill)}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
-                          >
-                            Mark as Paid
-                          </button>
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => setPayingBill(bill)}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                            >
+                              Mark as Paid
+                            </button>
+                            <button
+                              onClick={() => handleDeleteBill(bill.id)}
+                              title="Delete this bill"
+                              className="p-1.5 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-500 hover:text-rose-700 rounded-xl transition-all cursor-pointer border border-rose-200 dark:border-rose-800/40"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
