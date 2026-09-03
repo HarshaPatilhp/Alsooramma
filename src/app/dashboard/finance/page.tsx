@@ -700,6 +700,60 @@ export default function FinancePage() {
     setAuditLogs(prev => [newLog, ...prev]);
   };
 
+  // ─── Delete a Transaction (from Transactions & General Ledger) ─────────────
+  const handleDeleteTransaction = async (txnId: string) => {
+    const txn = transactions.find(t => t.id === txnId);
+    if (!txn) return;
+    const confirmed = window.confirm(
+      `Delete this transaction from Transactions & General Ledger?\n\nID: ${txn.id}\nParty: ${txn.partyName}\nAmount: ₹${txn.amount.toLocaleString('en-IN')}\nCategory: ${txn.category}\nDate: ${txn.date}\n\nThis will immediately remove it from all accounts, ledgers, and financial totals.`
+    );
+    if (!confirmed) return;
+
+    // 1. Immediately update reactive state
+    setTransactions(prev => prev.filter(t => t.id !== txnId));
+
+    // 2. Remove from Supabase if applicable
+    try {
+      const supabase = createClient();
+      if (txn.id.startsWith('SEVA-')) {
+        const bookingId = txn.id.replace('SEVA-', '');
+        await supabase.from('bookings').update({ status: 'deleted' }).eq('id', bookingId);
+      } else if (txn.id.startsWith('ANN-')) {
+        const annId = txn.id.replace('ANN-', '');
+        await supabase.from('annadanam').delete().eq('id', annId);
+      } else {
+        await supabase.from('donations').delete().eq('id', txn.id);
+      }
+    } catch (err) {
+      console.error("Failed to delete transaction from Supabase:", err);
+    }
+
+    // 3. Remove from localStorage custom cache if present
+    if (typeof window !== 'undefined') {
+      try {
+        const localCustom = localStorage.getItem('alsur_custom_finance_txns');
+        if (localCustom) {
+          const parsed = JSON.parse(localCustom);
+          if (Array.isArray(parsed)) {
+            const filtered = parsed.filter((item: FinanceTransaction) => item.id !== txnId);
+            localStorage.setItem('alsur_custom_finance_txns', JSON.stringify(filtered));
+          }
+        }
+      } catch (e) { }
+    }
+
+    // 4. Audit Log
+    const newLog: AuditLogEntry = {
+      id: `AUD-${Date.now()}`,
+      timestamp: new Date().toLocaleString('en-IN'),
+      actor: user?.name || 'Accountant',
+      action: 'delete' as any,
+      transactionId: txnId,
+      summary: `Deleted ${txn.type} transaction ${txn.id} (${txn.partyName} - ₹${txn.amount.toLocaleString('en-IN')})`
+    };
+    setAuditLogs(prev => [newLog, ...prev]);
+  };
+
   // ─── Direct Print Handlers (open clean new window — no on-screen modal) ────
   const handlePrintCashBook = () => {
     printHtmlInNewWindow(
@@ -1460,6 +1514,14 @@ export default function FinancePage() {
                                   Review
                                 </button>
                               )}
+
+                              <button
+                                onClick={() => handleDeleteTransaction(txn.id)}
+                                title="Delete this transaction"
+                                className="p-1.5 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-500 hover:text-rose-700 rounded-xl transition-all cursor-pointer border border-rose-200 dark:border-rose-800/40"
+                              >
+                                <Trash2 size={13} />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -1514,6 +1576,7 @@ export default function FinancePage() {
                     <th className="py-3 px-4 text-right">Debit (Outflow ₹)</th>
                     <th className="py-3 px-4 text-right">Credit (Inflow ₹)</th>
                     <th className="py-3 px-4 text-right">Running Balance (₹)</th>
+                    <th className="py-3 px-4 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-slate-700 font-medium">
@@ -1526,6 +1589,7 @@ export default function FinancePage() {
                     <td className="py-3 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 font-black">
                       ₹{ledgerResult.openingBalance.toLocaleString('en-IN')}
                     </td>
+                    <td className="py-3 px-4 text-center font-mono text-gray-400">—</td>
                   </tr>
 
                   {ledgerResult.entries.length > 0 ? (
@@ -1546,11 +1610,20 @@ export default function FinancePage() {
                         <td className="py-3 px-4 text-right font-mono font-black text-gray-900 dark:text-white">
                           ₹{entry.balance.toLocaleString('en-IN')}
                         </td>
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
+                          <button
+                            onClick={() => handleDeleteTransaction(entry.transactionId)}
+                            title="Delete this transaction"
+                            className="p-1.5 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-500 hover:text-rose-700 rounded-xl transition-all cursor-pointer border border-rose-200 dark:border-rose-800/40"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-gray-400 italic">
+                      <td colSpan={8} className="py-8 text-center text-gray-400 italic">
                         No ledger transactions recorded during this period.
                       </td>
                     </tr>
@@ -1570,6 +1643,7 @@ export default function FinancePage() {
                     <td className="py-3 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 text-sm">
                       ₹{ledgerResult.closingBalance.toLocaleString('en-IN')}
                     </td>
+                    <td className="py-3 px-4"></td>
                   </tr>
                 </tbody>
               </table>
@@ -1645,6 +1719,7 @@ export default function FinancePage() {
                       <th className="py-3 px-4 text-right">Cash Outflow (-)</th>
                       <th className="py-3 px-4 text-right">Cash Inflow (+)</th>
                       <th className="py-3 px-4 text-right">Running Cash Balance</th>
+                      <th className="py-3 px-4 text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-slate-700 font-medium">
@@ -1657,6 +1732,7 @@ export default function FinancePage() {
                       <td className="py-3 px-4 text-right font-mono text-amber-600 dark:text-amber-400 font-black">
                         ₹{cashBookResult.openingBalance.toLocaleString('en-IN')}
                       </td>
+                      <td className="py-3 px-4 text-center font-mono text-gray-400">—</td>
                     </tr>
 
                     {cashBookResult.entries.length > 0 ? (
@@ -1674,11 +1750,22 @@ export default function FinancePage() {
                           <td className="py-3 px-4 text-right font-mono font-black text-gray-900 dark:text-white">
                             ₹{entry.balance.toLocaleString('en-IN')}
                           </td>
+                          <td className="py-3 px-4 text-center whitespace-nowrap">
+                            {entry.transactionId && (
+                              <button
+                                onClick={() => handleDeleteTransaction(entry.transactionId!)}
+                                title="Delete this transaction"
+                                className="p-1.5 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-500 hover:text-rose-700 rounded-xl transition-all cursor-pointer border border-rose-200 dark:border-rose-800/40"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6} className="py-8 text-center text-gray-400 italic">
+                        <td colSpan={7} className="py-8 text-center text-gray-400 italic">
                           No cash transactions recorded during this period.
                         </td>
                       </tr>
@@ -1698,6 +1785,7 @@ export default function FinancePage() {
                       <td className="py-3 px-4 text-right font-mono text-amber-600 dark:text-amber-400 text-sm">
                         ₹{cashBookResult.closingBalance.toLocaleString('en-IN')}
                       </td>
+                      <td className="py-3 px-4"></td>
                     </tr>
                   </tbody>
                 </table>
@@ -1793,6 +1881,7 @@ export default function FinancePage() {
                       <th className="py-3 px-4 text-right">Debit (-)</th>
                       <th className="py-3 px-4 text-right">Credit (+)</th>
                       <th className="py-3 px-4 text-right">Running Balance</th>
+                      <th className="py-3 px-4 text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-slate-700 font-medium">
@@ -1805,6 +1894,7 @@ export default function FinancePage() {
                       <td className="py-3 px-4 text-right font-mono text-blue-600 dark:text-blue-400 font-black">
                         ₹{selectedBankResult.openingBalance.toLocaleString('en-IN')}
                       </td>
+                      <td className="py-3 px-4 text-center font-mono text-gray-400">—</td>
                     </tr>
 
                     {selectedBankResult.entries.length > 0 ? (
@@ -1822,11 +1912,20 @@ export default function FinancePage() {
                           <td className="py-3 px-4 text-right font-mono font-black text-gray-900 dark:text-white">
                             ₹{entry.balance.toLocaleString('en-IN')}
                           </td>
+                          <td className="py-3 px-4 text-center whitespace-nowrap">
+                            <button
+                              onClick={() => handleDeleteTransaction(entry.transactionId)}
+                              title="Delete this transaction"
+                              className="p-1.5 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-500 hover:text-rose-700 rounded-xl transition-all cursor-pointer border border-rose-200 dark:border-rose-800/40"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6} className="py-8 text-center text-gray-400 italic">
+                        <td colSpan={7} className="py-8 text-center text-gray-400 italic">
                           No transactions recorded for this bank account in this period.
                         </td>
                       </tr>
@@ -1846,6 +1945,7 @@ export default function FinancePage() {
                       <td className="py-3 px-4 text-right font-mono text-blue-600 dark:text-blue-400 text-sm">
                         ₹{selectedBankResult.closingBalance.toLocaleString('en-IN')}
                       </td>
+                      <td className="py-3 px-4"></td>
                     </tr>
                   </tbody>
                 </table>

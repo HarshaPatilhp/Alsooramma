@@ -152,6 +152,7 @@ export type PrintReportType = 'cash_book' | 'ledger' | 'statement' | 'receipt' |
 
 export interface CashBookEntry {
   id: string;
+  transactionId?: string;
   date: string;
   refNo: string;
   particulars: string;

@@ -324,6 +324,7 @@ export function computeCashBook(
 
     entries.push({
       id: `cb-${txn.id}`,
+      transactionId: txn.id,
       date: txn.date,
       refNo: txn.referenceNo || txn.receiptNumber || txn.invoiceNo || txn.id,
       particulars: `${txn.purpose}${txn.partyName ? ` (${txn.partyName})` : ''}`,
