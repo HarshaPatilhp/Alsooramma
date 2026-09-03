@@ -235,79 +235,106 @@ body {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm 12mm 15mm 12mm;
+    margin: 10mm 10mm 15mm 10mm;
   }
 
-  /* Hide all dashboard UI, sidebars, headers, buttons, and navigation */
-  nav,
-  header,
-  aside,
-  .sidebar,
-  .no-print,
-  button,
-  [role="navigation"],
-  .fixed:not(#printable-cash-book):not(#printable-ledger):not(#printable-statement):not(:has(#printable-cash-book)):not(:has(#printable-ledger)):not(:has(#printable-statement)) {
-    display: none !important;
-  }
-
+  /* Reset body and html */
   html,
   body {
     background: #ffffff !important;
     color: #0f172a !important;
-    font-size: 10.5pt !important;
+    font-size: 10pt !important;
     padding: 0 !important;
     margin: 0 !important;
     width: 100% !important;
+    height: auto !important;
     overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  /* Printable container resets */
+  /* Hide all dashboard application UI, navigation, sidebars, headers, action buttons, drawers */
+  nav,
+  header,
+  aside,
+  footer,
+  .sidebar,
+  .no-print,
+  button,
+  input,
+  select,
+  textarea,
+  [role="navigation"],
+  [role="banner"] {
+    display: none !important;
+  }
+
+  /* Reset any modal overlay during print */
+  .print-modal-container {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* Clean print container for all documents */
+  .printable-document,
   #printable-cash-book,
   #printable-ledger,
-  #printable-statement {
+  #printable-statement,
+  #printable-receipt {
     display: block !important;
     position: static !important;
     width: 100% !important;
-    max-width: none !important;
+    max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
     color: #0f172a !important;
     box-shadow: none !important;
     border: none !important;
-  }
-
-  /* Force parent wrappers of the modal to not hide printable content */
-  div:has(> #printable-cash-book),
-  div:has(> #printable-ledger),
-  div:has(> #printable-statement) {
-    position: static !important;
-    background: transparent !important;
-    padding: 0 !important;
-    margin: 0 !important;
     overflow: visible !important;
   }
 
-  /* Table print optimization: repeating thead and clean page breaks */
+  /* Table styling for crisp multi-page printing */
   table {
     width: 100% !important;
     border-collapse: collapse !important;
+    page-break-inside: auto !important;
   }
 
   thead {
     display: table-header-group !important;
   }
 
-  tr {
-    page-break-inside: avoid !important;
+  tfoot {
+    display: table-footer-group !important;
   }
 
-  /* Dark mode overrides for print */
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  th, td {
+    page-break-inside: avoid !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  /* Dark mode overrides: Force pure paper white with high contrast */
   .dark,
   .dark body,
+  .dark .printable-document,
   .dark #printable-cash-book,
   .dark #printable-ledger,
-  .dark #printable-statement {
+  .dark #printable-statement,
+  .dark #printable-receipt {
     background: #ffffff !important;
     color: #0f172a !important;
   }
@@ -328,7 +355,8 @@ body {
   }
 
   .dark .bg-amber-50,
-  .dark .bg-amber-50\/60 {
+  .dark .bg-amber-50\/60,
+  .dark .bg-amber-50\/50 {
     background-color: #fffbeb !important;
     color: #78350f !important;
   }
@@ -337,6 +365,13 @@ body {
   .dark .bg-emerald-50\/50 {
     background-color: #ecfdf5 !important;
     color: #064e3b !important;
+  }
+
+  .dark .bg-blue-50,
+  .dark .bg-blue-50\/50,
+  .dark .bg-blue-50\/80 {
+    background-color: #eff6ff !important;
+    color: #1e40af !important;
   }
 
   .dark .text-slate-900,

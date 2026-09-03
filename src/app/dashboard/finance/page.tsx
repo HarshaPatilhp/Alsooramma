@@ -2064,17 +2064,17 @@ export default function FinancePage() {
       {/* 🧾 MODAL: PRINTABLE OFFICIAL TEMPLE RECEIPT                                */}
       {/* ========================================================================= */}
       {showReceiptModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white text-gray-900 rounded-3xl max-w-2xl w-full p-8 shadow-2xl border border-orange-200 relative max-h-[90vh] overflow-y-auto">
+        <div className="print-modal-container fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in print:static print:bg-white print:p-0 print:m-0 print:block">
+          <div className="bg-white text-gray-900 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-orange-200 relative max-h-[90vh] overflow-y-auto print:border-none print:shadow-none print:p-0 print:m-0 print:max-w-none print:overflow-visible">
             <button
               onClick={() => setShowReceiptModal(null)}
-              className="absolute top-5 right-5 p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-800"
+              className="no-print absolute top-5 right-5 p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-800 cursor-pointer"
             >
               <X size={18} />
             </button>
 
             {/* Receipt Printable Container */}
-            <div id="temple-receipt-print" className="p-6 border-2 border-orange-400 rounded-2xl space-y-6">
+            <div id="printable-receipt" className="p-6 border-2 border-orange-400 rounded-2xl space-y-6 print:border-orange-500 print:rounded-none">
               {/* Header */}
               <div className="text-center space-y-1 border-b-2 border-orange-300 pb-4">
                 <span className="text-xs font-bold text-orange-600 uppercase tracking-widest">
@@ -2131,17 +2131,17 @@ export default function FinancePage() {
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="no-print mt-6 flex justify-end gap-3">
               <button
                 onClick={() => window.print()}
-                className="px-5 py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-1.5"
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-1.5 transition-all"
               >
                 <Printer size={14} />
                 <span>Print Receipt</span>
               </button>
               <button
                 onClick={() => setShowReceiptModal(null)}
-                className="px-4 py-2.5 bg-gray-100 text-gray-700 font-bold text-xs rounded-xl"
+                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl cursor-pointer"
               >
                 Close
               </button>
