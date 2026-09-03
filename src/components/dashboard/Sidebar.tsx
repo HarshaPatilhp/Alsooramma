@@ -105,8 +105,9 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
             </div>
           </div>
           <button 
-            className="md:hidden text-orange-200 hover:text-white p-1.5 rounded-xl hover:bg-orange-900/50 cursor-pointer"
+            className="md:hidden text-orange-200 hover:text-white p-2.5 rounded-xl hover:bg-orange-900/50 cursor-pointer active:scale-95 transition-transform"
             onClick={() => setIsOpen(false)}
+            aria-label="Close sidebar"
           >
             <X size={20} />
           </button>
@@ -137,7 +138,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                       onClick={() => {
                         if (window.innerWidth < 768) setIsOpen(false);
                       }}
-                      className={`group relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 ${
+                      className={`group relative flex items-center gap-3 px-3.5 py-2.5 min-h-[44px] rounded-xl transition-all duration-200 ${
                         isActive 
                           ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white font-bold shadow-lg shadow-orange-950/60' 
                           : 'text-orange-100/75 hover:bg-orange-900/30 hover:text-white font-medium'

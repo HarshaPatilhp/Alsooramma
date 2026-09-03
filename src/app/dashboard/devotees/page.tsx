@@ -597,7 +597,7 @@ export default function DevoteesPage() {
           </div>
         </div>
 
-        {/* Bookings Table */}
+        {/* Bookings Display Container */}
         <div className="overflow-x-auto">
           {isLoading ? (
             <div className="py-20 flex flex-col items-center justify-center text-gray-400 gap-3">
@@ -605,24 +605,139 @@ export default function DevoteesPage() {
               <span className="text-sm font-medium">Loading devotee records...</span>
             </div>
           ) : filteredBookings.length > 0 ? (
-            <table className="w-full text-left border-collapse min-w-[750px]">
-              <thead>
-                <tr className="bg-gray-50/80 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 text-[11px] uppercase tracking-wider font-bold border-b border-gray-100 dark:border-slate-700/60">
-                  <th className="px-6 py-4">Devotee Profile</th>
-                  <th className="px-6 py-4">Contact Info</th>
-                  <th className="px-6 py-4">Seva Offering</th>
-                  <th className="px-6 py-4">Schedule Date</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Quick Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-700/60">
+            <>
+              {/* Mobile Devotee Cards (< md) */}
+              <div className="md:hidden divide-y divide-gray-100 dark:divide-slate-700/60">
                 {filteredBookings.map((booking) => {
                   const devoteeName = booking.devoteeName || booking.fullName || 'Devotee';
                   const isReturning = uniqueDevoteeProfiles.find(p => p.name.toLowerCase() === devoteeName.toLowerCase() && p.totalBookings > 1);
 
                   return (
-                    <tr key={booking.id} className="hover:bg-gray-50/60 dark:hover:bg-slate-800/50 transition-colors">
+                    <div key={booking.id} className="p-4 space-y-3 hover:bg-gray-50/60 dark:hover:bg-slate-800/50 transition-colors">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500/10 to-amber-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center font-black text-base shadow-inner shrink-0">
+                            {devoteeName.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="font-extrabold text-gray-900 dark:text-white text-sm truncate">
+                                {devoteeName}
+                              </span>
+                              {isReturning && (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                                  <Sparkles size={9} /> Repeat
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] font-mono text-gray-400">ID: #{String(booking.id).slice(-8)}</span>
+                          </div>
+                        </div>
+
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${getStatusColor(booking.status)}`}>
+                          {booking.status}
+                        </span>
+                      </div>
+
+                      <div className="bg-gray-50 dark:bg-slate-900/50 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 text-[11px]">Seva Offering:</span>
+                          <span className="font-extrabold text-orange-600 dark:text-orange-400 truncate max-w-[200px] text-right">{booking.sevaName}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500">Date & Slot:</span>
+                          <span className="font-semibold text-gray-800 dark:text-gray-200">{booking.date} ({booking.time || 'General'})</span>
+                        </div>
+                        {(booking.gotra || booking.nakshatra) && (
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-gray-500">Gotra / Nakshatra:</span>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                              {booking.gotra ? `Gotra: ${booking.gotra}` : ''} {booking.nakshatra ? `• ${booking.nakshatra}` : ''}
+                            </span>
+                          </div>
+                        )}
+                        {Boolean(booking.tirthaPrasadaRequired) && (
+                          <div className="flex items-center justify-between text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+                            <span>Tirtha Prasada:</span>
+                            <span>{booking.tirthaPrasadaCount || 1} Meal Tokens</span>
+                          </div>
+                        )}
+                        {Boolean(booking.totalCost) && (
+                          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-gray-100 dark:border-slate-800 font-bold">
+                            <span className="text-gray-500">Seva Amount:</span>
+                            <span className="text-gray-900 dark:text-white">₹{booking.totalCost}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Contact & Actions Row */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        {booking.phone ? (
+                          <a 
+                            href={`tel:${booking.phone}`}
+                            className="inline-flex items-center gap-1.5 text-xs font-mono text-emerald-600 dark:text-emerald-400 hover:underline"
+                          >
+                            <Phone size={13} />
+                            <span>{booking.phone}</span>
+                          </a>
+                        ) : (
+                          <span className="text-[11px] text-gray-400">No phone recorded</span>
+                        )}
+
+                        <div className="flex items-center gap-1.5 ml-auto">
+                          <button
+                            onClick={() => handleOpenBookingModal(booking)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 font-bold text-xs border border-orange-200 dark:border-orange-800/50 cursor-pointer active:scale-95 transition-transform"
+                          >
+                            <Sparkles size={12} />
+                            <span>Book Again</span>
+                          </button>
+
+                          {booking.status.toLowerCase() !== 'completed' && (
+                            <button 
+                              onClick={() => markCompleted(booking.id)}
+                              className="p-1.5 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
+                              title="Mark Seva Completed"
+                              aria-label="Mark completed"
+                            >
+                              <CheckCircle size={18} />
+                            </button>
+                          )}
+
+                          <button 
+                            onClick={() => deleteBooking(booking.id)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                            title="Delete Record"
+                            aria-label="Delete booking"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Devotee Table (>= md) */}
+              <table className="hidden md:table w-full text-left border-collapse min-w-[750px]">
+                <thead>
+                  <tr className="bg-gray-50/80 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 text-[11px] uppercase tracking-wider font-bold border-b border-gray-100 dark:border-slate-700/60">
+                    <th className="px-6 py-4">Devotee Profile</th>
+                    <th className="px-6 py-4">Contact Info</th>
+                    <th className="px-6 py-4">Seva Offering</th>
+                    <th className="px-6 py-4">Schedule Date</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-right">Quick Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-700/60">
+                  {filteredBookings.map((booking) => {
+                    const devoteeName = booking.devoteeName || booking.fullName || 'Devotee';
+                    const isReturning = uniqueDevoteeProfiles.find(p => p.name.toLowerCase() === devoteeName.toLowerCase() && p.totalBookings > 1);
+
+                    return (
+                      <tr key={booking.id} className="hover:bg-gray-50/60 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500/10 to-amber-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center font-black text-base shadow-inner">
@@ -717,8 +832,9 @@ export default function DevoteesPage() {
                     </tr>
                   );
                 })}
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </>
           ) : (
             <div className="py-20 text-center text-gray-500">
               <Users className="w-10 h-10 mx-auto text-gray-300 mb-2" />
@@ -731,8 +847,8 @@ export default function DevoteesPage() {
 
       {/* QUICK SEVA BOOKING MODAL WITH SMART RETURNING DEVOTEE SEARCH */}
       {showBookingModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden my-8 border border-gray-100 dark:border-slate-800 animate-slide-up">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-4 sm:my-8 border border-gray-100 dark:border-slate-800 animate-slide-up">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 p-6 text-white flex justify-between items-center">
               <div className="flex items-center gap-3">

@@ -366,17 +366,86 @@ export default function DonationsPage() {
               <p className="text-sm font-medium">Loading contribution records...</p>
             </div>
           ) : (
-            <table className="w-full text-left border-collapse min-w-[700px]">
-              <thead>
-                <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-semibold border-b border-gray-100 dark:border-slate-700/50">
-                  <th className="px-6 py-4">Receipt ID</th>
-                  <th className="px-6 py-4">Donor Details</th>
-                  <th className="px-6 py-4">Purpose / Seva</th>
-                  <th className="px-6 py-4">Date & Mode</th>
-                  <th className="px-6 py-4 text-right">Amount (₹)</th>
-                  <th className="px-6 py-4 text-center">Receipt</th>
-                </tr>
-              </thead>
+            <>
+              {/* Mobile Donation Cards (< md) */}
+              <div className="md:hidden divide-y divide-gray-100 dark:divide-slate-700/50">
+                {filtered.length > 0 ? (
+                  filtered.map((donation) => (
+                    <div key={donation.id} className="p-4 space-y-3 hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 flex items-center justify-center font-extrabold text-xs shrink-0">
+                            {donation.donorName ? donation.donorName.charAt(0).toUpperCase() : 'D'}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{donation.donorName}</p>
+                            <span className="text-[10px] font-mono text-gray-400">Receipt #{donation.id}</span>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <p className="text-base font-black text-gray-900 dark:text-orange-400">
+                            ₹{donation.amount.toLocaleString('en-IN')}
+                          </p>
+                          <span className="text-[10px] text-gray-400 font-medium">{donation.paymentMode || 'Online'}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 items-center justify-between text-xs">
+                        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border border-orange-200/60 dark:border-orange-800/40 truncate max-w-[200px]">
+                          {donation.purpose}
+                        </span>
+                        <span className="text-[11px] text-gray-400 font-mono">{donation.date}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-slate-800 text-xs">
+                        {donation.phone ? (
+                          <a href={`tel:${donation.phone}`} className="text-[11px] font-mono text-gray-500 hover:underline">
+                            {donation.phone}
+                          </a>
+                        ) : (
+                          <span className="text-[11px] text-gray-400">Direct Donation</span>
+                        )}
+
+                        <div>
+                          {donation.receiptSent ? (
+                            <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-emerald-200 dark:border-emerald-800/40">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Issued
+                            </span>
+                          ) : (
+                            <button 
+                              onClick={() => handleSendReceipt(donation.id)}
+                              className="inline-flex items-center gap-1 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-800/50 px-2.5 py-1 rounded-lg font-bold text-xs transition-colors cursor-pointer border border-orange-200 dark:border-orange-800/40 active:scale-95"
+                            >
+                              <Receipt className="w-3 h-3" />
+                              Issue Receipt
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-8 text-center text-gray-400">
+                    <HeartHandshake className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm font-bold">No donation records found</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop Donations Table (>= md) */}
+              <table className="hidden md:table w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-semibold border-b border-gray-100 dark:border-slate-700/50">
+                    <th className="px-6 py-4">Receipt ID</th>
+                    <th className="px-6 py-4">Donor Details</th>
+                    <th className="px-6 py-4">Purpose / Seva</th>
+                    <th className="px-6 py-4">Date & Mode</th>
+                    <th className="px-6 py-4 text-right">Amount (₹)</th>
+                    <th className="px-6 py-4 text-center">Receipt</th>
+                  </tr>
+                </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50">
                 {filtered.length > 0 ? (
                   filtered.map((donation) => (
@@ -440,37 +509,39 @@ export default function DonationsPage() {
                 )}
               </tbody>
             </table>
+            </>
           )}
         </div>
       </div>
 
       {/* Beautiful Add Record Modal Card */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100 dark:border-slate-800 relative animate-slide-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-gray-100 dark:border-slate-800 relative animate-slide-up">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-orange-600 via-orange-700 to-amber-600 p-6 text-white relative">
+            <div className="bg-gradient-to-r from-orange-600 via-orange-700 to-amber-600 p-4 sm:p-6 text-white relative shrink-0">
               <button 
                 onClick={() => setShowAddModal(false)}
                 className="absolute top-4 right-4 text-white/80 hover:text-white p-1 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
+                aria-label="Close dialog"
               >
                 <X className="w-5 h-5" />
               </button>
 
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
-                  <IndianRupee className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner shrink-0">
+                  <IndianRupee className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-extrabold tracking-tight">Record New Contribution</h3>
-                  <p className="text-orange-100 text-xs mt-0.5">Enter donor details and seva endowment information</p>
+                <div className="min-w-0 pr-6">
+                  <h3 className="text-lg sm:text-xl font-extrabold tracking-tight truncate">Record New Contribution</h3>
+                  <p className="text-orange-100 text-[11px] sm:text-xs mt-0.5 truncate">Enter donor details and seva endowment information</p>
                 </div>
               </div>
             </div>
 
             {/* Modal Form */}
             {submitSuccess ? (
-              <div className="p-8 text-center space-y-4">
+              <div className="p-6 sm:p-8 text-center space-y-4 overflow-y-auto flex-1">
                 <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 rounded-full flex items-center justify-center mx-auto animate-bounce">
                   <CheckCircle2 className="w-10 h-10" />
                 </div>
@@ -480,7 +551,7 @@ export default function DonationsPage() {
                 </p>
               </div>
             ) : (
-              <form onSubmit={handleFormSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              <form onSubmit={handleFormSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
                 {/* Donor Name */}
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">

@@ -758,7 +758,7 @@ export default function ScannerPage() {
           {/* 🎖️ VOLUNTEER PASS MODAL                                                    */}
           {/* ========================================================================= */}
           {scanResult.status === 'volunteer_success' && (
-            <div className="absolute inset-0 bg-slate-950/98 z-30 backdrop-blur-md animate-fade-in overflow-y-auto p-3 sm:p-4 flex flex-col justify-center text-center">
+            <div className="absolute inset-0 bg-slate-950/98 z-30 backdrop-blur-md animate-fade-in overflow-y-auto p-3 sm:p-4 flex flex-col justify-start sm:justify-center text-center">
               <div className="max-w-sm w-full mx-auto my-auto space-y-3">
                 <div className="w-12 h-12 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-full flex items-center justify-center mx-auto shadow-[0_0_25px_rgba(245,158,11,0.5)]">
                   <Award size={26} className="text-slate-950" />
@@ -877,7 +877,7 @@ export default function ScannerPage() {
 
           {/* Devotee Booking Success Dialog */}
           {scanResult.status === 'success' && (
-             <div className="absolute inset-0 bg-slate-950/98 z-30 backdrop-blur-md animate-fade-in overflow-y-auto p-3 sm:p-4 flex flex-col justify-center text-center">
+             <div className="absolute inset-0 bg-slate-950/98 z-30 backdrop-blur-md animate-fade-in overflow-y-auto p-3 sm:p-4 flex flex-col justify-start sm:justify-center text-center">
                <div className="max-w-sm w-full mx-auto my-auto space-y-3">
                   <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-[0_0_25px_rgba(16,185,129,0.4)] animate-bounce">
                     <CheckCircle size={28} className="text-white" />
@@ -913,7 +913,7 @@ export default function ScannerPage() {
                   
                   <button 
                     onClick={startScan}
-                    className="w-full bg-orange-600 hover:bg-orange-500 text-white py-2.5 rounded-xl font-bold transition-all shadow-md uppercase text-xs tracking-wider cursor-pointer"
+                    className="w-full bg-orange-600 hover:bg-orange-500 text-white py-2.5 rounded-xl font-bold transition-all shadow-md uppercase text-xs tracking-wider cursor-pointer active:scale-95"
                   >
                     Scan Next Devotee
                   </button>
@@ -923,7 +923,7 @@ export default function ScannerPage() {
 
           {/* Volunteer Badge Confirmed Screen */}
           {scanResult.status === 'volunteer_confirmed' && (
-            <div className="absolute inset-0 bg-slate-950/98 z-30 backdrop-blur-md animate-fade-in overflow-y-auto p-3 sm:p-4 flex flex-col justify-center text-center">
+            <div className="absolute inset-0 bg-slate-950/98 z-30 backdrop-blur-md animate-fade-in overflow-y-auto p-3 sm:p-4 flex flex-col justify-start sm:justify-center text-center">
               <div className="max-w-sm w-full mx-auto my-auto space-y-3">
                 <div className="w-12 h-12 bg-gradient-to-tr from-emerald-500 to-teal-500 rounded-full flex items-center justify-center mx-auto shadow-[0_0_25px_rgba(16,185,129,0.5)]">
                   <CheckCircle size={28} className="text-white" />
@@ -960,7 +960,7 @@ export default function ScannerPage() {
 
                 <button 
                   onClick={startScan}
-                  className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white py-2.5 rounded-xl font-bold transition-all shadow-md uppercase text-xs tracking-wider cursor-pointer"
+                  className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white py-2.5 rounded-xl font-bold transition-all shadow-md uppercase text-xs tracking-wider cursor-pointer active:scale-95"
                 >
                   Scan Next Ticket / Volunteer
                 </button>
@@ -972,7 +972,7 @@ export default function ScannerPage() {
           {/* 🛑 ALREADY CLAIMED / ERROR DIALOG                                         */}
           {/* ========================================================================= */}
           {scanResult.status === 'error' && (
-            <div className="absolute inset-0 bg-slate-950/98 flex flex-col items-center justify-center p-4 text-center z-30 backdrop-blur-md animate-fade-in overflow-y-auto">
+            <div className="absolute inset-0 bg-slate-950/98 flex flex-col items-center justify-start sm:justify-center p-4 text-center z-30 backdrop-blur-md animate-fade-in overflow-y-auto">
               <div className="max-w-sm w-full my-auto space-y-3.5">
                 
                 {scanResult.isClaimed ? (

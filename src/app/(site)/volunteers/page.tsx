@@ -319,8 +319,73 @@ export default function Volunteers() {
             </div>
           </div>
 
-          {/* Roster Table */}
-          <div className="overflow-x-auto rounded-2xl border border-gray-100 dark:border-slate-800">
+          {/* Mobile Volunteer Cards (< md) */}
+          <div className="md:hidden space-y-3">
+            {filteredVolunteers.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-800/40 rounded-2xl">
+                <p className="text-sm font-semibold">No volunteers match the current query.</p>
+                <p className="text-xs text-gray-400 mt-1">Try modifying your search or domain filter.</p>
+              </div>
+            ) : (
+              filteredVolunteers.map((vol, idx) => (
+                <div 
+                  key={vol.id || idx}
+                  className="bg-white dark:bg-slate-800/90 rounded-2xl p-4 border border-gray-100 dark:border-slate-700/70 shadow-xs hover:shadow-md transition-all space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-black text-sm flex items-center justify-center shadow-xs shrink-0">
+                        {vol.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-extrabold text-gray-900 dark:text-white text-sm truncate">
+                          {vol.name}
+                        </h4>
+                        <span className="text-[10px] font-mono text-gray-400">{vol.id}</span>
+                      </div>
+                    </div>
+                    
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-extrabold text-[10px] border border-emerald-200 dark:border-emerald-800/40 shrink-0">
+                      <CheckCircle2 size={11} />
+                      <span>{vol.status || 'Active Sevak'}</span>
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="px-2.5 py-1 rounded-lg bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 font-bold text-[11px]">
+                      {vol.category}
+                    </span>
+                    {vol.badge && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60">
+                        <Award size={12} className="text-amber-600 dark:text-amber-400" />
+                        <span>{vol.badge}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-gray-100 dark:border-slate-800">
+                    <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider block mb-0.5">Role Assignment</span>
+                    <p className="font-semibold text-gray-900 dark:text-gray-100">{vol.role}</p>
+                  </div>
+
+                  {vol.phone && (
+                    <div className="pt-1 flex items-center justify-between">
+                      <span className="text-[11px] font-mono text-gray-500">{vol.phone}</span>
+                      <a 
+                        href={`tel:${vol.phone}`}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1"
+                      >
+                        Contact
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Roster Table (>= md) */}
+          <div className="hidden md:block overflow-x-auto rounded-2xl border border-gray-100 dark:border-slate-800">
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="bg-orange-50/70 dark:bg-slate-800/80 text-orange-950 dark:text-orange-200 text-xs uppercase tracking-wider font-extrabold border-b border-orange-100 dark:border-slate-700">
@@ -504,29 +569,30 @@ export default function Volunteers() {
 
       {/* Swayamsevak Application / Shift Signup Modal */}
       {showApplyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 dark:border-slate-800 relative animate-slide-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-gray-100 dark:border-slate-800 relative animate-slide-up">
             <button
               onClick={() => setShowApplyModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-white p-1 rounded-full cursor-pointer z-10"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-white p-2 rounded-full cursor-pointer z-10 active:scale-95 transition-transform"
+              aria-label="Close modal"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="bg-gradient-to-r from-orange-600 to-amber-600 p-6 text-white text-center">
-              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
+            <div className="bg-gradient-to-r from-orange-600 to-amber-600 p-5 sm:p-6 text-white text-center shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-2 backdrop-blur-md">
                 {isShiftSignup ? <Clock className="w-6 h-6 text-white" /> : <UserPlus className="w-6 h-6 text-white" />}
               </div>
-              <h3 className="text-2xl font-black">
+              <h3 className="text-xl sm:text-2xl font-black">
                 {isShiftSignup ? 'Sign Up for Duty Shift' : 'Swayamsevak Registration'}
               </h3>
-              <p className="text-orange-100 text-xs mt-1">
+              <p className="text-orange-100 text-xs mt-0.5 truncate max-w-xs mx-auto">
                 {isShiftSignup ? selectedShiftInfo?.title : 'Join Sri Raghavendra Swamy Seva Volunteer Team'}
               </p>
             </div>
 
             {applicationSubmitted ? (
-              <div className="p-8 text-center space-y-4">
+              <div className="p-6 sm:p-8 text-center space-y-4 overflow-y-auto">
                 <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto animate-bounce">
                   <CheckCircle2 className="w-10 h-10" />
                 </div>
@@ -539,7 +605,7 @@ export default function Volunteers() {
                 </p>
               </div>
             ) : (
-              <form onSubmit={handleApplySubmit} className="p-6 space-y-4">
+              <form onSubmit={handleApplySubmit} className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
                 {isShiftSignup && selectedShiftInfo && (
                   <div className="p-3 rounded-xl bg-orange-50 dark:bg-slate-800/80 border border-orange-200 dark:border-slate-700 text-xs">
                     <p className="font-bold text-orange-950 dark:text-orange-300">

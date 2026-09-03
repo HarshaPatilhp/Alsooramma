@@ -147,3 +147,65 @@ export interface FinancialSummary {
   cashPaidToday: number;
   bankPaidToday: number;
 }
+
+export type PrintReportType = 'cash_book' | 'ledger' | 'statement' | 'receipt' | null;
+
+export interface CashBookEntry {
+  id: string;
+  date: string;
+  refNo: string;
+  particulars: string;
+  category: string;
+  outflow: number; // payment (-)
+  inflow: number;  // receipt (+)
+  balance: number; // running cash balance
+}
+
+export interface CashBookReportData {
+  orgName: string;
+  orgSubtitle: string;
+  title: string;
+  periodLabel: string;
+  startDate: string;
+  endDate: string;
+  accountName: string;
+  openingBalance: number;
+  entries: CashBookEntry[];
+  totalInflows: number;
+  totalOutflows: number;
+  closingBalance: number;
+  generatedAt: string;
+}
+
+export interface LedgerReportData {
+  orgName: string;
+  orgSubtitle: string;
+  title: string;
+  periodLabel: string;
+  startDate: string;
+  endDate: string;
+  accountName: string;
+  openingBalance: number;
+  entries: LedgerEntry[];
+  totalDebits: number;
+  totalCredits: number;
+  closingBalance: number;
+  generatedAt: string;
+}
+
+export interface FormalStatementData {
+  orgName: string;
+  orgSubtitle: string;
+  title: string;
+  periodLabel: string;
+  startDate: string;
+  endDate: string;
+  incomeCategories: { category: string; amount: number }[];
+  totalIncome: number;
+  expenseCategories: { category: string; amount: number }[];
+  totalExpenses: number;
+  netSurplus: number;
+  accountBalances: { name: string; type: 'cash' | 'bank'; balance: number }[];
+  totalReserves: number;
+  generatedAt: string;
+}

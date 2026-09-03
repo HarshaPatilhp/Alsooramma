@@ -399,31 +399,32 @@ export default function AnnadanamPage() {
 
       {/* Schedule Sponsor Modal Card */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100 dark:border-slate-800 relative animate-slide-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-gray-100 dark:border-slate-800 relative animate-slide-up">
             {/* Modal Top Header */}
-            <div className="bg-gradient-to-r from-orange-600 via-orange-700 to-amber-600 p-6 text-white relative">
+            <div className="bg-gradient-to-r from-orange-600 via-orange-700 to-amber-600 p-4 sm:p-6 text-white relative shrink-0">
               <button 
                 onClick={() => setShowModal(false)}
                 className="absolute top-4 right-4 text-white/80 hover:text-white p-1 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
+                aria-label="Close dialog"
               >
                 <X className="w-5 h-5" />
               </button>
 
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
-                  <Utensils className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner shrink-0">
+                  <Utensils className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-extrabold tracking-tight">Schedule Annadanam Sponsor</h3>
-                  <p className="text-orange-100 text-xs mt-0.5">Enter donor and seva sankalpa details for sacred food offering</p>
+                <div className="min-w-0 pr-6">
+                  <h3 className="text-lg sm:text-xl font-extrabold tracking-tight truncate">Schedule Annadanam Sponsor</h3>
+                  <p className="text-orange-100 text-[11px] sm:text-xs mt-0.5 truncate">Enter donor and seva sankalpa details for sacred food offering</p>
                 </div>
               </div>
             </div>
 
             {/* Modal Body */}
             {submitSuccess ? (
-              <div className="p-8 text-center space-y-4">
+              <div className="p-6 sm:p-8 text-center space-y-4 overflow-y-auto flex-1">
                 <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 rounded-full flex items-center justify-center mx-auto animate-bounce">
                   <CheckCircle2 className="w-10 h-10" />
                 </div>
@@ -433,7 +434,7 @@ export default function AnnadanamPage() {
                 </p>
               </div>
             ) : (
-              <form onSubmit={handleScheduleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              <form onSubmit={handleScheduleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
                 {/* Sponsor Name */}
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">

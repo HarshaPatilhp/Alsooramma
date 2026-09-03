@@ -20,6 +20,7 @@ import {
 import Link from 'next/link';
 import StatCard from '@/components/dashboard/StatCard';
 import { createClient } from '@/lib/client';
+import { fetchLiveFinanceData } from '@/lib/finance-engine';
 
 interface BookingRow {
   id: string;
@@ -99,15 +100,9 @@ export default function ReportsPage() {
       setAnnadanam(Array.isArray(annData) ? annData : []);
       setScans(Array.isArray(scnData) ? scnData : []);
 
-      // Load Central Finance Transactions
-      if (typeof window !== 'undefined') {
-        const savedFinance = localStorage.getItem('alsur_finance_transactions');
-        if (savedFinance) {
-          try {
-            setFinanceTransactions(JSON.parse(savedFinance));
-          } catch (e) { }
-        }
-      }
+      // Load Central Live Finance Transactions from Unified Database Engine
+      const liveFinance = await fetchLiveFinanceData(supabase);
+      setFinanceTransactions(liveFinance);
     } catch (err) {
       console.error("Error loading live analytics reports:", err);
     } finally {

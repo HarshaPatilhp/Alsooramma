@@ -47,20 +47,29 @@ import {
   TransactionType,
   IncomeCategory,
   ExpenseCategory,
-  PaymentMethod
+  PaymentMethod,
+  PrintReportType,
+  CashBookReportData,
+  LedgerReportData,
+  FormalStatementData
 } from '@/types/finance';
 import {
   TEMPLE_BANK_ACCOUNTS,
   getPeriodDateRange,
   computeLedger,
+  computeCashBook,
   computeFinancialSummary,
+  computeIncomeAndExpenditure,
+  computePeriodOpeningBalance,
+  fetchLiveFinanceData,
   generateTransactionId,
   generateReceiptNumber,
-  numberToIndianWords,
-  SEED_FINANCE_TRANSACTIONS,
-  SEED_BILLS_INVOICES,
-  SEED_AUDIT_LOGS
+  numberToIndianWords
 } from '@/lib/finance-engine';
+import { createClient } from '@/lib/client';
+import PrintCashBookDoc from '@/components/dashboard/finance/PrintCashBookDoc';
+import PrintLedgerDoc from '@/components/dashboard/finance/PrintLedgerDoc';
+import PrintFormalStatementDoc from '@/components/dashboard/finance/PrintFormalStatementDoc';
 
 export default function FinancePage() {
   const { user } = useAuth();
@@ -85,17 +94,8 @@ export default function FinancePage() {
   // Global Search State
   const [globalSearch, setGlobalSearch] = useState('');
 
-  // Primary Data State
-  const [transactions, setTransactions] = useState<FinanceTransaction[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('alsur_finance_transactions');
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) { }
-      }
-    }
-    return SEED_FINANCE_TRANSACTIONS;
-  });
-
+  // Primary Live Data State (100% Live from Database)
+  const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [bills, setBills] = useState<BillInvoice[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('alsur_finance_bills');
@@ -103,7 +103,7 @@ export default function FinancePage() {
         try { return JSON.parse(saved); } catch (e) { }
       }
     }
-    return SEED_BILLS_INVOICES;
+    return [];
   });
 
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() => {
@@ -113,35 +113,72 @@ export default function FinancePage() {
         try { return JSON.parse(saved); } catch (e) { }
       }
     }
-    return SEED_AUDIT_LOGS;
+    return [];
   });
+
+  const [isLoadingLive, setIsLoadingLive] = useState(true);
+
+  // Active Print Report Modal State
+  const [activePrintReport, setActivePrintReport] = useState<{ type: PrintReportType; data: any } | null>(null);
 
   // Reconciled Bank Statement Balance for Reconciliation tool
   const [bankStatementBalance, setBankStatementBalance] = useState<number>(385000);
 
-  // Sync to localStorage
+  // Fetch live database transactions on mount
+  const refreshLiveFinance = async () => {
+    setIsLoadingLive(true);
+    try {
+      const supabase = createClient();
+      const liveTxns = await fetchLiveFinanceData(supabase);
+      setTransactions(liveTxns);
+    } catch (err) {
+      console.error("Failed to load live finance records:", err);
+    } finally {
+      setIsLoadingLive(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshLiveFinance();
+  }, []);
+
+  // Sync bills and audit logs to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('alsur_finance_transactions', JSON.stringify(transactions));
       localStorage.setItem('alsur_finance_bills', JSON.stringify(bills));
       localStorage.setItem('alsur_finance_audit_logs', JSON.stringify(auditLogs));
     }
-  }, [transactions, bills, auditLogs]);
+  }, [bills, auditLogs]);
 
   // Date Range calculation
   const dateRange = useMemo(() => {
     return getPeriodDateRange(period, customStartDate, customEndDate);
   }, [period, customStartDate, customEndDate]);
 
-  // Computed Financial Metrics
+  // Computed Financial Metrics (Fully Dynamic)
   const summary = useMemo(() => {
     return computeFinancialSummary(transactions, bills, dateRange);
   }, [transactions, bills, dateRange]);
 
-  // Computed Ledger
-  const ledgerEntries = useMemo(() => {
-    return computeLedger(transactions, 'all');
-  }, [transactions]);
+  // Computed General Ledger (Filtered by Date Range & Accounts)
+  const ledgerResult = useMemo(() => {
+    return computeLedger(transactions, 'all', dateRange);
+  }, [transactions, dateRange]);
+
+  // Computed Cash Book (Physical Treasury Cash only)
+  const cashBookResult = useMemo(() => {
+    return computeCashBook(transactions, dateRange);
+  }, [transactions, dateRange]);
+
+  // Computed Bank Book for selected account
+  const selectedBankResult = useMemo(() => {
+    return computeLedger(transactions, selectedBankAccountId, dateRange);
+  }, [transactions, selectedBankAccountId, dateRange]);
+
+  // Computed Income & Expenditure Schedule for Formal Statements
+  const formalIncomeAndExp = useMemo(() => {
+    return computeIncomeAndExpenditure(transactions, dateRange);
+  }, [transactions, dateRange]);
 
   // Filtered Transactions
   const filteredTransactions = useMemo(() => {
@@ -266,59 +303,11 @@ export default function FinancePage() {
     }
   };
 
-  // Sync Supabase Donations & Seva Bookings directly into Finance Ledger on Mount
-  useEffect(() => {
-    const syncDatabaseRecords = async () => {
-      try {
-        const { createClient } = await import('@/lib/client');
-        const supabase = createClient();
-
-        // 1. Query Donations Table
-        const { data: dbDonations } = await supabase.from('donations').select('*').order('created_at', { ascending: false });
-
-        if (Array.isArray(dbDonations) && dbDonations.length > 0) {
-          setTransactions(prev => {
-            const merged = [...prev];
-            dbDonations.forEach((d: any) => {
-              const dId = d.id || `DON-DB-${d.created_at || Date.now()}`;
-              const exists = merged.some(t => t.id === dId || (t.referenceNo && t.referenceNo === d.id) || (t.partyName === d.donor_name && t.amount === Number(d.amount)));
-              if (!exists) {
-                merged.unshift({
-                  id: dId,
-                  type: 'donation',
-                  category: 'Donations',
-                  amount: Number(d.amount) || 0,
-                  date: d.date || (d.created_at ? d.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
-                  paymentMethod: (d.payment_mode || 'upi').toLowerCase() as PaymentMethod,
-                  accountId: (d.payment_mode && String(d.payment_mode).toLowerCase().includes('cash')) ? 'cash_in_hand' : 'sbi_main',
-                  partyName: d.donor_name || 'Anonymous Seva Seeker',
-                  purpose: d.purpose || 'Temple Seva & Annadanam Donation',
-                  referenceNo: d.id,
-                  receiptNumber: d.receipt_sent ? `REC-${dId.slice(-6)}` : undefined,
-                  description: `Online/Counter Donation from ${d.donor_name || 'Devotee'} (${d.purpose || 'General'})`,
-                  status: 'approved',
-                  isReconciled: true,
-                  createdAt: d.created_at || new Date().toISOString(),
-                  createdBy: 'Devotee Seva Portal / Counter'
-                });
-              }
-            });
-            return merged;
-          });
-        }
-      } catch (err) {
-        console.warn('Finance Supabase auto-sync notice:', err);
-      }
-    };
-
-    syncDatabaseRecords();
-  }, []);
-
   // =========================================================================
-  // HANDLERS FOR UNIFIED ACCOUNTING (ENTER ONCE, AUTO-PROPAGATE TO ALL)
+  // HANDLERS FOR LIVE ACCOUNTING (PERSIST TO DATABASE + REACTIVE STATE)
   // =========================================================================
 
-  const handleRecordIncomeOrDonation = (isDonation = false) => {
+  const handleRecordIncomeOrDonation = async (isDonation = false) => {
     if (!incomeForm.amount || isNaN(Number(incomeForm.amount)) || Number(incomeForm.amount) <= 0) {
       alert('Please enter a valid amount.');
       return;
@@ -352,10 +341,27 @@ export default function FinancePage() {
       createdBy: user?.name || 'Accountant'
     };
 
-    // 1. Add to Transactions
+    // 1. Immediately update reactive state
     setTransactions(prev => [newTxn, ...prev]);
 
-    // 2. Add to Audit Log
+    // 2. Persist to Supabase Database (donations table)
+    try {
+      const supabase = createClient();
+      await supabase.from('donations').insert([{
+        id: newTxnId,
+        donor_name: incomeForm.partyName.trim(),
+        amount: Number(incomeForm.amount),
+        date: incomeForm.date,
+        purpose: isDonation 
+          ? (incomeForm.purpose.trim() || 'General Temple Donation')
+          : `Income: ${incomeForm.category} - ${incomeForm.purpose.trim() || 'General Income'}`,
+        receipt_sent: Boolean(receiptNum)
+      }]);
+    } catch (err) {
+      console.error("Failed to persist income transaction to Supabase:", err);
+    }
+
+    // 3. Add to Audit Log
     const newLog: AuditLogEntry = {
       id: `AUD-${Date.now()}`,
       timestamp: new Date().toLocaleString('en-IN'),
@@ -388,7 +394,7 @@ export default function FinancePage() {
     }
   };
 
-  const handleRecordExpense = () => {
+  const handleRecordExpense = async () => {
     if (!expenseForm.amount || isNaN(Number(expenseForm.amount)) || Number(expenseForm.amount) <= 0) {
       alert('Please enter a valid amount.');
       return;
@@ -421,10 +427,24 @@ export default function FinancePage() {
       createdBy: user?.name || 'Accountant'
     };
 
-    // 1. Add to Transactions
+    // 1. Immediately update reactive state
     setTransactions(prev => [newTxn, ...prev]);
 
-    // 2. Add to Audit Log
+    // 2. Persist to Supabase Database as negative amount (Expense)
+    try {
+      const supabase = createClient();
+      await supabase.from('donations').insert([{
+        id: newTxnId,
+        donor_name: expenseForm.partyName.trim(),
+        amount: -Number(expenseForm.amount), // negative denotes expense outflow
+        date: expenseForm.date,
+        purpose: `Expense: ${expenseForm.category} - ${expenseForm.purpose.trim() || 'Temple Operating Expense'}`
+      }]);
+    } catch (err) {
+      console.error("Failed to persist expense transaction to Supabase:", err);
+    }
+
+    // 3. Add to Audit Log
     const newLog: AuditLogEntry = {
       id: `AUD-${Date.now()}`,
       timestamp: new Date().toLocaleString('en-IN'),
@@ -503,7 +523,7 @@ export default function FinancePage() {
     });
   };
 
-  const handleMarkBillAsPaid = (bill: BillInvoice, paymentAccount: AccountId = 'sbi_main', paymentMethod: PaymentMethod = 'bank_transfer') => {
+  const handleMarkBillAsPaid = async (bill: BillInvoice, paymentAccount: AccountId = 'sbi_main', paymentMethod: PaymentMethod = 'bank_transfer') => {
     const txnId = generateTransactionId('payment');
 
     const paymentTxn: FinanceTransaction = {
@@ -530,6 +550,20 @@ export default function FinancePage() {
 
     // Append to transactions ledger
     setTransactions(prev => [paymentTxn, ...prev]);
+
+    // Persist expense to Supabase donations table
+    try {
+      const supabase = createClient();
+      await supabase.from('donations').insert([{
+        id: txnId,
+        donor_name: bill.vendor,
+        amount: -bill.amount,
+        date: new Date().toISOString().split('T')[0],
+        purpose: `Expense: ${bill.category} - Invoice ${bill.invoiceNumber} (${bill.description})`
+      }]);
+    } catch (err) {
+      console.error("Failed to persist bill payment to Supabase:", err);
+    }
 
     // Audit log
     const newLog: AuditLogEntry = {
@@ -610,7 +644,7 @@ export default function FinancePage() {
   // Export CSV Helper
   const exportLedgerCSV = () => {
     const headers = ['Date', 'Transaction ID', 'Particulars', 'Party Name', 'Reference No', 'Account', 'Category', 'Debit (Outflow ₹)', 'Credit (Inflow ₹)', 'Running Balance (₹)'];
-    const rows = ledgerEntries.map(e => [
+    const rows = ledgerResult.entries.map(e => [
       e.date,
       e.transactionId,
       `"${e.particulars.replace(/"/g, '""')}"`,
@@ -1275,7 +1309,24 @@ export default function FinancePage() {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => window.print()}
+                onClick={() => setActivePrintReport({
+                  type: 'ledger',
+                  data: {
+                    orgName: 'Mathaji Ulsooramma Sri Raghavendra Swamy Mutt',
+                    orgSubtitle: 'Vidyaranyapura, Bengaluru - 560097, Karnataka • Ph: 080 4972 3252',
+                    title: 'GENERAL LEDGER STATEMENT',
+                    periodLabel: dateRange.label,
+                    startDate: dateRange.startDate,
+                    endDate: dateRange.endDate,
+                    accountName: 'All Temple Operational Accounts',
+                    openingBalance: ledgerResult.openingBalance,
+                    entries: ledgerResult.entries,
+                    totalDebits: ledgerResult.totalDebits,
+                    totalCredits: ledgerResult.totalCredits,
+                    closingBalance: ledgerResult.closingBalance,
+                    generatedAt: new Date().toLocaleString('en-IN')
+                  }
+                })}
                 className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
               >
                 <Printer size={13} />
@@ -1310,32 +1361,56 @@ export default function FinancePage() {
                   <tr className="bg-gray-50 dark:bg-slate-900/60 font-bold text-gray-900 dark:text-white">
                     <td className="py-3 px-4 font-mono">{dateRange.startDate}</td>
                     <td className="py-3 px-4" colSpan={3}>OPENING BALANCE BROUGHT FORWARD (B/F)</td>
-                    <td className="py-3 px-4 text-right font-mono">—</td>
-                    <td className="py-3 px-4 text-right font-mono">—</td>
-                    <td className="py-3 px-4 text-right font-mono text-emerald-600 font-black">
-                      ₹{summary.openingBalance.toLocaleString('en-IN')}
+                    <td className="py-3 px-4 text-right font-mono text-gray-400">—</td>
+                    <td className="py-3 px-4 text-right font-mono text-gray-400">—</td>
+                    <td className="py-3 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 font-black">
+                      ₹{ledgerResult.openingBalance.toLocaleString('en-IN')}
                     </td>
                   </tr>
 
-                  {ledgerEntries.map(entry => (
-                    <tr key={entry.id} className="hover:bg-amber-50/40 dark:hover:bg-slate-800/60 transition-colors">
-                      <td className="py-3 px-4 whitespace-nowrap font-mono text-gray-500">{entry.date}</td>
-                      <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">
-                        {entry.particulars}
-                      </td>
-                      <td className="py-3 px-4 font-mono text-gray-400 text-[11px] whitespace-nowrap">{entry.refNo}</td>
-                      <td className="py-3 px-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{entry.category}</td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-rose-600">
-                        {entry.debit > 0 ? `₹${entry.debit.toLocaleString('en-IN')}` : '—'}
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">
-                        {entry.credit > 0 ? `₹${entry.credit.toLocaleString('en-IN')}` : '—'}
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono font-black text-gray-900 dark:text-white">
-                        ₹{entry.balance.toLocaleString('en-IN')}
+                  {ledgerResult.entries.length > 0 ? (
+                    ledgerResult.entries.map(entry => (
+                      <tr key={entry.id} className="hover:bg-amber-50/40 dark:hover:bg-slate-800/60 transition-colors">
+                        <td className="py-3 px-4 whitespace-nowrap font-mono text-gray-500">{entry.date}</td>
+                        <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">
+                          {entry.particulars}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-gray-400 text-[11px] whitespace-nowrap">{entry.refNo}</td>
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{entry.category}</td>
+                        <td className="py-3 px-4 text-right font-mono font-bold text-rose-600">
+                          {entry.debit > 0 ? `₹${entry.debit.toLocaleString('en-IN')}` : '—'}
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">
+                          {entry.credit > 0 ? `₹${entry.credit.toLocaleString('en-IN')}` : '—'}
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono font-black text-gray-900 dark:text-white">
+                          ₹{entry.balance.toLocaleString('en-IN')}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-gray-400 italic">
+                        No ledger transactions recorded during this period.
                       </td>
                     </tr>
-                  ))}
+                  )}
+
+                  {/* Closing Summary Row */}
+                  <tr className="bg-slate-100 dark:bg-slate-900 font-black border-t-2 border-slate-300 dark:border-slate-700">
+                    <td colSpan={4} className="py-3 px-4 uppercase text-gray-900 dark:text-white text-xs">
+                      CLOSING LEDGER BALANCE CARRIED FORWARD (C/F)
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono text-rose-600 text-xs">
+                      ₹{ledgerResult.totalDebits.toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono text-emerald-600 text-xs">
+                      ₹{ledgerResult.totalCredits.toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 text-sm">
+                      ₹{ledgerResult.closingBalance.toLocaleString('en-IN')}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -1384,14 +1459,35 @@ export default function FinancePage() {
                     Temple Cash Book (Physical Treasury)
                   </span>
                   <h3 className="text-2xl font-black text-gray-900 dark:text-white mt-0.5">
-                    Closing Cash Balance: ₹{summary.cashInHand.toLocaleString('en-IN')}
+                    Closing Cash Balance: ₹{cashBookResult.closingBalance.toLocaleString('en-IN')}
                   </h3>
+                  <p className="text-xs text-amber-800/80 dark:text-amber-400 mt-1 font-medium">
+                    Opening: ₹{cashBookResult.openingBalance.toLocaleString('en-IN')} • Receipts: +₹{cashBookResult.totalInflows.toLocaleString('en-IN')} • Payments: -₹{cashBookResult.totalOutflows.toLocaleString('en-IN')}
+                  </p>
                 </div>
                 <button
-                  onClick={() => window.print()}
-                  className="px-4 py-2 bg-amber-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow-sm"
+                  onClick={() => setActivePrintReport({
+                    type: 'cash_book',
+                    data: {
+                      orgName: 'Mathaji Ulsooramma Sri Raghavendra Swamy Mutt',
+                      orgSubtitle: 'Vidyaranyapura, Bengaluru - 560097, Karnataka • Ph: 080 4972 3252',
+                      title: 'CASH BOOK (TREASURY CASH IN HAND)',
+                      periodLabel: dateRange.label,
+                      startDate: dateRange.startDate,
+                      endDate: dateRange.endDate,
+                      accountName: 'Cash in Hand (Temple Treasury Vault)',
+                      openingBalance: cashBookResult.openingBalance,
+                      entries: cashBookResult.entries,
+                      totalInflows: cashBookResult.totalInflows,
+                      totalOutflows: cashBookResult.totalOutflows,
+                      closingBalance: cashBookResult.closingBalance,
+                      generatedAt: new Date().toLocaleString('en-IN')
+                    }
+                  })}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md transition-all active:scale-95"
                 >
-                  Print Cash Book
+                  <Printer size={14} />
+                  <span>Print Cash Book</span>
                 </button>
               </div>
 
@@ -1399,27 +1495,67 @@ export default function FinancePage() {
               <div className="bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-gray-50 dark:bg-slate-900 text-gray-500 font-extrabold uppercase border-b border-gray-200 dark:border-slate-700">
+                    <tr className="bg-gray-50 dark:bg-slate-900 text-gray-500 dark:text-gray-400 font-extrabold uppercase border-b border-gray-200 dark:border-slate-700">
                       <th className="py-3 px-4">Date</th>
                       <th className="py-3 px-4">Particulars</th>
-                      <th className="py-3 px-4">Ref No</th>
+                      <th className="py-3 px-4">Voucher / Ref</th>
                       <th className="py-3 px-4 text-right">Cash Outflow (-)</th>
                       <th className="py-3 px-4 text-right">Cash Inflow (+)</th>
+                      <th className="py-3 px-4 text-right">Running Cash Balance</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-slate-700 font-medium">
-                    {transactions.filter(t => t.accountId === 'cash_in_hand').map(txn => {
-                      const isInc = txn.type === 'income' || txn.type === 'donation';
-                      return (
-                        <tr key={txn.id}>
-                          <td className="py-3 px-4 font-mono">{txn.date}</td>
-                          <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">{txn.purpose} ({txn.partyName})</td>
-                          <td className="py-3 px-4 font-mono text-gray-400">{txn.referenceNo || txn.id}</td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-rose-600">{!isInc ? `₹${txn.amount.toLocaleString('en-IN')}` : '—'}</td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">{isInc ? `₹${txn.amount.toLocaleString('en-IN')}` : '—'}</td>
+                    {/* Opening Cash Balance Row */}
+                    <tr className="bg-amber-50/50 dark:bg-amber-950/20 font-bold text-gray-900 dark:text-white">
+                      <td className="py-3 px-4 font-mono">{dateRange.startDate}</td>
+                      <td className="py-3 px-4 uppercase" colSpan={2}>TO OPENING CASH BALANCE BROUGHT FORWARD (B/F)</td>
+                      <td className="py-3 px-4 text-right font-mono text-gray-400">—</td>
+                      <td className="py-3 px-4 text-right font-mono text-gray-400">—</td>
+                      <td className="py-3 px-4 text-right font-mono text-amber-600 dark:text-amber-400 font-black">
+                        ₹{cashBookResult.openingBalance.toLocaleString('en-IN')}
+                      </td>
+                    </tr>
+
+                    {cashBookResult.entries.length > 0 ? (
+                      cashBookResult.entries.map(entry => (
+                        <tr key={entry.id} className="hover:bg-amber-50/30 dark:hover:bg-slate-800/60 transition-colors">
+                          <td className="py-3 px-4 font-mono text-gray-500 dark:text-gray-400">{entry.date}</td>
+                          <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">{entry.particulars}</td>
+                          <td className="py-3 px-4 font-mono text-gray-400">{entry.refNo}</td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-rose-600">
+                            {entry.outflow > 0 ? `₹${entry.outflow.toLocaleString('en-IN')}` : '—'}
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">
+                            {entry.inflow > 0 ? `₹${entry.inflow.toLocaleString('en-IN')}` : '—'}
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-black text-gray-900 dark:text-white">
+                            ₹{entry.balance.toLocaleString('en-IN')}
+                          </td>
                         </tr>
-                      );
-                    })}
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-gray-400 italic">
+                          No cash transactions recorded during this period.
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* Closing Cash Row */}
+                    <tr className="bg-slate-100 dark:bg-slate-900 font-black border-t-2 border-slate-300 dark:border-slate-700">
+                      <td colSpan={3} className="py-3 px-4 uppercase text-gray-900 dark:text-white text-xs">
+                        CLOSING CASH BALANCE CARRIED FORWARD (C/F)
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-rose-600 text-xs">
+                        ₹{cashBookResult.totalOutflows.toLocaleString('en-IN')}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-emerald-600 text-xs">
+                        ₹{cashBookResult.totalInflows.toLocaleString('en-IN')}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-amber-600 dark:text-amber-400 text-sm">
+                        ₹{cashBookResult.closingBalance.toLocaleString('en-IN')}
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -1448,37 +1584,110 @@ export default function FinancePage() {
                 ))}
               </div>
 
-              {/* Bank Book Transactions */}
+              {/* Bank Account Overview Card & Print Button */}
+              <div className="bg-blue-50/80 dark:bg-blue-950/40 p-5 rounded-3xl border border-blue-200 dark:border-blue-800/50 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-blue-800 dark:text-blue-300">
+                    {TEMPLE_BANK_ACCOUNTS.find(a => a.id === selectedBankAccountId)?.name}
+                  </span>
+                  <h3 className="text-2xl font-black text-gray-900 dark:text-white mt-0.5">
+                    Closing Bank Balance: ₹{selectedBankResult.closingBalance.toLocaleString('en-IN')}
+                  </h3>
+                  <p className="text-xs text-blue-800/80 dark:text-blue-400 mt-1 font-medium">
+                    Opening: ₹{selectedBankResult.openingBalance.toLocaleString('en-IN')} • Credits: +₹{selectedBankResult.totalCredits.toLocaleString('en-IN')} • Debits: -₹{selectedBankResult.totalDebits.toLocaleString('en-IN')}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setActivePrintReport({
+                    type: 'ledger',
+                    data: {
+                      orgName: 'Mathaji Ulsooramma Sri Raghavendra Swamy Mutt',
+                      orgSubtitle: 'Vidyaranyapura, Bengaluru - 560097, Karnataka • Ph: 080 4972 3252',
+                      title: `BANK BOOK — ${TEMPLE_BANK_ACCOUNTS.find(a => a.id === selectedBankAccountId)?.bankName.toUpperCase()}`,
+                      periodLabel: dateRange.label,
+                      startDate: dateRange.startDate,
+                      endDate: dateRange.endDate,
+                      accountName: TEMPLE_BANK_ACCOUNTS.find(a => a.id === selectedBankAccountId)?.name || 'Bank Operational A/C',
+                      openingBalance: selectedBankResult.openingBalance,
+                      entries: selectedBankResult.entries,
+                      totalDebits: selectedBankResult.totalDebits,
+                      totalCredits: selectedBankResult.totalCredits,
+                      closingBalance: selectedBankResult.closingBalance,
+                      generatedAt: new Date().toLocaleString('en-IN')
+                    }
+                  })}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md transition-all active:scale-95"
+                >
+                  <Printer size={14} />
+                  <span>Print Bank Book</span>
+                </button>
+              </div>
+
+              {/* Bank Book Transactions Table */}
               <div className="bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-gray-50 dark:bg-slate-900 text-gray-500 font-extrabold uppercase border-b border-gray-200 dark:border-slate-700">
+                    <tr className="bg-gray-50 dark:bg-slate-900 text-gray-500 dark:text-gray-400 font-extrabold uppercase border-b border-gray-200 dark:border-slate-700">
                       <th className="py-3 px-4">Date</th>
                       <th className="py-3 px-4">Particulars</th>
                       <th className="py-3 px-4">UTR / Ref</th>
                       <th className="py-3 px-4 text-right">Debit (-)</th>
                       <th className="py-3 px-4 text-right">Credit (+)</th>
-                      <th className="py-3 px-4 text-center">Status</th>
+                      <th className="py-3 px-4 text-right">Running Balance</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-slate-700 font-medium">
-                    {transactions.filter(t => t.accountId === selectedBankAccountId).map(txn => {
-                      const isInc = txn.type === 'income' || txn.type === 'donation';
-                      return (
-                        <tr key={txn.id}>
-                          <td className="py-3 px-4 font-mono">{txn.date}</td>
-                          <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">{txn.purpose} ({txn.partyName})</td>
-                          <td className="py-3 px-4 font-mono text-gray-400">{txn.referenceNo || txn.id}</td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-rose-600">{!isInc ? `₹${txn.amount.toLocaleString('en-IN')}` : '—'}</td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">{isInc ? `₹${txn.amount.toLocaleString('en-IN')}` : '—'}</td>
-                          <td className="py-3 px-4 text-center">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${txn.isReconciled ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                              {txn.isReconciled ? 'Reconciled ✓' : 'Unreconciled'}
-                            </span>
+                    {/* Opening Bank Balance Row */}
+                    <tr className="bg-blue-50/50 dark:bg-blue-950/20 font-bold text-gray-900 dark:text-white">
+                      <td className="py-3 px-4 font-mono">{dateRange.startDate}</td>
+                      <td className="py-3 px-4 uppercase" colSpan={2}>TO OPENING BANK BALANCE BROUGHT FORWARD (B/F)</td>
+                      <td className="py-3 px-4 text-right font-mono text-gray-400">—</td>
+                      <td className="py-3 px-4 text-right font-mono text-gray-400">—</td>
+                      <td className="py-3 px-4 text-right font-mono text-blue-600 dark:text-blue-400 font-black">
+                        ₹{selectedBankResult.openingBalance.toLocaleString('en-IN')}
+                      </td>
+                    </tr>
+
+                    {selectedBankResult.entries.length > 0 ? (
+                      selectedBankResult.entries.map(entry => (
+                        <tr key={entry.id} className="hover:bg-blue-50/30 dark:hover:bg-slate-800/60 transition-colors">
+                          <td className="py-3 px-4 font-mono text-gray-500 dark:text-gray-400">{entry.date}</td>
+                          <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">{entry.particulars}</td>
+                          <td className="py-3 px-4 font-mono text-gray-400">{entry.refNo}</td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-rose-600">
+                            {entry.debit > 0 ? `₹${entry.debit.toLocaleString('en-IN')}` : '—'}
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">
+                            {entry.credit > 0 ? `₹${entry.credit.toLocaleString('en-IN')}` : '—'}
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-black text-gray-900 dark:text-white">
+                            ₹{entry.balance.toLocaleString('en-IN')}
                           </td>
                         </tr>
-                      );
-                    })}
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-gray-400 italic">
+                          No transactions recorded for this bank account in this period.
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* Closing Bank Row */}
+                    <tr className="bg-slate-100 dark:bg-slate-900 font-black border-t-2 border-slate-300 dark:border-slate-700">
+                      <td colSpan={3} className="py-3 px-4 uppercase text-gray-900 dark:text-white text-xs">
+                        CLOSING BANK BALANCE CARRIED FORWARD (C/F)
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-rose-600 text-xs">
+                        ₹{selectedBankResult.totalDebits.toLocaleString('en-IN')}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-emerald-600 text-xs">
+                        ₹{selectedBankResult.totalCredits.toLocaleString('en-IN')}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-blue-600 dark:text-blue-400 text-sm">
+                        ₹{selectedBankResult.closingBalance.toLocaleString('en-IN')}
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -1724,8 +1933,30 @@ export default function FinancePage() {
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => window.print()}
-                  className="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200 font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer"
+                  onClick={() => setActivePrintReport({
+                    type: 'statement',
+                    data: {
+                      orgName: 'Mathaji Ulsooramma Sri Raghavendra Swamy Mutt',
+                      orgSubtitle: 'Vidyaranyapura, Bengaluru - 560097, Karnataka • Ph: 080 4972 3252',
+                      title: 'STATEMENT OF INCOME & EXPENDITURE',
+                      periodLabel: dateRange.label,
+                      startDate: dateRange.startDate,
+                      endDate: dateRange.endDate,
+                      incomeCategories: formalIncomeAndExp.incomeCategories,
+                      totalIncome: formalIncomeAndExp.totalIncome,
+                      expenseCategories: formalIncomeAndExp.expenseCategories,
+                      totalExpenses: formalIncomeAndExp.totalExpenses,
+                      netSurplus: formalIncomeAndExp.netSurplus,
+                      accountBalances: TEMPLE_BANK_ACCOUNTS.map(a => ({
+                        name: a.name,
+                        type: a.type,
+                        balance: computePeriodOpeningBalance(transactions, a.id, '2099-12-31')
+                      })),
+                      totalReserves: summary.currentBalance,
+                      generatedAt: new Date().toLocaleString('en-IN')
+                    }
+                  })}
+                  className="px-4 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-sm transition-all active:scale-95"
                 >
                   <Printer size={14} />
                   <span>Print Formal Statement</span>
@@ -1748,20 +1979,19 @@ export default function FinancePage() {
                   Expenditure (Outflow)
                 </h4>
                 <div className="space-y-2 text-xs">
-                  {['Maintenance', 'Electricity', 'Water', 'Purchases', 'Annadanam'].map(cat => {
-                    const sum = transactions
-                      .filter(t => t.status === 'approved' && t.category === cat && (t.type === 'expense' || t.type === 'payment'))
-                      .reduce((s, t) => s + t.amount, 0);
-                    return (
-                      <div key={cat} className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800">
-                        <span className="text-gray-600 dark:text-gray-300">To {cat} Expenses</span>
-                        <span className="font-mono font-bold text-gray-900 dark:text-white">₹{sum.toLocaleString('en-IN')}</span>
+                  {formalIncomeAndExp.expenseCategories.length > 0 ? (
+                    formalIncomeAndExp.expenseCategories.map(cat => (
+                      <div key={cat.category} className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800">
+                        <span className="text-gray-600 dark:text-gray-300">To {cat.category} Expenses</span>
+                        <span className="font-mono font-bold text-gray-900 dark:text-white">₹{cat.amount.toLocaleString('en-IN')}</span>
                       </div>
-                    );
-                  })}
+                    ))
+                  ) : (
+                    <p className="text-gray-400 italic py-2 text-center">No expenses in this period.</p>
+                  )}
                   <div className="flex justify-between py-2 font-bold text-rose-600 pt-3 border-t">
                     <span>Total Expenditure:</span>
-                    <span className="font-mono font-black">₹{summary.totalExpenses.toLocaleString('en-IN')}</span>
+                    <span className="font-mono font-black">₹{formalIncomeAndExp.totalExpenses.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
               </div>
@@ -1772,23 +2002,32 @@ export default function FinancePage() {
                   Income (Inflow)
                 </h4>
                 <div className="space-y-2 text-xs">
-                  {['Donations', 'Seva', 'Hundi', 'Annadanam', 'Events'].map(cat => {
-                    const sum = transactions
-                      .filter(t => t.status === 'approved' && t.category === cat && (t.type === 'income' || t.type === 'donation'))
-                      .reduce((s, t) => s + t.amount, 0);
-                    return (
-                      <div key={cat} className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800">
-                        <span className="text-gray-600 dark:text-gray-300">By {cat} Receipts</span>
-                        <span className="font-mono font-bold text-gray-900 dark:text-white">₹{sum.toLocaleString('en-IN')}</span>
+                  {formalIncomeAndExp.incomeCategories.length > 0 ? (
+                    formalIncomeAndExp.incomeCategories.map(cat => (
+                      <div key={cat.category} className="flex justify-between py-1 border-b border-gray-50 dark:border-slate-800">
+                        <span className="text-gray-600 dark:text-gray-300">By {cat.category} Receipts</span>
+                        <span className="font-mono font-bold text-gray-900 dark:text-white">₹{cat.amount.toLocaleString('en-IN')}</span>
                       </div>
-                    );
-                  })}
+                    ))
+                  ) : (
+                    <p className="text-gray-400 italic py-2 text-center">No income in this period.</p>
+                  )}
                   <div className="flex justify-between py-2 font-bold text-emerald-600 pt-3 border-t">
                     <span>Total Income:</span>
-                    <span className="font-mono font-black">₹{summary.totalIncome.toLocaleString('en-IN')}</span>
+                    <span className="font-mono font-black">₹{formalIncomeAndExp.totalIncome.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Net Surplus / Deficit Banner */}
+            <div className="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex justify-between items-center text-xs font-black">
+              <span className="uppercase text-gray-900 dark:text-white">
+                Net Operating Surplus / (Deficit) for {dateRange.label}:
+              </span>
+              <span className={`font-mono text-sm ${formalIncomeAndExp.netSurplus >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}`}>
+                {formalIncomeAndExp.netSurplus >= 0 ? `+₹${formalIncomeAndExp.netSurplus.toLocaleString('en-IN')}` : `-₹${Math.abs(formalIncomeAndExp.netSurplus).toLocaleString('en-IN')}`}
+              </span>
             </div>
           </div>
         </div>
@@ -2374,6 +2613,31 @@ export default function FinancePage() {
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* 🖨️ MODAL: LIVE A4 PRINT DOCUMENT PREVIEW & PRINT ENGINE                  */}
+      {/* ========================================================================= */}
+      {activePrintReport?.type === 'cash_book' && (
+        <PrintCashBookDoc
+          data={activePrintReport.data}
+          onClose={() => setActivePrintReport(null)}
+        />
+      )}
+
+      {activePrintReport?.type === 'ledger' && (
+        <PrintLedgerDoc
+          data={activePrintReport.data}
+          onClose={() => setActivePrintReport(null)}
+        />
+      )}
+
+      {activePrintReport?.type === 'statement' && (
+        <PrintFormalStatementDoc
+          data={activePrintReport.data}
+          onClose={() => setActivePrintReport(null)}
+        />
+      )}
     </div>
   );
 }
+

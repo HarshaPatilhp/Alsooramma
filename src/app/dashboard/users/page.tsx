@@ -996,11 +996,11 @@ export default function UsersPage() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
           {/* EmailJS QR Pass Dispatch Button */}
           <button
             onClick={handleOpenDispatchModal}
-            className="flex items-center gap-2 bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 hover:from-orange-700 hover:to-amber-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-md shadow-orange-600/20 transition-all duration-200 text-sm transform hover:-translate-y-0.5 cursor-pointer"
+            className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 hover:from-orange-700 hover:to-amber-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-md shadow-orange-600/20 transition-all duration-200 text-xs sm:text-sm active:scale-95 cursor-pointer"
           >
             <Mail size={17} />
             <span>Send QR Pass via EmailJS</span>
@@ -1018,7 +1018,7 @@ export default function UsersPage() {
                 setInvitePermissions({ qr_checkin: true, devotees: true, activity_log: true });
                 setShowInviteModal(true);
               }}
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition-all duration-200 text-sm transform hover:-translate-y-0.5 cursor-pointer"
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition-all duration-200 text-xs sm:text-sm active:scale-95 cursor-pointer"
             >
               <UserPlus size={17} />
               <span>Invite Colleague</span>
@@ -1027,11 +1027,11 @@ export default function UsersPage() {
         </div>
       </div>
       {/* Filter Tabs & Selection Toolbar */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-white dark:bg-slate-800/60 p-4 rounded-2xl border border-gray-100 dark:border-slate-700/60">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-white dark:bg-slate-800/60 p-3 sm:p-4 rounded-2xl border border-gray-100 dark:border-slate-700/60">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none w-full lg:w-auto">
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'all'
+            className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${activeTab === 'all'
                 ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
               }`}
@@ -1256,7 +1256,80 @@ export default function UsersPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[750px]">
+                {/* Mobile Scanned Badge Cards (< md) */}
+                <div className="md:hidden divide-y divide-gray-100 dark:divide-slate-700/50">
+                  {filteredScannedVolunteers.map(item => {
+                    const isChecked = selectedScannedIds.includes(item.id);
+                    return (
+                      <div
+                        key={item.id}
+                        className={`p-4 space-y-3 transition-colors ${isChecked
+                            ? 'bg-red-50/50 dark:bg-red-950/20'
+                            : 'hover:bg-amber-50/40 dark:hover:bg-slate-700/30'
+                          }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleSelectScanned(item.id)}
+                              className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer shrink-0"
+                            />
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-extrabold flex items-center justify-center shadow-xs shrink-0">
+                              {item.volunteerName.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-extrabold text-gray-900 dark:text-white text-sm truncate">
+                                {item.volunteerName}
+                              </p>
+                              <span className="text-[10px] font-mono text-gray-400">Pass: {item.booking_id || 'VOL-PASS'}</span>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => handleDeleteSingleScannedPass(item.id, item.volunteerName)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors cursor-pointer shrink-0"
+                            title={`Delete scanned record for ${item.volunteerName}`}
+                            aria-label="Delete pass record"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60 shadow-xs">
+                            <Award size={12} className="text-amber-600 dark:text-amber-400" />
+                            <span>{item.badge}</span>
+                          </span>
+
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-extrabold text-[10px] border border-emerald-200 dark:border-emerald-800/40">
+                            <CheckCircle2 size={11} />
+                            <span>Present</span>
+                          </span>
+                        </div>
+
+                        <div className="bg-gray-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-gray-100 dark:border-slate-800 text-xs space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-400 text-[10px] font-bold uppercase">Seva Duty:</span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200 truncate">{item.sevaDuty}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-gray-400">Scanned At:</span>
+                            <span className="text-gray-600 dark:text-gray-400 font-mono">{item.scannedDate} • {item.scannedTime}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-gray-400">Verified By:</span>
+                            <span className="text-gray-600 dark:text-gray-300">{item.scannedBy}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop Scanned Badge Table (>= md) */}
+                <table className="hidden md:table w-full text-left border-collapse min-w-[750px]">
                   <thead>
                     <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-semibold border-b border-gray-100 dark:border-slate-700/50">
                       <th className="px-4 py-4 w-12 text-center">
@@ -1368,7 +1441,127 @@ export default function UsersPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[750px]">
+              {/* Mobile Personnel Cards (< md) */}
+              <div className="md:hidden divide-y divide-gray-100 dark:divide-slate-700/50">
+                {filteredUsers.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                    <p className="text-sm font-semibold">No records found in this category.</p>
+                    <p className="text-xs text-gray-400 mt-1">Try changing your filter tab or invite new volunteers.</p>
+                  </div>
+                ) : (
+                  filteredUsers.map(u => {
+                    const isRowSuperAdmin = u.role === 'super_admin' || u.email === 'admin@temple.com';
+                    const isSelected = selectedUserIds.includes(u.id);
+                    const activePermCount = u.permissions ? Object.values(u.permissions).filter(Boolean).length : 0;
+
+                    return (
+                      <div
+                        key={u.id || Math.random()}
+                        className={`p-4 space-y-3 transition-colors ${isSelected
+                            ? 'bg-orange-50/70 dark:bg-orange-950/20'
+                            : 'hover:bg-gray-50/80 dark:hover:bg-slate-700/40'
+                          }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelectUser(u.id)}
+                              className="rounded text-orange-600 focus:ring-orange-500 w-4 h-4 cursor-pointer shrink-0"
+                            />
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs text-white shadow-xs shrink-0 ${u.role === 'super_admin' ? 'bg-gradient-to-tr from-amber-500 to-red-500' :
+                                u.role === 'admin' ? 'bg-gradient-to-tr from-blue-600 to-indigo-600' :
+                                  'bg-gradient-to-tr from-orange-500 to-amber-500'
+                              }`}>
+                              {u.name?.charAt(0)?.toUpperCase() || 'U'}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-1.5 truncate">
+                                <span className="truncate">{u.name}</span>
+                                {isRowSuperAdmin && (
+                                  <span className="text-[9px] bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 font-extrabold px-1.5 py-0.5 rounded-full border border-amber-300 dark:border-amber-700 shrink-0">
+                                    Super Admin
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-gray-400 font-mono">ID: {u.id?.slice(0, 10) || 'N/A'}</div>
+                            </div>
+                          </div>
+
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${u.role === 'super_admin'
+                              ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800' :
+                              u.role === 'admin'
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800' :
+                                'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 border border-orange-200 dark:border-orange-800'
+                            }`}>
+                            <Shield size={10} />
+                            <span className="capitalize">{u.role?.replace('_', ' ')}</span>
+                          </span>
+                        </div>
+
+                        <div className="bg-gray-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-gray-100 dark:border-slate-800 text-xs space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-400 text-[11px]">Email:</span>
+                            <span className="font-medium text-gray-800 dark:text-gray-200 truncate">{u.email}</span>
+                          </div>
+                          {u.phone && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-400 text-[11px]">Phone:</span>
+                              <a href={`tel:${u.phone}`} className="text-emerald-600 dark:text-emerald-400 font-mono hover:underline">{u.phone}</a>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between text-[11px] pt-0.5">
+                            <span className="text-gray-400">Permissions:</span>
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">
+                              {u.role === 'super_admin' ? 'Full Access' : `${activePermCount} Enabled`}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Mobile Actions */}
+                        <div className="flex items-center justify-end gap-2 pt-1">
+                          <button
+                            onClick={() => {
+                              setSelectedUserIds([u.id]);
+                              setDispatchResults([]);
+                              setShowEmailDispatchModal(true);
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 rounded-xl text-xs font-bold border border-orange-200/60 dark:border-orange-800/50 active:scale-95 transition-transform"
+                          >
+                            <Mail size={12} />
+                            <span>Send Pass</span>
+                          </button>
+
+                          {!isRowSuperAdmin && isSuperAdmin && (
+                            <button
+                              onClick={() => openManagePermissionsModal(u)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 rounded-xl text-xs font-bold border border-blue-200/60 dark:border-blue-800/50 active:scale-95 transition-transform"
+                            >
+                              <Edit size={12} />
+                              <span>Access</span>
+                            </button>
+                          )}
+
+                          {!isRowSuperAdmin && isSuperAdmin && (
+                            <button
+                              onClick={() => deleteUser(u.id, u.role)}
+                              className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40"
+                              title="Revoke Access"
+                              aria-label="Delete user"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Desktop Personnel Table (>= md) */}
+              <table className="hidden md:table w-full text-left border-collapse min-w-[750px]">
                 <thead>
                   <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-semibold border-b border-gray-100 dark:border-slate-700/50">
                     <th className="px-6 py-4 w-12 text-center">
@@ -1528,32 +1721,33 @@ export default function UsersPage() {
       {/* ========================================================================= */}
       {/* 📧 VOLUNTEER EMAIL & QR BADGE DISPATCH MODAL (EMAILJS & MANUAL GMAIL)       */}
       {showEmailDispatchModal && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden animate-fade-in my-8 border border-orange-200/80 dark:border-slate-700">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-fade-in my-4 sm:my-8 border border-orange-200/80 dark:border-slate-700">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white p-6 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white p-4 sm:p-6 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl shadow-inner">
-                  <Mail size={24} />
+                <div className="p-2.5 sm:p-3 bg-white/20 backdrop-blur-md rounded-2xl shadow-inner shrink-0">
+                  <Mail size={22} />
                 </div>
-                <div>
-                  <h3 className="text-xl font-black leading-tight">
+                <div className="min-w-0">
+                  <h3 className="text-lg sm:text-xl font-black leading-tight truncate">
                     Volunteer QR Duty Pass Dispatch
                   </h3>
-                  <p className="text-xs text-orange-100 mt-0.5">
+                  <p className="text-[11px] sm:text-xs text-orange-100 mt-0.5 truncate">
                     Send high-resolution QR entry passes to {allTargetRecipients.length} volunteer{allTargetRecipients.length === 1 ? '' : 's'} via EmailJS & SMTP
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowEmailDispatchModal(false)}
-                className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/20 transition-colors cursor-pointer"
+                className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/20 transition-colors cursor-pointer shrink-0"
+                aria-label="Close dialog"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto text-left">
+            <div className="p-4 sm:p-6 space-y-5 sm:space-y-6 overflow-y-auto flex-1 text-left">
 
               {/* 🌟 1. MANUAL GMAIL / EMAIL INPUT SECTION */}
               <div className="p-4 rounded-2xl bg-orange-50/80 dark:bg-slate-800/80 border border-orange-200 dark:border-slate-700 space-y-3">

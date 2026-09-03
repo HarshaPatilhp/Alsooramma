@@ -308,21 +308,21 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
             <button 
               onClick={loadData}
               disabled={isRefreshing}
-              className="flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white border border-white/20 backdrop-blur-md px-5 py-2.5 rounded-full font-bold text-xs uppercase tracking-wider transition-all shadow-md disabled:opacity-50 cursor-pointer"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 text-white border border-white/20 backdrop-blur-md px-4 sm:px-5 py-2.5 rounded-full font-bold text-xs uppercase tracking-wider transition-all shadow-md disabled:opacity-50 cursor-pointer active:scale-95"
             >
-              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
-              <span>{isRefreshing ? 'Syncing...' : `Refresh (${lastRefreshed})`}</span>
+              <RefreshCw size={15} className={isRefreshing ? 'animate-spin' : ''} />
+              <span className="truncate">{isRefreshing ? 'Syncing...' : `Refresh (${lastRefreshed})`}</span>
             </button>
 
             <Link 
               href="/dashboard/scanner"
-              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-orange-950 font-extrabold px-6 py-2.5 rounded-full text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:scale-105 transition-all flex items-center gap-2"
+              className="flex-1 sm:flex-none justify-center bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-orange-950 font-extrabold px-5 sm:px-6 py-2.5 rounded-full text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
             >
-              <QrCode size={18} />
+              <QrCode size={16} />
               <span>Quick Scan</span>
             </Link>
           </div>
@@ -330,17 +330,17 @@ export default function DashboardPage() {
       </div>
 
       {/* 🍛 FEATURED CARD: TIRTHA PRASADA (TODAY & NEXT DAY MEAL REGISTRATIONS) */}
-      <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-7 shadow-lg border border-orange-200/80 dark:border-slate-700/80 relative overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 sm:p-7 shadow-lg border border-orange-200/80 dark:border-slate-700/80 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600" />
         
         {/* Card Header & Date Switcher */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20 shrink-0">
               <Utensils className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-xl font-black text-gray-900 dark:text-white">
                   Tirtha Prasada
                 </h3>
@@ -355,10 +355,10 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick Date Switcher Controls */}
-          <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-900 p-1.5 rounded-2xl border border-gray-200 dark:border-slate-700">
+          <div className="flex flex-wrap items-center gap-2 bg-gray-50 dark:bg-slate-900 p-1.5 rounded-2xl border border-gray-200 dark:border-slate-700 w-full lg:w-auto">
             <button
               onClick={() => setSelectedLunchDate(todayStr)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`flex-1 sm:flex-none px-3 py-1.5 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer text-center ${
                 selectedLunchDate === todayStr 
                   ? 'bg-orange-600 text-white shadow-xs' 
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
@@ -368,16 +368,16 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setSelectedLunchDate(tomorrowStr)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`flex-1 sm:flex-none px-3 py-1.5 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer text-center ${
                 selectedLunchDate === tomorrowStr 
                   ? 'bg-orange-600 text-white shadow-xs' 
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
               }`}
             >
-              Next Day (Tomorrow)
+              Tomorrow
             </button>
-            <div className="flex items-center gap-1.5 pl-2 border-l border-gray-200 dark:border-slate-700">
-              <Calendar size={14} className="text-orange-500" />
+            <div className="flex items-center gap-1.5 pl-2 border-l border-gray-200 dark:border-slate-700 ml-auto sm:ml-0">
+              <Calendar size={14} className="text-orange-500 shrink-0" />
               <input
                 type="date"
                 value={selectedLunchDate}
@@ -551,7 +551,42 @@ export default function DashboardPage() {
               />
             </div>
 
-            <div className="overflow-x-auto max-h-60 overflow-y-auto rounded-2xl border border-gray-100 dark:border-slate-700">
+            {/* Mobile Devotee Lunch Cards (< md) */}
+            <div className="md:hidden space-y-2 max-h-72 overflow-y-auto">
+              {filteredLunchList.length > 0 ? (
+                filteredLunchList.map((row: any, idx: number) => (
+                  <div key={idx} className="p-3 bg-gray-50/80 dark:bg-slate-900/60 rounded-xl border border-gray-100 dark:border-slate-800 space-y-1.5 text-xs">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-bold text-gray-900 dark:text-white">
+                          {row.devoteeName}
+                          {row.gotra && <span className="text-[10px] text-gray-400 font-normal ml-1">({row.gotra})</span>}
+                        </p>
+                        <p className="text-[11px] text-gray-500">{row.phone}</p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase shrink-0 ${
+                        row.status === 'Completed' 
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                      }`}>
+                        {row.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] pt-1 border-t border-gray-100 dark:border-slate-800">
+                      <span className="text-gray-600 dark:text-gray-400 font-medium truncate">{row.sevaName}</span>
+                      <span className="font-extrabold text-orange-600 dark:text-orange-400 shrink-0 ml-2">{row.mealTokens} Tokens</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-6 text-center text-gray-400 text-xs bg-gray-50/50 dark:bg-slate-900/30 rounded-xl">
+                  No specific lunch bookings found for {selectedLunchDate}.
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Devotee Lunch Table (>= md) */}
+            <div className="hidden md:block overflow-x-auto max-h-60 overflow-y-auto rounded-2xl border border-gray-100 dark:border-slate-700">
               <table className="w-full text-left text-xs">
                 <thead className="bg-gray-50 dark:bg-slate-900 text-gray-500 font-bold uppercase tracking-wider text-[10px]">
                   <tr>
@@ -807,29 +842,29 @@ export default function DashboardPage() {
                 return true;
               })
               .map((checkin) => (
-              <div key={checkin.id} className="p-5 hover:bg-orange-50/50 dark:hover:bg-slate-800/80 transition-colors flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-white font-black text-lg flex items-center justify-center shadow-md">
+              <div key={checkin.id} className="p-4 sm:p-5 hover:bg-orange-50/50 dark:hover:bg-slate-800/80 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-white font-black text-base sm:text-lg flex items-center justify-center shadow-md shrink-0">
                     {checkin.name ? checkin.name.charAt(0).toUpperCase() : 'D'}
                   </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 dark:text-white text-base">{checkin.name}</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-orange-500" />
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base truncate">{checkin.name}</h4>
+                    <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      <Clock className="w-3 h-3 text-orange-500 shrink-0" />
                       <span>{checkin.time}</span>
                       <span>•</span>
-                      <span className="font-medium text-gray-700 dark:text-gray-300">{checkin.seva}</span>
+                      <span className="font-medium text-gray-700 dark:text-gray-300 truncate">{checkin.seva}</span>
                     </p>
                   </div>
                 </div>
 
-                <div>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider shadow-xs ${
+                <div className="self-end sm:self-auto shrink-0">
+                  <span className={`inline-flex items-center px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider shadow-xs ${
                     checkin.status === 'Completed' || checkin.status === 'Verified'
                       ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
                       : 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300 border border-orange-200 dark:border-orange-800'
                   }`}>
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                    <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
                     {checkin.status}
                   </span>
                 </div>

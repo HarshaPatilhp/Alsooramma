@@ -228,3 +228,131 @@ body {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-800/40;
   }
 }
+
+/* ========================================================================= */
+/* 🖨️ A4 ACCOUNTING PRINT STYLES                                             */
+/* ========================================================================= */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm 15mm 12mm;
+  }
+
+  /* Hide all dashboard UI, sidebars, headers, buttons, and navigation */
+  nav,
+  header,
+  aside,
+  .sidebar,
+  .no-print,
+  button,
+  [role="navigation"],
+  .fixed:not(#printable-cash-book):not(#printable-ledger):not(#printable-statement):not(:has(#printable-cash-book)):not(:has(#printable-ledger)):not(:has(#printable-statement)) {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 10.5pt !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* Printable container resets */
+  #printable-cash-book,
+  #printable-ledger,
+  #printable-statement {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Force parent wrappers of the modal to not hide printable content */
+  div:has(> #printable-cash-book),
+  div:has(> #printable-ledger),
+  div:has(> #printable-statement) {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Table print optimization: repeating thead and clean page breaks */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+  }
+
+  /* Dark mode overrides for print */
+  .dark,
+  .dark body,
+  .dark #printable-cash-book,
+  .dark #printable-ledger,
+  .dark #printable-statement {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  .dark .bg-slate-900 {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+  }
+
+  .dark .bg-slate-100 {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+  }
+
+  .dark .bg-slate-50 {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
+  }
+
+  .dark .bg-amber-50,
+  .dark .bg-amber-50\/60 {
+    background-color: #fffbeb !important;
+    color: #78350f !important;
+  }
+
+  .dark .bg-emerald-50,
+  .dark .bg-emerald-50\/50 {
+    background-color: #ecfdf5 !important;
+    color: #064e3b !important;
+  }
+
+  .dark .text-slate-900,
+  .dark .text-slate-950,
+  .dark .text-slate-800,
+  .dark .text-slate-700 {
+    color: #0f172a !important;
+  }
+
+  .dark .text-slate-500,
+  .dark .text-slate-400 {
+    color: #64748b !important;
+  }
+
+  .dark .border-slate-200,
+  .dark .border-slate-300 {
+    border-color: #cbd5e1 !important;
+  }
+}

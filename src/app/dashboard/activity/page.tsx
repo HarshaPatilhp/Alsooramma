@@ -100,26 +100,26 @@ export default function ActivityLogPage() {
     <div className="space-y-6 animate-fade-in pb-12">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Activity Log</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Audit trail of all actions and check-ins within the system.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Activity Log</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-0.5">Audit trail of all actions and check-ins within the system.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
            <div className="relative">
              <button 
                onClick={() => setShowFilterMenu(!showFilterMenu)}
-               className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium cursor-pointer"
+               className="flex items-center gap-2 px-3.5 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-xs sm:text-sm font-medium cursor-pointer"
              >
-               <Filter size={16} /> 
-               {filterType === 'all' ? 'All Activity' : filterType === 'check_in' ? 'Check-ins' : filterType === 'seva_completed' ? 'Seva Completed' : 'System Alerts'}
+               <Filter size={15} /> 
+               <span>{filterType === 'all' ? 'All Activity' : filterType === 'check_in' ? 'Check-ins' : filterType === 'seva_completed' ? 'Seva Completed' : 'System Alerts'}</span>
              </button>
              
              {showFilterMenu && (
-               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 z-10 py-1">
+               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 z-10 py-1">
                  {['all', 'check_in', 'seva_completed', 'system_alert'].map((type) => (
                    <button
                      key={type}
                      onClick={() => { setFilterType(type as any); setShowFilterMenu(false); }}
-                     className={`block w-full text-left px-4 py-2 text-sm cursor-pointer ${filterType === type ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                     className={`block w-full text-left px-4 py-2 text-xs cursor-pointer ${filterType === type ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
                    >
                      {type === 'all' ? 'All Activity' : type === 'check_in' ? 'Check-ins' : type === 'seva_completed' ? 'Seva Completed' : 'System Alerts'}
                    </button>
@@ -129,26 +129,26 @@ export default function ActivityLogPage() {
            </div>
            <button 
              onClick={exportToCSV}
-             className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors cursor-pointer"
+             className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-medium shadow-sm transition-colors cursor-pointer active:scale-95"
            >
              Export CSV
            </button>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700/50 overflow-hidden">
         {/* Timeline */}
-        <div className="p-6">
-          <div className="relative border-l-2 border-gray-100 dark:border-slate-700/50 ml-4 md:ml-6 space-y-8 pl-8 md:pl-10 before:hidden">
+        <div className="p-4 sm:p-6">
+          <div className="relative border-l-2 border-gray-100 dark:border-slate-700/50 ml-3 sm:ml-6 space-y-6 sm:space-y-8 pl-6 sm:pl-10 before:hidden">
             
             {filteredActivities.slice(0, visibleCount).map((activity, index) => (
               <div key={activity.id} className="relative group">
                 {/* Connector dot */}
-                <div className={`absolute -left-[45px] md:-left-[52px] top-1 h-10 w-10 rounded-full border-4 border-white dark:border-slate-800 flex items-center justify-center shadow-sm z-10 transition-transform group-hover:scale-110 ${getTypeStyle(activity.type)}`}>
+                <div className={`absolute -left-[35px] sm:-left-[52px] top-1 h-8 w-8 sm:h-10 sm:w-10 rounded-full border-3 sm:border-4 border-white dark:border-slate-800 flex items-center justify-center shadow-sm z-10 transition-transform group-hover:scale-110 ${getTypeStyle(activity.type)}`}>
                   {getTypeIcon(activity.type)}
                 </div>
 
-                <div className="bg-gray-50 dark:bg-slate-800/50 rounded-xl p-5 border border-gray-100 dark:border-slate-700/50 shadow-sm group-hover:shadow-md transition-shadow">
+                <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-4 sm:p-5 border border-gray-100 dark:border-slate-700/50 shadow-sm group-hover:shadow-md transition-shadow">
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-2 mb-2">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white">{activity.title}</h3>
                     <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 flex items-center gap-1.5 whitespace-nowrap">

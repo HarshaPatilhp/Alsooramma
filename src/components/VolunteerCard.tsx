@@ -151,34 +151,35 @@ export default function VolunteerCard({
 
       {/* Profile Detail Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100 dark:border-slate-800 relative animate-slide-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-gray-100 dark:border-slate-800 relative animate-slide-up">
             <button 
               onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition-colors"
+              className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 active:scale-95 transition-all cursor-pointer"
+              aria-label="Close details"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="bg-gradient-to-br from-orange-600 via-amber-600 to-orange-800 p-6 text-white text-center relative">
-              <div className="w-24 h-24 rounded-full bg-white/20 p-1 mx-auto mb-3 backdrop-blur-md shadow-xl">
+            <div className="bg-gradient-to-br from-orange-600 via-amber-600 to-orange-800 p-5 sm:p-6 text-white text-center relative shrink-0">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/20 p-1 mx-auto mb-2 backdrop-blur-md shadow-xl">
                 {!imageError ? (
                   <img src={imageSrc} alt={alt} className="w-full h-full rounded-full object-cover" />
                 ) : (
-                  <div className="w-full h-full rounded-full bg-amber-400 text-orange-950 font-black text-3xl flex items-center justify-center">
+                  <div className="w-full h-full rounded-full bg-amber-400 text-orange-950 font-black text-2xl sm:text-3xl flex items-center justify-center">
                     {getInitials(name)}
                   </div>
                 )}
               </div>
-              <h3 className="text-2xl font-extrabold">{name}</h3>
-              <p className="text-amber-200 text-xs font-bold uppercase tracking-widest mt-1">{role}</p>
-              <span className="inline-flex items-center gap-1 mt-3 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold">
+              <h3 className="text-xl sm:text-2xl font-extrabold">{name}</h3>
+              <p className="text-amber-200 text-xs font-bold uppercase tracking-widest mt-0.5">{role}</p>
+              <span className="inline-flex items-center gap-1 mt-2 bg-white/20 backdrop-blur-md px-3 py-0.5 rounded-full text-xs font-semibold">
                 <CheckCircle2 className="w-3.5 h-3.5 text-amber-300" />
                 {status}
               </span>
             </div>
 
-            <div className="p-6 space-y-5 text-gray-700 dark:text-gray-300">
+            <div className="p-5 sm:p-6 space-y-4 sm:space-y-5 text-gray-700 dark:text-gray-300 overflow-y-auto flex-1">
               <div>
                 <h5 className="text-xs font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400 mb-1">About Swayamsevak</h5>
                 <p className="text-sm leading-relaxed">{description}</p>
